@@ -88,6 +88,14 @@ async def lifespan(app: FastAPI):  # type: ignore[no-untyped-def]
                 break
             except Exception:
                 continue
+    # Push initial metrics to Prometheus gauges
+    try:
+        from pitwall.monitoring.metrics import set_pace_metrics
+
+        if model_metrics:
+            set_pace_metrics(model_metrics, model_version=model_version)
+    except Exception:
+        pass
     yield
 
 
@@ -100,6 +108,26 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+# --- Prometheus HTTP middleware (V3) ---
+@app.middleware("http")
+async def prometheus_http_middleware(request, call_next):  # type: ignore[no-untyped-def]
+    import time
+
+    start = time.perf_counter()
+    response = await call_next(request)
+    duration = time.perf_counter() - start
+    try:
+        from pitwall.monitoring.metrics import observe_http
+
+        # endpoint without query
+        endpoint = request.url.path
+        observe_http(request.method, endpoint, response.status_code, duration)
+        # also record generic request duration histogram via observe_http
+    except Exception:
+        pass
+    return response
 
 
 @app.get("/health")
@@ -139,17 +167,15 @@ async def get_pace_predictions() -> list[dict[str, Any]]:
     """Return current pace predictions for all drivers in state — uses quantile model if available."""
     if not race_state.drivers:
         return []
+    import time
+
+    t0 = time.perf_counter()
     # Try batch quantile prediction
     try:
         if quantile_model is not None:
             drivers = list(race_state.drivers.values())
-            # Map driver_number -> position etc; _build_batch_features expects DriverStateSim-like with tyre_age etc.
-            # Our RaceState.DriverState has similar fields: tyre_age, compound, stint_no, lap?
-            # Build ad-hoc Polars DF via helper
-            # need to convert RaceState drivers to sim-like
             sim_like = []
             for ds in drivers:
-                # create minimal ns object with needed attrs
                 class _D:
                     pass
 
@@ -161,7 +187,6 @@ async def get_pace_predictions() -> list[dict[str, Any]]:
                 d.position = getattr(ds, "position", 0) or 0
                 d.gap_to_leader_s = getattr(ds, "gap_to_leader_s", 0) or 0
                 sim_like.append(d)
-            # Build batch manually to reuse quantile_model._prepare etc.
 
             from pitwall.simulation.engine import _build_batch_features as _bb
 
@@ -180,6 +205,12 @@ async def get_pace_predictions() -> list[dict[str, Any]]:
                         model_version=model_version,
                     ).model_dump()
                 )
+            try:
+                from pitwall.monitoring.metrics import observe_inference
+
+                observe_inference("pace-quantile", "champion", time.perf_counter() - t0)
+            except Exception:
+                pass
             return preds
     except Exception:
         pass
@@ -349,6 +380,94 @@ async def registry_promotion() -> dict[str, Any]:
         }
     except Exception as e:
         return {"error": str(e), "model_version": model_version}
+
+
+@app.get("/monitoring/drift")
+async def monitoring_drift() -> dict[str, Any]:
+    """Evidently drift on last 3 vs first 3 races (3-race window)."""
+    try:
+        from pitwall.monitoring.drift import drift_on_window
+        import polars as pl
+        from pathlib import Path
+
+        # Try to load gold from recent training smoke (if exists) else synthetic fallback
+        gold_path = Path("artifacts/v2_shap_test")
+        # For demo, reconstruct synthetic gold as in train
+        # Attempt to load silver then build gold, else return no_data
+        silver_root = Path("data/silver")
+        files = list((silver_root / "laps").rglob("*.parquet")) if (silver_root / "laps").exists() else []
+        if files:
+            silver = pl.read_parquet(files)
+            from pitwall.features.pace import build_pace_features
+
+            gold = build_pace_features(silver)
+        else:
+            # synthetic small gold for drift demo
+            import numpy as np
+
+            np.random.seed(0)
+            rows = []
+            for s in range(6):
+                for d in [1, 44]:
+                    for lap in range(1, 10):
+                        rows.append(
+                            {
+                                "session_id": f"2024_R{s}",
+                                "driver_number": d,
+                                "lap_number": lap,
+                                "lap_time_s": 90 + np.random.normal(0, 1),
+                                "compound": "MEDIUM",
+                                "tyre_age": lap % 5,
+                                "stint_no": 1,
+                                "position": 1,
+                                "is_valid_training_lap": True,
+                                "rolling_median_5": 90.0,
+                                "rolling_std_5": 0.5,
+                                "track_temp_c": 37.0,
+                                "race_progress": lap / 10,
+                            }
+                        )
+            silver = pl.DataFrame(rows)
+            from pitwall.features.pace import build_pace_features
+
+            gold = build_pace_features(silver)
+
+        # Use pace feature cols for drift
+        drift_res = drift_on_window(gold, n_reference_races=2, n_current_races=2)
+        # push to gauges
+        try:
+            from pitwall.monitoring.metrics import set_drift_metrics
+
+            set_drift_metrics(drift_res)
+        except Exception:
+            pass
+        return {"drift": drift_res, "model_version": model_version, "timestamp": datetime.now(UTC).isoformat()}
+    except Exception as e:
+        return {"error": str(e), "model_version": model_version}
+
+
+@app.get("/monitoring/overview")
+async def monitoring_overview() -> dict[str, Any]:
+    """Aggregated health for Grafana + frontend monitoring page."""
+    # Reuse drift and promotion
+    drift = {}
+    try:
+        drift = (await monitoring_drift()).get("drift", {})
+    except Exception:
+        pass
+    promo = {}
+    try:
+        promo = await registry_promotion()
+    except Exception:
+        pass
+    return {
+        "model_version": model_version,
+        "metrics": model_metrics,
+        "drift_ratio": drift.get("drift_ratio", 0.0),
+        "drifted_features": drift.get("drifted_features", []),
+        "promotion_passed": promo.get("gate_result", {}).get("passed"),
+        "timestamp": datetime.now(UTC).isoformat(),
+    }
 
 
 @app.post("/simulate")

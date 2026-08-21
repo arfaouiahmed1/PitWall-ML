@@ -24,3 +24,21 @@ groups:
         for: 10m
         labels: { severity: warning }
         annotations: { summary: "Pace MAE >20% above reference" }
+
+      - alert: DriftingFeaturesHigh
+        expr: drifting_features_ratio > 0.2
+        for: 5m
+        labels: { severity: warning }
+        annotations: { summary: " >20% features drifting (Evidently 3-race window)" }
+
+      - alert: IntervalCoverageLow
+        expr: pace_interval_coverage < 0.75 or pace_interval_coverage > 0.85
+        for: 10m
+        labels: { severity: warning }
+        annotations: { summary: "80% interval coverage outside 75-85% (miscalibrated)" }
+
+      - alert: PitAucRegression
+        expr: pit_auc < 0.65
+        for: 10m
+        labels: { severity: warning }
+        annotations: { summary: "Pit AUC <0.65 — hazard model degraded" }
