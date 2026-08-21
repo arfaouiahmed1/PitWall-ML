@@ -15,7 +15,19 @@ except ImportError:
 
 
 def get_tracking_uri() -> str:
+    # Prefer env, else http://localhost:5000, but allow file fallback for CI/smoke without server
+    uri = os.getenv("MLFLOW_TRACKING_URI")
+    if uri:
+        return uri
+    # check if localhost reachable? For now return default http; log_pace_run will fallback to file on failure
     return os.getenv("MLFLOW_TRACKING_URI", "http://localhost:5000")
+
+
+def get_fallback_uri() -> str:
+    # local file store under project root ./mlruns (relative to cwd) or ./artifacts/mlruns
+    # Use absolute path to avoid cwd drift
+    fallback = Path.cwd() / "mlruns"
+    return f"file:{fallback}"
 
 
 def ensure_experiment(name: str) -> str:
@@ -39,14 +51,26 @@ def log_pace_run(
 ) -> str:
     if mlflow is None:
         raise ImportError("mlflow required")
-    mlflow.set_tracking_uri(get_tracking_uri())
-    mlflow.set_experiment(experiment)
-    with mlflow.start_run() as run:
-        mlflow.log_params(params)
-        mlflow.log_metrics({k: float(v) for k, v in metrics.items() if isinstance(v, (int, float))})
-        if artifacts and artifacts.exists():
-            mlflow.log_artifacts(str(artifacts))
-        return run.info.run_id  # type: ignore[no-any-return]
+    # Try primary URI, fallback to local file store if http unreachable
+    uris_to_try = [get_tracking_uri(), get_fallback_uri()]
+    last_err: Exception | None = None
+    for uri in uris_to_try:
+        try:
+            mlflow.set_tracking_uri(uri)
+            # ensure experiment exists (will create if needed)
+            mlflow.set_experiment(experiment)
+            with mlflow.start_run() as run:
+                mlflow.log_params(params)
+                mlflow.log_metrics(
+                    {k: float(v) for k, v in metrics.items() if isinstance(v, (int, float))}
+                )
+                if artifacts and artifacts.exists():
+                    mlflow.log_artifacts(str(artifacts))
+                return run.info.run_id  # type: ignore[no-any-return]
+        except Exception as e:
+            last_err = e
+            continue
+    raise RuntimeError(f"MLflow logging failed for all URIs {uris_to_try}: {last_err}")
 
 
 def register_model(run_id: str, model_name: str, alias: str = "champion") -> int:

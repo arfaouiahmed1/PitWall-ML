@@ -121,18 +121,21 @@ Tyre Model ─────────┤
 Pit Hazard Model ───┘
 ```
 
-### Pace predictor — current V1
+### Pace predictor — V2 (quantile)
 
-- **Target:** `next_clean_lap_s` (next lap time; pit-in/out, SC, VSC, red-flag laps excluded)
-- **Features:** tyre_age, compound, stint_no, position, gaps, rolling_median_3/5, rolling_std_5, race_progress, track_temp etc.
-- **Baselines:** last-lap, rolling-3/5 median, team/session median
-- **Primary:** LightGBM regression; quantile variant (q10/q50/q90) via `objective: quantile`
-- **Evaluation:** chronological race holdout (never random lap split), segmented by circuit/driver/compound/regulation_era
-- **Metrics:** MAE, RMSE, pinball loss, interval coverage, mean width, p95 latency
+- **Target:** `next_clean_lap_s` (shifted -1 per driver/session, leakage-safe)
+- **Features:** `tyre_age`, `tyre_age_sq`, `stint_no`, `lap_number`, `position`, `rolling_median_3/5`, `rolling_std_5`, `race_progress`, `compound`, `track_temp` (`src/pitwall/features/pace.py:1`)
+- **Baselines:** `LastLapBaseline`, `RollingMedianBaseline(3)` (`src/pitwall/models/pace/baseline.py:1`)
+- **Primary:** `PaceLightGBM` (regression) + `QuantileLightGBM` (`alpha 0.1/0.5/0.9`, `objective: quantile`, monotone sort) (`src/pitwall/models/pace/lightgbm_model.py:153`)
+- **Training:** `pipelines/train.py:1` — chronological `train/val/test` (3/1/2 races), categoricals as `category`, `early_stopping_rounds`, saves `model/`, `model_quantile/`, `metrics.json` (`p95_ms 8.3`, `per_compound`)
+- **Evaluation:** `evaluate_pace` (`mae`, `rmse`, `pinball_q10/q50/q90`, `coverage_80`, `mean_width`) (`src/pitwall/evaluation/metrics.py:1`)
 
-### Coming in V2
+### Tyre & Pit — V2
 
-Tyre degradation proxy, pit discrete hazard (logistic → LightGBM → Cox/RSF via scikit-survival), Monte Carlo simulator (5–20k runs), SHAP TreeExplainer.
+- **Tyre:** `build_tyre_features` → `tyre_deg_s = lap_time - rolling_median_5` (`src/pitwall/features/tyre.py:1`), `TyreLightGBM` (`src/pitwall/models/tyre/lightgbm_tyre.py:1`) — synthetic `deg = 0.07·age + 0.004·age²` (×1.3 SOFT ×0.75 HARD), MAE 0.445s
+- **Pit hazard:** `build_pit_features` → `pit_in_next_3` (`src/pitwall/features/pit.py:1`), `PitHazardLightGBM` (`objective: binary`, `scale_pos_weight`, AUC 1.00, logloss 6.7e-06) (`src/pitwall/models/pit/lightgbm_pit.py:1`)
+- **Simulator:** `simulate_race` batch `n×laps_remaining` (q10/q50/q90 → σ=width/2.563, `pit_loss 22s`, compound cycle) (`src/pitwall/simulation/engine.py:1`) — 200 sims/10 laps ~49s batch, API `POST /simulate` & `/predictions/tyre|pit`
+- **Explain:** `compute_shap_summary` (`shap.TreeExplainer` + gain fallback, `artifacts/*/shap_summary.json`) (`src/pitwall/explain/shap_utils.py:1`) → `apps/web/app/models/page.tsx:1`
 
 ## MLOps lifecycle
 
@@ -204,8 +207,8 @@ Set `NEXT_PUBLIC_API_URL` / `NEXT_PUBLIC_WS_URL` in `deploy-pages.yml` env to po
 ## Roadmap
 
 - [x] **V1 Weekend MVP** — ingestion, silver/gold, LightGBM pace + baselines, temporal eval, replay engine, FastAPI+WS, Next.js race screen, Docker, CI
-- [ ] **V2 ML depth** — quantiles, tyre, pit hazard, simulation, MLflow registry, SHAP
-- [ ] **V3 Production-like** — Prometheus/Grafana, Evidently, champion/challenger, shadow, retraining CI, Render/Vercel thin demo, optional OpenF1 MQTT live
+- [x] **V2 ML depth** — quantiles (q10/q50/q90 LightGBM, `coverage_80 0.64` vs 0.35 heur, `mean_width 1.09s`, `p95 8.3ms`), tyre degradation (`tyre-v2` MAE 0.445s, `tyre_age`+`tyre_age_sq`), pit hazard (`pit-v2` AUC 1.00 logloss 6.7e-06, `pit_in_next_3`), Monte Carlo simulator (batch 200 sims/10 laps ~49s, `simulate_race` + `/simulate`), MLflow registry + promotion gates (`configs/promotion.yaml:1`, `shadow_races.yaml:1`, `p95_ms` + `per_compound`), SHAP TreeExplainer (`artifacts/*/shap_summary.json` + `apps/web/app/models/page.tsx:1`)
+- [ ] **V3 Production-like** — Prometheus/Grafana dashboards, Evidently drift (DataDriftPreset), champion/challenger shadow replay, retraining CI (real FastF1 ingest), Render/Vercel thin demo, optional OpenF1 MQTT live
 - [ ] **V4 Advanced** — Feast, Prefect, Redis Streams/Redpanda, Terraform
 
 ## Repository hygiene
