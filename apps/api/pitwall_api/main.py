@@ -176,6 +176,7 @@ async def get_pace_predictions() -> list[dict[str, Any]]:
             drivers = list(race_state.drivers.values())
             sim_like = []
             for ds in drivers:
+
                 class _D:
                     pass
 
@@ -395,7 +396,11 @@ async def monitoring_drift() -> dict[str, Any]:
         # For demo, reconstruct synthetic gold as in train
         # Attempt to load silver then build gold, else return no_data
         silver_root = Path("data/silver")
-        files = list((silver_root / "laps").rglob("*.parquet")) if (silver_root / "laps").exists() else []
+        files = (
+            list((silver_root / "laps").rglob("*.parquet"))
+            if (silver_root / "laps").exists()
+            else []
+        )
         if files:
             silver = pl.read_parquet(files)
             from pitwall.features.pace import build_pace_features
@@ -441,7 +446,11 @@ async def monitoring_drift() -> dict[str, Any]:
             set_drift_metrics(drift_res)
         except Exception:
             pass
-        return {"drift": drift_res, "model_version": model_version, "timestamp": datetime.now(UTC).isoformat()}
+        return {
+            "drift": drift_res,
+            "model_version": model_version,
+            "timestamp": datetime.now(UTC).isoformat(),
+        }
     except Exception as e:
         return {"error": str(e), "model_version": model_version}
 

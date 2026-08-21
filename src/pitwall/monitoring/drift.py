@@ -7,7 +7,9 @@ from typing import Any
 import polars as pl
 
 
-def _ks_fallback(reference: pl.DataFrame, current: pl.DataFrame, cols: list[str], threshold: float = 0.05) -> dict[str, Any]:
+def _ks_fallback(
+    reference: pl.DataFrame, current: pl.DataFrame, cols: list[str], threshold: float = 0.05
+) -> dict[str, Any]:
     """Simple KS test fallback per column."""
     try:
         from scipy.stats import ks_2samp  # type: ignore
@@ -61,7 +63,11 @@ def _ks_fallback(reference: pl.DataFrame, current: pl.DataFrame, cols: list[str]
                 continue
             stat, pval = ks_2samp(ref_f, cur_f)
             is_drift = pval < threshold
-            per_feature[c] = {"p_value": float(pval), "statistic": float(stat), "drifted": bool(is_drift)}
+            per_feature[c] = {
+                "p_value": float(pval),
+                "statistic": float(stat),
+                "drifted": bool(is_drift),
+            }
             if is_drift:
                 drifted += 1
         except Exception:
@@ -118,7 +124,10 @@ def detect_drift(
                 drift_ratio = drift_metric.get("share_of_drifted_columns", 0.0)
                 per_feat = {}
                 for col, details in drift_metric.get("drift_by_columns", {}).items():
-                    per_feat[col] = {"drifted": bool(details.get("drift_detected")), "p_value": details.get("p_value")}
+                    per_feat[col] = {
+                        "drifted": bool(details.get("drift_detected")),
+                        "p_value": details.get("p_value"),
+                    }
                 return {
                     "method": "evidently_DataDriftPreset",
                     "drift_ratio": float(drift_ratio),
@@ -146,7 +155,14 @@ def detect_drift(
             # new format: metrics[0].result.dataset_drift etc.
             drift = res["metrics"][0]["result"].get("dataset_drift", False)
             ratio = 1.0 if drift else 0.0
-            return {"method": "evidently_DatasetDriftMetric", "drift_ratio": float(ratio), "per_feature": {}, "drifted_features": [], "threshold": threshold, "raw": res}
+            return {
+                "method": "evidently_DatasetDriftMetric",
+                "drift_ratio": float(ratio),
+                "per_feature": {},
+                "drifted_features": [],
+                "threshold": threshold,
+                "raw": res,
+            }
         except Exception:
             pass
     except Exception:

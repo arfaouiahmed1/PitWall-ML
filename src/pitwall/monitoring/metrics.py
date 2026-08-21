@@ -53,13 +53,21 @@ def observe_inference(model: str, alias: str, duration_s: float) -> None:
 def set_pace_metrics(metrics: dict[str, Any], model_version: str = "champion") -> None:
     try:
         if "mae" in metrics:
-            pace_mae_seconds.labels(model_version=model_version, alias="champion").set(float(metrics["mae"]))
+            pace_mae_seconds.labels(model_version=model_version, alias="champion").set(
+                float(metrics["mae"])
+            )
         if "rmse" in metrics:
-            pace_rmse_seconds.labels(model_version=model_version, alias="champion").set(float(metrics["rmse"]))
+            pace_rmse_seconds.labels(model_version=model_version, alias="champion").set(
+                float(metrics["rmse"])
+            )
         if "coverage_80" in metrics:
-            pace_interval_coverage.labels(model_version=model_version).set(float(metrics["coverage_80"]))
+            pace_interval_coverage.labels(model_version=model_version).set(
+                float(metrics["coverage_80"])
+            )
         if "mean_width" in metrics:
-            pace_mean_width_seconds.labels(model_version=model_version).set(float(metrics["mean_width"]))
+            pace_mean_width_seconds.labels(model_version=model_version).set(
+                float(metrics["mean_width"])
+            )
         if "p95_ms" in metrics:
             model_p95_ms.labels(model_version=model_version).set(float(metrics["p95_ms"]))
         if "tyre_mae" in metrics and metrics["tyre_mae"] is not None:
@@ -72,7 +80,9 @@ def set_pace_metrics(metrics: dict[str, Any], model_version: str = "champion") -
 
 def set_drift_metrics(drift_result: dict[str, Any]) -> None:
     try:
-        ratio = drift_result.get("drift_ratio") or drift_result.get("drifting_features_ratio") or 0.0
+        ratio = (
+            drift_result.get("drift_ratio") or drift_result.get("drifting_features_ratio") or 0.0
+        )
         drifting_features_ratio.set(float(ratio))
         miss = drift_result.get("missing_ratio", 0.0)
         missing_feature_ratio.set(float(miss))
@@ -80,7 +90,15 @@ def set_drift_metrics(drift_result: dict[str, Any]) -> None:
         for feat, is_drift in per_feat.items():
             try:
                 # is_drift may be bool or dict
-                val = 1.0 if (is_drift is True or (isinstance(is_drift, dict) and is_drift.get("drifted"))) else float(is_drift) if isinstance(is_drift, (int, float)) else 0.0
+                val = (
+                    1.0
+                    if (
+                        is_drift is True or (isinstance(is_drift, dict) and is_drift.get("drifted"))
+                    )
+                    else float(is_drift)
+                    if isinstance(is_drift, (int, float))
+                    else 0.0
+                )
                 feature_drift_details.labels(feature=str(feat)).set(val)
             except Exception:
                 continue
