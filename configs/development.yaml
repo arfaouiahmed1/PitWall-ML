@@ -1,0 +1,23 @@
+extends: base.yaml
+
+data:
+  max_rows: 50000  # cap for fast dev iteration
+
+training:
+  test_races: 2
+  validation_races: 1
+
+models:
+  pace:
+    params:
+      n_estimators: 100
+      learning_rate: 0.1
+      num_leaves: 15
+
+mlflow:
+  tracking_uri: http://localhost:5000
+  experiment: pitwall-pace-dev
+  registry_model: pitwall-pace
+
+logging:
+  level: DEBUG

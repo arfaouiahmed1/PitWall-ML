@@ -1,0 +1,26 @@
+extends: base.yaml
+
+training:
+  test_races: 4
+  validation_races: 2
+
+models:
+  pace:
+    params:
+      n_estimators: 1000
+      learning_rate: 0.03
+      num_leaves: 63
+      feature_fraction: 0.8
+      bagging_fraction: 0.8
+      bagging_freq: 5
+      reg_alpha: 0.1
+      reg_lambda: 0.1
+
+mlflow:
+  tracking_uri: ${MLFLOW_TRACKING_URI}
+  experiment: pitwall-pace-prod
+  registry_model: pitwall-pace
+
+monitoring:
+  drift_reference_window: 5  # races
+  alert_on_coverage_deviation: 0.05

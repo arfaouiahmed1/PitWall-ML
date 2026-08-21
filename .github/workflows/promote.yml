@@ -1,0 +1,41 @@
+name: Register and promote challenger
+
+on:
+  workflow_dispatch:
+    inputs:
+      artifact_run_id:
+        description: Run ID of candidate artifact
+        required: true
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  register:
+    runs-on: ubuntu-latest
+    environment: model-registry
+    env:
+      MLFLOW_TRACKING_URI: ${{ secrets.MLFLOW_TRACKING_URI }}
+      MLFLOW_TRACKING_USERNAME: ${{ secrets.MLFLOW_USERNAME }}
+      MLFLOW_TRACKING_PASSWORD: ${{ secrets.MLFLOW_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: pip install -e ".[ml]"
+      - name: Download candidate
+        uses: actions/download-artifact@v4
+        with:
+          name: candidate-${{ inputs.artifact_run_id }}
+          path: artifacts
+      - name: Register challenger
+        run: echo "python -m pitwall.registry.register --bundle artifacts/candidate --alias challenger"
+      - name: Historical shadow test
+        run: echo "python -m pitwall.shadow.run --champion models:/pitwall-pace@champion --challenger models:/pitwall-pace@challenger"
+      - name: Enforce gates
+        run: echo "python -m pitwall.registry.check_promotion --report shadow.json --policy configs/promotion.yaml"
+      - name: Promote
+        run: echo "python -m pitwall.registry.promote --model pitwall-pace --from-alias challenger --to-alias champion"

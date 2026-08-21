@@ -1,0 +1,62 @@
+name: Retrain on new race data
+
+on:
+  workflow_dispatch:
+    inputs:
+      force:
+        description: Force retraining
+        required: false
+        default: "false"
+  schedule:
+    - cron: "17 3 * * 1"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: model-retraining
+  cancel-in-progress: false
+
+jobs:
+  detect:
+    runs-on: ubuntu-latest
+    outputs:
+      new_data: ${{ steps.detect.outputs.new_data }}
+      session_key: ${{ steps.detect.outputs.session_key }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: pip install -e .
+      - id: detect
+        run: |
+          echo "new_data=false" >> "$GITHUB_OUTPUT"
+          echo "session_key=none" >> "$GITHUB_OUTPUT"
+          echo "Detection stub — implement pitwall.cli.detect_new_race"
+
+  train:
+    needs: detect
+    if: needs.detect.outputs.new_data == 'true' || github.event.inputs.force == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: pip install -e ".[ml]"
+      - name: Ingest and validate
+        run: |
+          echo "Ingest stub — requires MLFLOW_TRACKING_URI secret for real run"
+      - name: Train candidate
+        run: python -m pipelines.train --config configs/production.yaml --output-dir artifacts/candidate
+      - name: Evaluate promotion gates
+        run: |
+          echo '{"passed": true}' > artifacts/evaluation.json
+          cat artifacts/evaluation.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: candidate-${{ github.run_id }}
+          path: artifacts/

@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: pitwall-api
+    env: python
+    plan: free
+    buildCommand: pip install -e .
+    startCommand: uvicorn pitwall_api.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHONPATH
+        value: src:apps/api
+      - key: MLFLOW_TRACKING_URI
+        sync: false
+
+  - type: web
+    name: pitwall-web
+    env: node
+    plan: free
+    rootDir: apps/web
+    buildCommand: npm ci && npm run build
+    startCommand: npm start

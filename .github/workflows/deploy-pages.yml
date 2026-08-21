@@ -1,0 +1,76 @@
+name: Deploy Frontend to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "apps/web/**"
+      - ".github/workflows/deploy-pages.yml"
+  workflow_dispatch:
+  # Also run after CI succeeds on PR merge (optional)
+  # push is enough; CI validates separately.
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/web
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+        with:
+          static_site_generator: next
+
+      - name: Install deps
+        run: npm ci || npm install
+
+      - name: Build static export
+        run: npm run build
+        env:
+          STATIC_EXPORT: "true"
+          GITHUB_PAGES: "true"
+          # Optional: point the static demo at your hosted API (Render/Fly) or leave empty for demo data.
+          # NEXT_PUBLIC_API_URL: https://your-api.onrender.com
+          # NEXT_PUBLIC_WS_URL: wss://your-api.onrender.com
+          # NEXT_PUBLIC_BASE_PATH is auto-derived from GITHUB_REPOSITORY in next.config.js; override only for custom domain.
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_SHA: ${{ github.sha }}
+
+      - name: Add .nojekyll
+        run: touch out/.nojekyll
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: apps/web/out
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

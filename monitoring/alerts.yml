@@ -1,0 +1,26 @@
+groups:
+  - name: pitwall
+    rules:
+      - alert: HighInferenceLatency
+        expr: histogram_quantile(0.95, rate(inference_duration_seconds_bucket[5m])) > 0.1
+        for: 5m
+        labels: { severity: warning }
+        annotations: { summary: "API p95 inference >100ms" }
+
+      - alert: EventProcessingLag
+        expr: event_processing_lag_seconds > 5
+        for: 2m
+        labels: { severity: critical }
+        annotations: { summary: "Event processing lag >5s — live mode degraded" }
+
+      - alert: FeatureStale
+        expr: feature_freshness_seconds > 10
+        for: 5m
+        labels: { severity: warning }
+        annotations: { summary: "Feature freshness >10s" }
+
+      - alert: PaceMAERegression
+        expr: pace_mae_seconds > 0.52
+        for: 10m
+        labels: { severity: warning }
+        annotations: { summary: "Pace MAE >20% above reference" }

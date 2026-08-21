@@ -1,0 +1,22 @@
+# races used for shadow replay evaluation (held-out, never in training)
+# each entry: season, event name as used by FastF1, session R
+shadow_races:
+  - season: 2024
+    event: "Bahrain Grand Prix"
+    session: R
+  - season: 2024
+    event: "Spanish Grand Prix"
+    session: R
+  - season: 2024
+    event: "Monza"
+    session: R
+  - season: 2025
+    event: "Monaco Grand Prix"
+    session: R
+  - season: 2025
+    event: "British Grand Prix"
+    session: R
+
+shadow:
+  metrics: [mae, rmse, coverage_80, pinball_q10, pinball_q50, pinball_q90]
+  min_races: 3

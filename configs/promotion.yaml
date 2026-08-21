@@ -1,0 +1,30 @@
+# configs/promotion.yaml — promotion gates for champion/challenger
+pace:
+  primary_metric: mae_seconds
+  min_relative_improvement: 0.02   # challenger must be >=2% better
+  max_group_regression: 0.10       # no subgroup >10% worse
+  latency:
+    p95_ms_max: 100
+  interval:
+    nominal_coverage: 0.80
+    coverage_tolerance: 0.05
+  required_checks:
+    - schema
+    - no_leakage
+    - temporal_backtest
+    - feature_contract
+    - artifact_integrity
+
+pit_hazard:
+  primary_metric: brier_score
+  min_relative_improvement: 0.02
+  max_group_regression: 0.10
+  required_checks:
+    - schema
+    - calibration
+    - temporal_backtest
+
+tyre:
+  primary_metric: mae_seconds
+  min_relative_improvement: 0.02
+  max_group_regression: 0.10

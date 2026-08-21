@@ -1,0 +1,52 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+.env
+*.egg-info/
+dist/
+build/
+artifacts/*
+!artifacts/.gitkeep
+artifacts/smoke/
+artifacts/candidate/
+
+# Data - never commit raw data (but keep .gitkeep so empty dirs are tracked)
+data/bronze/*
+!data/bronze/.gitkeep
+data/silver/*
+!data/silver/.gitkeep
+data/gold/*
+!data/gold/.gitkeep
+data/*.parquet
+mlartifacts/
+mlruns/
+*.parquet
+*.db
+
+# Node
+node_modules/
+.next/
+out/
+dist/
+apps/web/.next/
+apps/web/node_modules/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# Secrets
+.env.local
+secrets/
+
+# Logs
+logs/
+*.log
