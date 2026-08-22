@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { COMPOUND_NAMES, DRIVER_FALLBACK, lastName, readableTextColor, useDrivers, type DriverInfo } from "@/lib/drivers";
+import { useRaceSim, type SimSpeed } from "@/lib/raceSim";
 
 type DriverRow = {
   driver_number: number;
@@ -22,21 +23,35 @@ const DRIVERS: DriverRow[] = [
   { driver_number: 44, position: 5, gap: "+12.03", tyre: "H", tyreAge: 8, lastLap: "1:19.22", forecast: "1:19.18 ± .31", interval: "12%", pitProb: 12 },
 ];
 
+const SPEEDS: SimSpeed[] = ["1x", "5x", "20x", "MAX"];
+
 export default function RacePage() {
-  const [speed, setSpeed] = useState("20x");
+  const [speed, setSpeed] = useState<SimSpeed>("20x");
+  const [paused, setPaused] = useState(false);
   const [connected, setConnected] = useState(false);
-  const [lap, setLap] = useState(31);
+  const [wsLap, setWsLap] = useState(31);
   const [events, setEvents] = useState<any[]>([]);
   const wsRef = useRef<WebSocket | null>(null);
   const drivers = useDrivers();
 
-  const leaderRow = DRIVERS[0];
+  // Client-side simulator owns the page until a real backend stream connects.
+  const sim = useRaceSim(speed, !connected && !paused);
+
+  const rows: DriverRow[] = connected ? DRIVERS : sim.entries;
+  const lap = connected ? wsLap : sim.lap;
+
+  const leaderRow = rows[0];
   const leader: DriverInfo =
     drivers[leaderRow.driver_number] ?? DRIVER_FALLBACK[leaderRow.driver_number];
 
-  const connect = (s: string) => {
+  // Silent best-effort WS attach — only when a backend URL is baked in at build
+  // time. Never blocks or errors in the hosted demo: connect() is a no-op there
+  // and the simulator keeps the race moving.
+  const connect = (s: SimSpeed) => {
+    const configured = process.env.NEXT_PUBLIC_WS_URL;
+    if (!configured) return;
     const proto = location.protocol === "https:" ? "wss" : "ws";
-    const host = process.env.NEXT_PUBLIC_WS_URL?.replace(/^wss?:\/\//, "") || "localhost:8000";
+    const host = configured.replace(/^wss?:\/\//, "");
     const url = `${proto}://${host}/ws/race?speed=${s}`;
     const ws = new WebSocket(url);
     ws.onopen = () => setConnected(true);
@@ -46,7 +61,7 @@ export default function RacePage() {
         const msg = JSON.parse(e.data);
         if (msg.type === "race_update") {
           setEvents((prev) => [msg, ...prev].slice(0, 50));
-          if (msg.race_state?.lap) setLap(msg.race_state.lap);
+          if (msg.race_state?.lap) setWsLap(msg.race_state.lap);
         }
       } catch {}
     };
@@ -60,28 +75,32 @@ export default function RacePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const changeSpeed = (s: string) => {
+  const changeSpeed = (s: SimSpeed) => {
     setSpeed(s);
-    wsRef.current?.close();
     connect(s);
   };
 
   return (
     <div className="space-y-6">
+      {/* Honesty banner */}
+      <div className="bg-[#f59e0b]/10 text-[#fbbf24] border border-[#f59e0b]/20 rounded px-3 py-1.5 text-xs">
+        SIMULATED DEMO — this replay is generated client-side. Run the local stack to stream real model predictions.
+      </div>
+
       {/* Header bar */}
       <div className="card p-4 flex flex-wrap items-center justify-between gap-4">
         <div>
           <div className="text-xs tracking-widest text-[#8b9bb4]">SPANISH GP • CIRCUIT DE BARCELONA-CATALUNYA</div>
           <div className="flex items-center gap-3 mt-1">
-            <span className="text-2xl font-black mono">LAP {lap} / 66</span>
-            <span className={`text-xs px-2 py-1 rounded-full border ${connected ? "bg-[#00d084]/10 text-[#00d084] border-[#00d084]/30" : "bg-[#ff3b30]/10 text-[#ff3b30] border-[#ff3b30]/30"}`}>
-              {connected ? "● REPLAY ACTIVE" : "○ DISCONNECTED"}
+            <span className="text-2xl font-black mono">LAP {lap} / {sim.totalLaps}</span>
+            <span className={`text-xs px-2 py-1 rounded-full border ${connected ? "bg-[#00d084]/10 text-[#00d084] border-[#00d084]/30" : paused ? "bg-[#1e2a3a] text-[#8b9bb4] border-[#243447]" : "bg-[#f59e0b]/10 text-[#fbbf24] border-[#f59e0b]/30"}`}>
+              {connected ? "● REPLAY ACTIVE" : paused ? "○ PAUSED" : "● SIM RUNNING"}
             </span>
             <span className="text-xs text-[#8b9bb4]">Model: pace-v13 @champion</span>
           </div>
         </div>
         <div className="flex items-center gap-2">
-          {["1x", "5x", "20x", "MAX"].map((s) => (
+          {SPEEDS.map((s) => (
             <button
               key={s}
               onClick={() => changeSpeed(s)}
@@ -90,10 +109,10 @@ export default function RacePage() {
               {s}
             </button>
           ))}
-          <button onClick={() => wsRef.current?.close()} className="ml-2 text-xs text-[#8b9bb4] hover:text-white">
+          <button onClick={() => { setPaused(true); wsRef.current?.close(); }} className="ml-2 text-xs text-[#8b9bb4] hover:text-white">
             Pause
           </button>
-          <button onClick={() => connect(speed)} className="text-xs text-[#8b9bb4] hover:text-white">
+          <button onClick={() => { setPaused(false); connect(speed); }} className="text-xs text-[#8b9bb4] hover:text-white">
             Resume
           </button>
         </div>
@@ -121,6 +140,12 @@ export default function RacePage() {
           <h2 className="font-black tracking-tight">RACE LEADERBOARD — LIVE PREDICTIONS</h2>
           <span className="text-xs text-[#8b9bb4]">q10–q50–q90 pace forecast • Pit hazard ≤3 laps</span>
         </div>
+        <div className="mx-4 mb-3 rounded bg-[#0a0e14] border border-[#1e2a3a] px-3 py-2 text-xs text-[#8b9bb4]">
+          You&apos;re watching a simulated race replay driven by the same prediction engine that runs on real F1 timing. Numbers update every tick.
+        </div>
+        <div className="px-4 pb-2 text-[10px] text-[#5a6b84]">
+          PACE FORECAST = predicted next lap ±80% band · PIT ≤3L = chance of pitting within 3 laps · TYRE AGE = laps on current set
+        </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="text-[10px] tracking-widest text-[#8b9bb4] border-y border-[#1e2a3a] bg-[#0f141c]">
@@ -134,7 +159,7 @@ export default function RacePage() {
               </tr>
             </thead>
             <tbody className="mono text-xs">
-              {DRIVERS.map((d) => {
+              {rows.map((d) => {
                 const info: DriverInfo = drivers[d.driver_number] ?? DRIVER_FALLBACK[d.driver_number];
                 return (
                   <tr key={d.driver_number} className="border-b border-[#1e2a3a]/60 hover:bg-[#0f141c] cursor-pointer">
@@ -217,7 +242,7 @@ export default function RacePage() {
             <div className="bg-[#0a0e14] rounded p-3 border border-[#1e2a3a]">
               <div className="text-[10px] tracking-widest text-[#8b9bb4]">TYRE — {COMPOUND_NAMES[leaderRow.tyre] ?? leaderRow.tyre}</div>
               <div className="mono font-bold mt-1">Age {leaderRow.tyreAge} laps</div>
-              <div className="text-[10px] text-[#ffb020]">Degradation +0.08 s/lap</div>
+              <div className="text-[10px] text-[#ffb020]">Degradation +0.05 s/lap</div>
             </div>
             <div className="bg-[#0a0e14] rounded p-3 border border-[#1e2a3a]">
               <div className="text-[10px] tracking-widest text-[#8b9bb4]">PIT HAZARD</div>
@@ -232,13 +257,27 @@ export default function RacePage() {
         <div className="card p-4">
           <h3 className="font-bold text-xs tracking-widest text-[#8b9bb4]">LIVE EVENT FEED</h3>
           <div className="mt-3 space-y-2 max-h-[320px] overflow-auto mono text-[11px]">
-            {events.length === 0 ? <div className="text-[#5a6b84] text-xs">Awaiting replay events... Click 20x to start. If API is offline, UI shows demo data.</div> : events.slice(0, 12).map((e, i) => (
-              <div key={i} className="flex gap-2 py-1 border-b border-[#1e2a3a]/40">
-                <span className="text-[#00d084]">{e.event?.driver_number ?? "--"}</span>
-                <span className="text-[#8b9bb4]">{e.event?.event_type}</span>
-                <span className="ml-auto text-[#5a6b84]">{e.prediction ? `${e.prediction.q50}s` : ""}</span>
-              </div>
-            ))}
+            {connected ? (
+              events.length === 0 ? <div className="text-[#5a6b84] text-xs">Connected to live replay — waiting for events...</div> : events.slice(0, 12).map((e, i) => (
+                <div key={i} className="flex gap-2 py-1 border-b border-[#1e2a3a]/40">
+                  <span className="text-[#00d084]">{e.event?.driver_number ?? "--"}</span>
+                  <span className="text-[#8b9bb4]">{e.event?.event_type}</span>
+                  <span className="ml-auto text-[#5a6b84]">{e.prediction ? `${e.prediction.q50}s` : ""}</span>
+                </div>
+              ))
+            ) : sim.feed.length === 0 ? (
+              <div className="text-[#5a6b84] text-xs">Simulation paused — press Resume.</div>
+            ) : (
+              sim.feed.slice(0, 12).map((f) => {
+                const [head, ...rest] = f.text.split(" · ");
+                return (
+                  <div key={f.id} className="flex gap-2 py-1 border-b border-[#1e2a3a]/40">
+                    <span className="text-[#00d084] shrink-0">{head}</span>
+                    <span className="text-[#8b9bb4]">{rest.join(" · ")}</span>
+                  </div>
+                );
+              })
+            )}
           </div>
         </div>
       </div>

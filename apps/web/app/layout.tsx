@@ -24,7 +24,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               <a href={href("/")} className="hover:text-white text-[#8b9bb4]">Race</a>
               <a href={href("/models")} className="hover:text-white text-[#8b9bb4]">Models</a>
               <a href={href("/monitoring")} className="hover:text-white text-[#8b9bb4]">Monitoring</a>
-              <span className="flex items-center gap-2 text-xs"><span className="w-2 h-2 rounded-full bg-[#00d084] animate-pulse" />LIVE REPLAY</span>
+              <span className="flex items-center gap-2 text-xs text-[#fbbf24]"><span className="w-2 h-2 rounded-full bg-[#f59e0b]" />DEMO MODE</span>
             </div>
           </div>
         </nav>

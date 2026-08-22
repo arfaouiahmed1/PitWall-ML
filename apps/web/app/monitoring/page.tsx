@@ -48,7 +48,10 @@ export default function MonitoringPage() {
     <div className="space-y-6">
       <div className="card p-6">
         <div className="flex items-center justify-between">
-          <h1 className="text-xl font-black tracking-tight">MODEL HEALTH — {data.model_version.toUpperCase()}</h1>
+          <div>
+            <h1 className="text-xl font-black tracking-tight">PACE MODEL — V2 QUANTILE</h1>
+            <div className="mono text-[10px] text-[#5a6b84] mt-1">registry version: {data.model_version}</div>
+          </div>
           <span className={`text-[10px] px-2 py-1 rounded-full border ${live ? "bg-[#00d084]/15 text-[#00d084] border-[#00d084]/30" : "bg-[#1e2a3a] text-[#8b9bb4] border-[#243447]"}`}>
             {live ? "LIVE • /monitoring/overview" : "DEMO • fallback"}
           </span>
@@ -88,11 +91,13 @@ export default function MonitoringPage() {
             <div className="text-[#8b9bb4]">Prometheus</div>
             <div className="font-bold">http://localhost:9090</div>
             <div className="text-[#5a6b84]">targets: api:8000/metrics (5s), alerts.yml</div>
+            <div className="text-[#fbbf24]/90 mt-1">Part of the local Docker stack — not reachable from this hosted demo.</div>
           </a>
           <a href="http://localhost:3001" target="_blank" className="rounded bg-[#0a0e14] border border-[#1e2a3a] p-3 hover:border-[#ff3b30]/30">
             <div className="text-[#8b9bb4]">Grafana</div>
             <div className="font-bold">http://localhost:3001 (admin/pitwall)</div>
             <div className="text-[#5a6b84]">dashboard pitwall-v3 (9 panels) • datasource Prometheus</div>
+            <div className="text-[#fbbf24]/90 mt-1">Part of the local Docker stack — not reachable from this hosted demo.</div>
           </a>
         </div>
         <div className="mt-3 text-[11px] text-[#5a6b84]">Run `docker compose --profile monitoring up --build` — Grafana provisioned via monitoring/grafana/datasources + dashboards/pitwall.json</div>
