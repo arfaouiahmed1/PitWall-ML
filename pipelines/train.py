@@ -59,7 +59,8 @@ def main() -> None:
         else list(silver_root.rglob("*.parquet"))
     )
     if not files:
-        # Create synthetic data for smoke test if no real data — inject realistic tyre degradation signal
+        # Create synthetic data for smoke test if no real data —
+        # inject realistic tyre degradation signal
         print("No silver data found — generating synthetic data for smoke test (with tyre deg)")
         import numpy as np
 
@@ -121,7 +122,8 @@ def main() -> None:
         splits = {"train": sessions[:-2], "validation": [sessions[-2]], "test": [sessions[-1]]}
 
     print(
-        f"Splits: train={len(splits['train'])} val={len(splits['validation'])} test={len(splits['test'])}"
+        f"Splits: train={len(splits['train'])} "
+        f"val={len(splits['validation'])} test={len(splits['test'])}"
     )
 
     train_df = apply_split(gold, splits["train"]).filter(
@@ -145,7 +147,8 @@ def main() -> None:
     )
 
     print(
-        f"Train {len(train_df)} Valid {len(valid_df) if valid_df is not None else 0} Test {len(test_df)}"
+        f"Train {len(train_df)} "
+        f"Valid {len(valid_df) if valid_df is not None else 0} Test {len(test_df)}"
     )
 
     feature_cols = get_feature_columns(gold)
@@ -170,7 +173,8 @@ def main() -> None:
             from pitwall.evaluation.metrics import mae, rmse
 
             print(
-                f"Baseline {name}: MAE={mae(y_test[:n], pred[:n]):.3f} RMSE={rmse(y_test[:n], pred[:n]):.3f}"
+                f"Baseline {name}: MAE={mae(y_test[:n], pred[:n]):.3f} "
+                f"RMSE={rmse(y_test[:n], pred[:n]):.3f}"
             )
 
     # LightGBM point + quantile (V2)
@@ -201,7 +205,8 @@ def main() -> None:
     t0 = time.perf_counter()
     preds = model.predict(test_df)
     p95_ms = (time.perf_counter() - t0) / max(len(test_df), 1) * 1000
-    # more accurate per-row p95: time batch then estimate; for V2 we report p95 per prediction * 100 (simulated single)
+    # more accurate per-row p95: time batch then estimate;
+    # for V2 we report p95 per prediction * 100 (simulated single)
     # Actually measure 100 single-row predicts for p95
     lat_samples = []
     for _ in range(100):
@@ -292,7 +297,8 @@ def main() -> None:
                 else pl.lit(True)
             )
             print(
-                f"Tyre rows Train {len(tyre_train)} Valid {len(tyre_valid) if tyre_valid is not None else 0} Test {len(tyre_test)}"
+                f"Tyre rows Train {len(tyre_train)} "
+                f"Valid {len(tyre_valid) if tyre_valid is not None else 0} Test {len(tyre_test)}"
             )
             tyre_cat = [
                 c for c in ["compound", "circuit_id", "regulation_era"] if c in tyre_feature_cols
@@ -366,7 +372,8 @@ def main() -> None:
                 else pl.lit(True)
             )
             print(
-                f"Pit rows Train {len(pit_train)} Valid {len(pit_valid) if pit_valid is not None else 0} Test {len(pit_test)}"
+                f"Pit rows Train {len(pit_train)} "
+                f"Valid {len(pit_valid) if pit_valid is not None else 0} Test {len(pit_test)}"
             )
             pit_cat = [
                 c for c in ["compound", "circuit_id", "regulation_era"] if c in pit_feature_cols
@@ -394,7 +401,8 @@ def main() -> None:
                 pit_pos_rate = float((y_pit == 1).mean()) if len(y_pit) else 0.0
                 pit_pred_mean = float(p_pit.mean()) if len(p_pit) else 0.0
                 print(
-                    f"Pit model — AUC={pit_auc:.3f} logloss={pit_ll:.3f} pos_rate={pit_pos_rate:.3f} pred_mean={pit_pred_mean:.3f}"
+                    f"Pit model — AUC={pit_auc:.3f} logloss={pit_ll:.3f} "
+                    f"pos_rate={pit_pos_rate:.3f} pred_mean={pit_pred_mean:.3f}"
                 )
                 metrics["pit_auc"] = pit_auc
                 metrics["pit_logloss"] = pit_ll

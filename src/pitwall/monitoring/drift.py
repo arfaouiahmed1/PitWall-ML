@@ -109,8 +109,8 @@ def detect_drift(
 
         # Try modern evidently API (v0.4+)
         try:
-            from evidently.report import Report  # type: ignore
             from evidently.metric_preset import DataDriftPreset  # type: ignore
+            from evidently.report import Report  # type: ignore
 
             ref_pd = reference.select(columns).to_pandas()
             cur_pd = current.select(columns).to_pandas()

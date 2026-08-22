@@ -1,6 +1,7 @@
 """Tyre degradation — pace degradation proxy (V2).
 
-Target: degradation delta = lap_time_s - rolling_median_5 (or session median if rolling unavailable).
+Target: degradation delta = lap_time_s - rolling_median_5
+(or session median if rolling unavailable).
 Captures tyre-age effect per compound, isolated from track evolution.
 
 Features are point-in-time (shift(1) rolling), no leakage: row t predicts degradation at lap t.

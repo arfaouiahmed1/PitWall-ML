@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import os
 from pathlib import Path
 from typing import Any
@@ -19,7 +20,8 @@ def get_tracking_uri() -> str:
     uri = os.getenv("MLFLOW_TRACKING_URI")
     if uri:
         return uri
-    # check if localhost reachable? For now return default http; log_pace_run will fallback to file on failure
+    # check if localhost reachable? For now return default http;
+    # log_pace_run will fallback to file on failure
     return os.getenv("MLFLOW_TRACKING_URI", "http://localhost:5000")
 
 
@@ -35,10 +37,7 @@ def ensure_experiment(name: str) -> str:
         raise ImportError("mlflow not installed")
     mlflow.set_tracking_uri(get_tracking_uri())
     exp = mlflow.get_experiment_by_name(name)
-    if exp is None:
-        exp_id = mlflow.create_experiment(name)
-    else:
-        exp_id = exp.experiment_id
+    exp_id = mlflow.create_experiment(name) if exp is None else exp.experiment_id
     mlflow.set_experiment(name)
     return exp_id
 
@@ -80,10 +79,8 @@ def register_model(run_id: str, model_name: str, alias: str = "champion") -> int
     client = MlflowClient()
     mv = mlflow.register_model(f"runs:/{run_id}/model", model_name)
     # set alias
-    try:
+    with contextlib.suppress(Exception):
         client.set_registered_model_alias(model_name, alias, str(mv.version))
-    except Exception:
-        pass
     return int(mv.version)
 
 

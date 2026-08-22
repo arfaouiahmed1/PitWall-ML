@@ -26,8 +26,9 @@ def build_pace_features(
 ) -> pl.DataFrame:
     """Build Gold pace training table with point-in-time features.
 
-    Target: next_clean_lap_s (shifted -1 per driver/session, not leaking current lap target into features)
-    Only valid training laps are kept; invalid laps remain as context for rolling but target is computed.
+    Target: next_clean_lap_s (shifted -1 per driver/session, not leaking
+    the current lap target into features). Only valid training laps are kept;
+    invalid laps remain as context for rolling but target is computed.
     """
     if silver_laps.is_empty():
         return silver_laps

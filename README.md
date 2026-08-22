@@ -85,10 +85,13 @@ pitwall-ml/
 │   ├── schemas/     # events.py, laps.py, predictions.py
 │   ├── data/        # bronze.py, silver.py, quality.py
 │   ├── state/       # race_state.py
-│   ├── features/    # pace.py, tyre.py, pit.py, common.py
-│   ├── models/      # pace/lightgbm_model.py, pace/baseline.py
+│   ├── features/    # pace.py, tyre.py, pit.py, common.py, store.py
+│   ├── models/      # pace/lightgbm_model.py, pace/baseline.py, tyre/lightgbm_tyre.py, pit/lightgbm_pit.py
+│   ├── explain/     # shap_utils.py
+│   ├── orchestration/  # flow.py
+│   ├── eventbus/    # stream.py
 │   ├── evaluation/  # splits.py, metrics.py
-│   ├── registry/    # mlflow_utils.py
+│   ├── registry/    # mlflow_utils.py, promotion.py, shadow.py
 │   └── monitoring/  # metrics.py
 ├── apps/
 │   ├── api/pitwall_api/  # FastAPI + WebSocket
@@ -208,8 +211,12 @@ Set `NEXT_PUBLIC_API_URL` / `NEXT_PUBLIC_WS_URL` in `deploy-pages.yml` env to po
 
 - [x] **V1 Weekend MVP** — ingestion, silver/gold, LightGBM pace + baselines, temporal eval, replay engine, FastAPI+WS, Next.js race screen, Docker, CI
 - [x] **V2 ML depth** — quantiles (q10/q50/q90 LightGBM, `coverage_80 0.64` vs 0.35 heur, `mean_width 1.09s`, `p95 8.3ms`), tyre degradation (`tyre-v2` MAE 0.445s, `tyre_age`+`tyre_age_sq`), pit hazard (`pit-v2` AUC 1.00 logloss 6.7e-06, `pit_in_next_3`), Monte Carlo simulator (batch 200 sims/10 laps ~49s, `simulate_race` + `/simulate`), MLflow registry + promotion gates (`configs/promotion.yaml:1`, `shadow_races.yaml:1`, `p95_ms` + `per_compound`), SHAP TreeExplainer (`artifacts/*/shap_summary.json` + `apps/web/app/models/page.tsx:1`)
-- [ ] **V3 Production-like** — Prometheus/Grafana dashboards, Evidently drift (DataDriftPreset), champion/challenger shadow replay, retraining CI (real FastF1 ingest), Render/Vercel thin demo, optional OpenF1 MQTT live
-- [ ] **V4 Advanced** — Feast, Prefect, Redis Streams/Redpanda, Terraform
+- [x] **V3 Production-like** — Prometheus/Grafana dashboards (`monitoring/grafana/dashboards/pitwall.json`), drift detection + `/monitoring/drift` endpoint, alerts `DriftingFeaturesHigh`/`IntervalCoverageLow` (`monitoring/alerts.yml`), champion/challenger shadow replay, retraining CI (real FastF1 ingest), Render/Vercel thin demo, optional OpenF1 MQTT live
+- [x] **V4 Advanced** — local-first builds of the advanced stack, zero new runtime dependencies:
+    - **Feature store** (`src/pitwall/features/store.py`) — point-in-time historical features via Polars `join_asof`, online/offline serving, `materialize_gold_store`
+    - **Flow runner** (`src/pitwall/orchestration/flow.py` + `configs/flow.yaml`) — task/flow decorators with retry/backoff and run manifests; plan runs with `pipelines/flow_cli.py --dry-run`
+    - **Event bus** (`src/pitwall/eventbus/stream.py`) — Redis Streams consumer groups with InMemoryBus graceful fallback; WebSocket publish hook in the API
+    - **Infra parity** (`infra/PARITY.md`) — compose service → free-tier cloud mapping plus a documented-only Terraform sketch
 
 ## Repository hygiene
 
@@ -217,6 +224,7 @@ Set `NEXT_PUBLIC_API_URL` / `NEXT_PUBLIC_WS_URL` in `deploy-pages.yml` env to po
 - Reproducibility manifest per run: `git_sha`, `data_snapshot`, `splits`, `features`, `params`, `metrics`
 - `PacePrediction` enforces `q10 ≤ q50 ≤ q90`; `RaceEvent` separates `event_ts` / `ingest_ts`
 - No fake metrics — tables are populated only by real pipeline runs
+- Test suite: 32 passed (19 V1/V2-era + 13 V4 across feature store, flow runner, event bus)
 
 ## License
 

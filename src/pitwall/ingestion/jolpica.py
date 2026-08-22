@@ -32,7 +32,6 @@ class JolpicaSource:
         results = await fetch_results(self.season, self.round_no)
         base_ts = datetime.now(UTC)
         for row in results:
-            drv = row.get("Driver", {})
             yield RaceEvent(
                 source="jolpica",
                 event_type="driver",

@@ -1,12 +1,13 @@
 """Replay engine — streams historical events through the live pipeline.
 
 Supports modes:
-  1×, 5×, 20×, MAX (no sleep), STEP (manual advance)
+  1x, 5x, 20x, MAX (no sleep), STEP (manual advance)
 """
 
 from __future__ import annotations
 
 import asyncio
+import contextlib
 from collections.abc import AsyncIterator
 from dataclasses import dataclass
 from datetime import UTC, datetime
@@ -103,10 +104,8 @@ class ParquetReplaySource:
         # Optional session filter
         if self.config.session_filter:
             # naive: filter if column exists
-            try:
+            with contextlib.suppress(Exception):
                 lf = lf.filter(pl.col("session_id") == self.config.session_filter)
-            except Exception:
-                pass
 
         df = lf.sort("event_ts").collect()
         if self.config.max_events:

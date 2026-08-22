@@ -142,11 +142,15 @@ def evaluate_pit_promotion(
     reasons: list[str] = []
     if not passed:
         reasons.append(f"pit logloss improvement {rel_imp:.2%} < {min_imp:.2%}")
-    if chall_auc is not None and champ_auc is not None and chall_auc < champ_auc:
+    if (
+        chall_auc is not None
+        and champ_auc is not None
+        and chall_auc < champ_auc
+        and chall_auc + 0.02 < champ_auc
+    ):
         # allow small drop? For now require not worse
-        if chall_auc + 0.02 < champ_auc:
-            reasons.append(f"pit AUC regression {chall_auc:.3f} < {champ_auc:.3f}")
-            passed = False
+        reasons.append(f"pit AUC regression {chall_auc:.3f} < {champ_auc:.3f}")
+        passed = False
     return {
         "passed": passed,
         "reasons": reasons,

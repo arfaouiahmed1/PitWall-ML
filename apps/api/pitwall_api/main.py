@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import contextlib
 from contextlib import asynccontextmanager
 from datetime import UTC, datetime
 from pathlib import Path
@@ -164,7 +165,10 @@ async def get_race_state() -> dict[str, Any]:
 
 @app.get("/predictions/pace")
 async def get_pace_predictions() -> list[dict[str, Any]]:
-    """Return current pace predictions for all drivers in state — uses quantile model if available."""
+    """Return current pace predictions for all drivers in state.
+
+    Uses the quantile model when available.
+    """
     if not race_state.drivers:
         return []
     import time
@@ -261,7 +265,6 @@ async def get_tyre_predictions() -> list[dict[str, Any]]:
     out: list[dict[str, Any]] = []
     for dn, ds in race_state.drivers.items():
         deg = None
-        prob = None
         try:
             if tyre_model is not None:
                 from pitwall.simulation.engine import _build_features_for_prediction
@@ -278,8 +281,6 @@ async def get_tyre_predictions() -> list[dict[str, Any]]:
                 d.gap_to_leader_s = 0
                 df = _build_features_for_prediction(d, race_progress=0.5)  # type: ignore
                 deg = float(tyre_model.predict(df)[0])
-                # degradation per lap slope
-                prob = deg
         except Exception:
             pass
         if deg is None:
@@ -387,12 +388,12 @@ async def registry_promotion() -> dict[str, Any]:
 async def monitoring_drift() -> dict[str, Any]:
     """Evidently drift on last 3 vs first 3 races (3-race window)."""
     try:
-        from pitwall.monitoring.drift import drift_on_window
-        import polars as pl
         from pathlib import Path
 
-        # Try to load gold from recent training smoke (if exists) else synthetic fallback
-        gold_path = Path("artifacts/v2_shap_test")
+        import polars as pl
+
+        from pitwall.monitoring.drift import drift_on_window
+
         # For demo, reconstruct synthetic gold as in train
         # Attempt to load silver then build gold, else return no_data
         silver_root = Path("data/silver")
@@ -460,15 +461,11 @@ async def monitoring_overview() -> dict[str, Any]:
     """Aggregated health for Grafana + frontend monitoring page."""
     # Reuse drift and promotion
     drift = {}
-    try:
+    with contextlib.suppress(Exception):
         drift = (await monitoring_drift()).get("drift", {})
-    except Exception:
-        pass
     promo = {}
-    try:
+    with contextlib.suppress(Exception):
         promo = await registry_promotion()
-    except Exception:
-        pass
     return {
         "model_version": model_version,
         "metrics": model_metrics,
@@ -681,6 +678,12 @@ async def ws_race(websocket: WebSocket) -> None:
                 "prediction": pred,
                 "ts": datetime.now(UTC).isoformat(),
             }
+            import contextlib
+
+            with contextlib.suppress(Exception):
+                from pitwall.eventbus import get_bus
+
+                get_bus().publish(f"pitwall:race:{race_state.session_id}", msg)
             await websocket.send_json(msg)
 
             # Small yield
@@ -689,10 +692,8 @@ async def ws_race(websocket: WebSocket) -> None:
     except WebSocketDisconnect:
         pass
     except Exception as e:
-        try:
+        with contextlib.suppress(Exception):
             await websocket.send_json({"type": "error", "message": str(e)})
-        except Exception:
-            pass
     finally:
         connected_clients.discard(websocket)
 

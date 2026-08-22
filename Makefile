@@ -1,4 +1,4 @@
-.PHONY: bootstrap services ingest features train-pace evaluate replay monitoring test lint format clean
+.PHONY: bootstrap services services-all ingest features train-pace evaluate validate monitoring test test-all lint format clean api web docker-build
 
 PY := python
 PIP := pip
@@ -22,19 +22,13 @@ ingest:
 	$(PY) -m pitwall.ingestion.cli --season $(SEASON) --event "$(EVENT)" --session $(or $(SESSION),R)
 
 features:
-	$(PY) -m pitwall.pipeline.features --season $(or $(SEASON),2025)
+	$(PY) -m pipelines.features
 
 train-pace:
-	$(PY) -m pitwall.train.pace --config configs/development.yaml
+	$(PY) -m pipelines.train --config configs/development.yaml
 
 evaluate:
-	$(PY) -m pitwall.pipeline.evaluate --candidate artifacts/candidate --output artifacts/evaluation.json
-
-replay:
-	$(PY) -m pitwall.replay --season $(or $(SEASON),2025) --event "$(EVENT)" --speed $(or $(SPEED),20)
-
-replay-max:
-	$(PY) -m pitwall.replay --season $(SEASON) --event "$(EVENT)" --speed MAX
+	$(PY) -c "from pitwall.registry.promotion import check_promotion_from_files; import json; print(json.dumps(check_promotion_from_files('artifacts/champion/metrics.json', 'artifacts/candidate/metrics.json'), indent=2))"
 
 monitoring:
 	docker compose --profile monitoring up -d prometheus grafana
@@ -70,4 +64,4 @@ docker-build:
 
 # data quality
 validate:
-	$(PY) -m pitwall.data.quality --silver data/silver
+	$(PY) -c "import glob; import polars as pl; from pitwall.data.quality import check_silver_laps, quality_report; files = glob.glob('data/silver/**/*.parquet', recursive=True); df = pl.read_parquet(files) if files else pl.DataFrame(); print(quality_report(check_silver_laps(df)))"

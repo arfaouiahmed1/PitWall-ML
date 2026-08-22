@@ -3,7 +3,8 @@
 Target: pit_in_next_3 (binary) — will driver pit within next 3 laps.
 Features point-in-time, no leakage (rolling shift(1)).
 
-For synthetic data, stint_no increments at pit; for real FastF1, derive from compound change or pit telemetry.
+For synthetic data, stint_no increments at pit; for real FastF1,
+derive from compound change or pit telemetry.
 """
 
 from __future__ import annotations
@@ -108,9 +109,12 @@ def build_pit_features(silver_laps: pl.DataFrame, horizon: int = 3) -> pl.DataFr
         df = df.with_columns(pl.lit(0).alias(f"pit_in_next_{horizon}"))
         df = df.with_columns(pl.lit(0).alias("pit_next_lap"))
 
-    # validity: not last horizon laps where label would be truncated? Keep all but flag where next laps not exist -> not valid for training?
-    # For synthetic 30 laps, last 3 laps have incomplete horizon, but we can keep with label 0 (no future pit)
-    # Mark valid if not in last `horizon` laps? For training, keep all to maximize data, but evaluator can handle.
+    # validity: not last horizon laps where label would be truncated?
+    # Keep all but flag where next laps not exist -> not valid for training?
+    # For synthetic 30 laps, last 3 laps have incomplete horizon,
+    # but we can keep with label 0 (no future pit)
+    # Mark valid if not in last `horizon` laps? For training, keep all to
+    # maximize data, but evaluator can handle.
     if "is_valid_training_lap" in df.columns:
         df = df.with_columns((pl.col("is_valid_training_lap")).alias("is_valid_pit_row"))
     else:

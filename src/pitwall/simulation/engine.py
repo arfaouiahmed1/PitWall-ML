@@ -1,9 +1,11 @@
 """Monte Carlo race outcome simulator (V2) — samples pace quantiles + pit hazard.
 
-Pace model provides q10/q50/q90 per driver/lap; we approximate lap time distribution as
-Gaussian with mu=q50, sigma=(q90-q10)/2.563 (80% interval = 2*1.2816σ). Tyre/pit models adjust features lap-by-lap.
+Pace model provides q10/q50/q90 per driver/lap; we approximate lap time
+distribution as Gaussian with mu=q50, sigma=(q90-q10)/2.563 (80% interval =
+2*1.2816 sigma). Tyre/pit models adjust features lap-by-lap.
 
-For V2 smoke tests, works with synthetic LightGBM models; falls back to uniform/no-pit if models not provided.
+For V2 smoke tests, works with synthetic LightGBM models; falls back to
+uniform/no-pit if models not provided.
 """
 
 from __future__ import annotations
@@ -124,7 +126,6 @@ def simulate_race(
         return {"win_prob": {}, "podium_prob": {}, "expected_position": {}}
 
     rng = np.random.default_rng(seed)
-    n_drivers = len(drivers)
     # Preserve order as input (assumed sorted by position)
     driver_ids = [d.driver_id for d in drivers]
 
@@ -135,7 +136,7 @@ def simulate_race(
 
     # For efficiency, pre-allocate arrays
     # We simulate simulation by simulation to keep feature dependencies (tyre age progression)
-    for sim in range(n_simulations):
+    for _sim in range(n_simulations):
         # clone drivers for this simulation
         sim_drivers = [
             DriverStateSim(
@@ -152,7 +153,7 @@ def simulate_race(
             )
             for d in drivers
         ]
-        # Batch per-lap predictions for speed (reduces 4× calls for 4 drivers)
+        # Batch per-lap predictions for speed (reduces 4x calls for 4 drivers)
         for lap_idx in range(laps_remaining):
             progress = (lap_idx + 1) / laps_remaining
             # Build batch frame once per lap
@@ -168,12 +169,9 @@ def simulate_race(
                 except Exception:
                     pass
             elif pace_model is not None:
-                try:
-                    # heuristic from point model not ideal for batch but try
-                    # fall back to heuristic per driver below
-                    pass
-                except Exception:
-                    pass
+                # heuristic from point model not ideal for batch;
+                # fall back to heuristic per driver below
+                pass
             # Batch tyre
             tyre_extra_arr = None
             if tyre_model is not None:

@@ -22,7 +22,7 @@ def main() -> None:
     args = parser.parse_args()
 
     print(f"Fetching {args.season} {args.event} {args.session} via FastF1...")
-    df, sess = fetch_session_laps_polars(args.season, args.event, args.session)
+    df, _sess = fetch_session_laps_polars(args.season, args.event, args.session)
     print(f"Raw laps: {len(df)} columns: {df.columns}")
 
     # Bronze: also write events parquet for replay
@@ -30,9 +30,12 @@ def main() -> None:
 
     # Build silver
     silver = build_silver_from_fastf1(df, args.season, args.event, args.session)
-    print(
-        f"Silver laps: {len(silver)} valid: {silver.filter(pl.col('is_valid_training_lap')).height if 'is_valid_training_lap' in silver.columns else 'unknown'}"
+    valid = (
+        silver.filter(pl.col("is_valid_training_lap")).height
+        if "is_valid_training_lap" in silver.columns
+        else "unknown"
     )
+    print(f"Silver laps: {len(silver)} valid: {valid}")
 
     # Quality
     checks = check_silver_laps(silver)

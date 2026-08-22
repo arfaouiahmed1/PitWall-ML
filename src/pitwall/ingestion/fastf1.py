@@ -9,6 +9,7 @@ Requires: pip install fastf1
 from __future__ import annotations
 
 import asyncio
+import contextlib
 from collections.abc import AsyncIterator
 from datetime import UTC, datetime
 from pathlib import Path
@@ -30,10 +31,8 @@ def fetch_session_laps_polars(season: int, event: str, session: str = "R"):
     # Enable cache if not already
     cache_dir = Path("data/.fastf1_cache")
     cache_dir.mkdir(parents=True, exist_ok=True)
-    try:
+    with contextlib.suppress(Exception):
         fastf1.Cache.enable_cache(str(cache_dir))
-    except Exception:
-        pass
 
     sess = fastf1.get_session(season, event, session)
     sess.load(telemetry=False, weather=False)

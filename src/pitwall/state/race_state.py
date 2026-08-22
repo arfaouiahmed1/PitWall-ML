@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import contextlib
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 
@@ -64,22 +65,16 @@ class RaceState:
                 except Exception:
                     pass
             if "position" in p and p["position"] is not None:
-                try:
+                with contextlib.suppress(Exception):
                     ds.position = int(p["position"])
-                except Exception:
-                    pass
             if p.get("compound"):
                 ds.compound = str(p["compound"]).upper()
             if "tyre_age" in p or "tyre_life" in p:
-                try:
+                with contextlib.suppress(Exception):
                     ds.tyre_age = int(p.get("tyre_age", p.get("tyre_life")))
-                except Exception:
-                    pass
             if "stint" in p and p["stint"] is not None:
-                try:
+                with contextlib.suppress(Exception):
                     ds.stint_no = int(p["stint"])
-                except Exception:
-                    pass
 
         # position / interval events
         elif str(event.event_type) in ("position", "interval"):
@@ -87,15 +82,11 @@ class RaceState:
             if dn is not None and dn in self.drivers:
                 ds = self.drivers[dn]
                 if "gap_to_leader" in p:
-                    try:
+                    with contextlib.suppress(Exception):
                         ds.gap_to_leader_s = float(p["gap_to_leader"])
-                    except Exception:
-                        pass
                 if "interval" in p:
-                    try:
+                    with contextlib.suppress(Exception):
                         ds.gap_ahead_s = float(p["interval"])
-                    except Exception:
-                        pass
 
         # race control
         elif str(event.event_type) == "race_control":

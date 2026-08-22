@@ -1,0 +1,5 @@
+name: daily-retrain
+steps:
+  - {name: features}
+  - {name: train, cmd: "python -m pipelines.train --config configs/development.yaml --output-dir artifacts/candidate"}
+  - {name: drift, allow_fail: true}

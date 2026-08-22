@@ -7,13 +7,13 @@ adapted to this schema. Replay and live share the same interface.
 from __future__ import annotations
 
 from datetime import UTC, datetime
-from enum import Enum
+from enum import StrEnum
 from typing import Any
 
 from pydantic import BaseModel, Field, field_validator
 
 
-class EventType(str, Enum):
+class EventType(StrEnum):
     LAP = "lap"
     CAR_DATA = "car_data"
     POSITION = "position"

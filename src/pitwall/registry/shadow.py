@@ -6,7 +6,8 @@ In production, this would:
   - Compare delayed ground truth (actual lap times after race) to get mae/coverage per model
   - Report per-race and aggregated deltas.
 
-For V2 smoke without real FastF1 data, we simulate with synthetic replay using current pipelines/train splits:
+For V2 smoke without real FastF1 data, we simulate with synthetic replay
+using current pipelines/train splits:
   - Champion metrics vs challenger metrics from artifacts/metrics.json
   - Per-race aggregation stub that validates promotion gates with shadow config.
 """
