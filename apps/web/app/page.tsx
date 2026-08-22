@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
+import { COMPOUND_NAMES, DRIVER_FALLBACK, lastName, readableTextColor, useDrivers, type DriverInfo } from "@/lib/drivers";
 
 type DriverRow = {
   driver_number: number;
@@ -27,6 +28,11 @@ export default function RacePage() {
   const [lap, setLap] = useState(31);
   const [events, setEvents] = useState<any[]>([]);
   const wsRef = useRef<WebSocket | null>(null);
+  const drivers = useDrivers();
+
+  const leaderRow = DRIVERS[0];
+  const leader: DriverInfo =
+    drivers[leaderRow.driver_number] ?? DRIVER_FALLBACK[leaderRow.driver_number];
 
   const connect = (s: string) => {
     const proto = location.protocol === "https:" ? "wss" : "ws";
@@ -128,23 +134,51 @@ export default function RacePage() {
               </tr>
             </thead>
             <tbody className="mono text-xs">
-              {DRIVERS.map((d) => (
-                <tr key={d.driver_number} className="border-b border-[#1e2a3a]/60 hover:bg-[#0f141c] cursor-pointer">
-                  <td className="px-4 py-3 font-bold">{d.position}</td>
-                  <td className="px-3 py-3 flex items-center gap-2">
-                    <span className="w-6 h-6 rounded bg-[#1e2a3a] flex items-center justify-center text-[10px] font-black">{d.driver_number}</span>
-                    <span className="font-bold">DRV {d.driver_number}</span>
-                  </td>
-                  <td className="px-3 py-3 text-[#8b9bb4]">{d.gap}</td>
-                  <td className="px-3 py-3">
-                    <span className="px-1.5 py-0.5 rounded bg-[#1e2a3a] text-[10px] border border-[#243447]">{d.tyre}</span> <span className="ml-1">{d.tyreAge}</span>
-                  </td>
-                  <td className="px-3 py-3">{d.forecast}</td>
-                  <td className="px-3 py-3">
-                    <span className={`px-2 py-1 rounded text-[10px] font-bold ${d.pitProb > 60 ? "bg-[#ff3b30]/20 text-[#ff6b6b] border border-[#ff3b30]/30" : d.pitProb > 30 ? "bg-[#f59e0b]/15 text-[#fbbf24] border border-[#f59e0b]/20" : "bg-[#00d084]/10 text-[#00d084] border border-[#00d084]/20"}`}>{d.pitProb}%</span>
-                  </td>
-                </tr>
-              ))}
+              {DRIVERS.map((d) => {
+                const info: DriverInfo = drivers[d.driver_number] ?? DRIVER_FALLBACK[d.driver_number];
+                return (
+                  <tr key={d.driver_number} className="border-b border-[#1e2a3a]/60 hover:bg-[#0f141c] cursor-pointer">
+                    <td className="px-4 py-3 font-bold">{d.position}</td>
+                    <td className="px-3 py-3">
+                      <div className="flex items-center gap-2">
+                        <span aria-hidden="true" className="w-[3px] h-7 rounded-full shrink-0" style={{ backgroundColor: info.color }} />
+                        {info.image ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={info.image}
+                            alt={info.name}
+                            width={28}
+                            height={28}
+                            loading="lazy"
+                            referrerPolicy="no-referrer"
+                            className="w-7 h-7 rounded-full object-cover border border-[#243447] bg-[#1e2a3a]"
+                          />
+                        ) : (
+                          <span
+                            className="w-7 h-7 rounded-full flex items-center justify-center text-[9px] font-black border border-[#243447]"
+                            style={{ backgroundColor: info.color, color: readableTextColor(info.color) }}
+                          >
+                            {info.code.slice(0, 3)}
+                          </span>
+                        )}
+                        <span className="flex flex-col leading-tight">
+                          <span className="font-bold">{info.code}</span>
+                          <span className="text-[10px] text-[#8b9bb4]">{info.name}</span>
+                        </span>
+                        <span className="text-[10px] text-[#5a6b84]">#{d.driver_number}</span>
+                      </div>
+                    </td>
+                    <td className="px-3 py-3 text-[#8b9bb4]">{d.gap}</td>
+                    <td className="px-3 py-3">
+                      <span className="px-1.5 py-0.5 rounded bg-[#1e2a3a] text-[10px] border border-[#243447]">{d.tyre}</span> <span className="ml-1">{d.tyreAge}</span>
+                    </td>
+                    <td className="px-3 py-3">{d.forecast}</td>
+                    <td className="px-3 py-3">
+                      <span className={`px-2 py-1 rounded text-[10px] font-bold ${d.pitProb > 60 ? "bg-[#ff3b30]/20 text-[#ff6b6b] border border-[#ff3b30]/30" : d.pitProb > 30 ? "bg-[#f59e0b]/15 text-[#fbbf24] border border-[#f59e0b]/20" : "bg-[#00d084]/10 text-[#00d084] border border-[#00d084]/20"}`}>{d.pitProb}%</span>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -153,21 +187,41 @@ export default function RacePage() {
       {/* Driver detail + live feed */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="card p-5 lg:col-span-2">
-          <h3 className="font-black text-sm tracking-tight">SELECTED DRIVER — NORRIS P1</h3>
+          <div className="flex items-center gap-3">
+            {leader.image ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={leader.image}
+                alt={leader.name}
+                width={28}
+                height={28}
+                referrerPolicy="no-referrer"
+                className="w-7 h-7 rounded-full object-cover border border-[#243447] bg-[#1e2a3a]"
+              />
+            ) : (
+              <span
+                className="w-7 h-7 rounded-full flex items-center justify-center text-[9px] font-black border border-[#243447]"
+                style={{ backgroundColor: leader.color, color: readableTextColor(leader.color) }}
+              >
+                {leader.code.slice(0, 3)}
+              </span>
+            )}
+            <h3 className="font-black text-sm tracking-tight">SELECTED DRIVER — {lastName(leader.name).toUpperCase()} P{leaderRow.position}</h3>
+          </div>
           <div className="grid grid-cols-3 gap-4 mt-4">
             <div className="bg-[#0a0e14] rounded p-3 border border-[#1e2a3a]">
               <div className="text-[10px] tracking-widest text-[#8b9bb4]">NEXT LAP</div>
-              <div className="mono font-black text-lg mt-1">1:19.42</div>
-              <div className="text-[10px] text-[#8b9bb4]">80% 1:19.08 – 1:19.79</div>
+              <div className="mono font-black text-lg mt-1">{leaderRow.lastLap}</div>
+              <div className="text-[10px] text-[#8b9bb4]">80% {leaderRow.forecast}</div>
             </div>
             <div className="bg-[#0a0e14] rounded p-3 border border-[#1e2a3a]">
-              <div className="text-[10px] tracking-widest text-[#8b9bb4]">TYRE — MEDIUM</div>
-              <div className="mono font-bold mt-1">Age 18 laps</div>
+              <div className="text-[10px] tracking-widest text-[#8b9bb4]">TYRE — {COMPOUND_NAMES[leaderRow.tyre] ?? leaderRow.tyre}</div>
+              <div className="mono font-bold mt-1">Age {leaderRow.tyreAge} laps</div>
               <div className="text-[10px] text-[#ffb020]">Degradation +0.08 s/lap</div>
             </div>
             <div className="bg-[#0a0e14] rounded p-3 border border-[#1e2a3a]">
               <div className="text-[10px] tracking-widest text-[#8b9bb4]">PIT HAZARD</div>
-              <div className="mono font-bold mt-1">Next 3: 61%</div>
+              <div className="mono font-bold mt-1">Next 3: {leaderRow.pitProb}%</div>
               <div className="text-[10px] text-[#8b9bb4]">Next lap 16% • Next 5 82%</div>
             </div>
           </div>
