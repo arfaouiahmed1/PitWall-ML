@@ -9,7 +9,8 @@ from pathlib import Path
 import polars as pl
 import yaml
 
-from pitwall.evaluation.metrics import evaluate_pace
+from pitwall.evaluation.calibration import ConformalQuantileCalibrator
+from pitwall.evaluation.metrics import evaluate_pace, interval_coverage, interval_width
 from pitwall.evaluation.splits import apply_split, chronological_race_split
 from pitwall.features.pace import build_pace_features, get_feature_columns
 from pitwall.features.pit import build_pit_features, get_pit_feature_columns
@@ -117,9 +118,16 @@ def main() -> None:
         splits = chronological_race_split(gold, n_test_races=n_test, n_val_races=n_val)
     except ValueError as e:
         print(f"Split warning: {e} — using random fallback for smoke test")
-        # fallback: take last sessions lexicographically
+        # fallback: last sessions lexicographically; train/val must stay non-empty
+        # even when max-rows spans few sessions, else LightGBM fit crashes
         sessions = gold.select("session_id").unique().sort("session_id")["session_id"].to_list()
-        splits = {"train": sessions[:-2], "validation": [sessions[-2]], "test": [sessions[-1]]}
+        n_sessions = len(sessions)
+        if n_sessions >= 4:
+            splits = {"train": sessions[:-2], "validation": [sessions[-2]], "test": [sessions[-1]]}
+        elif n_sessions == 3:
+            splits = {"train": sessions[:1], "validation": [sessions[1]], "test": [sessions[2]]}
+        else:
+            splits = {"train": sessions[:-1], "validation": sessions[:-1], "test": sessions[-1:]}
 
     print(
         f"Splits: train={len(splits['train'])} "
@@ -202,6 +210,11 @@ def main() -> None:
 
     import numpy as np
 
+    def _predict_quantiles(frame: pl.DataFrame) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+        """q10/q50/q90 from the trained quantile model, or the heuristic fallback."""
+        q_all = q_model.predict(frame) if q_model is not None else model.predict_quantiles(frame)
+        return q_all[0.1], q_all[0.5], q_all[0.9]
+
     t0 = time.perf_counter()
     preds = model.predict(test_df)
     p95_ms = (time.perf_counter() - t0) / max(len(test_df), 1) * 1000
@@ -220,20 +233,13 @@ def main() -> None:
     if q_model is not None:
         # also measure quantile latency
         t0q = time.perf_counter()
-        q_all = q_model.predict(test_df)
+        q10, q50, q90 = _predict_quantiles(test_df)
         q_lat = (time.perf_counter() - t0q) / max(len(test_df), 1) * 1000
-        q10 = q_all[0.1]
-        q50 = q_all[0.5]
-        q90 = q_all[0.9]
         print(
             f"Using trained quantile preds (p95 {p95_ms:.1f}ms, quantile batch {q_lat:.3f}ms/row)"
         )
     else:
-        # heuristic fallback (V1)
-        q_all = model.predict_quantiles(test_df)
-        q10 = q_all[0.1]
-        q50 = q_all[0.5]
-        q90 = q_all[0.9]
+        q10, q50, q90 = _predict_quantiles(test_df)
         print("Using heuristic quantile preds (set models.pace.quantile=true to train)")
 
     # trim to common length
@@ -245,6 +251,30 @@ def main() -> None:
 
     metrics = evaluate_pace(y_true, q10, q50, q90)
     metrics["p95_ms"] = p95_ms
+
+    # CQR calibration (Q3): fit on VALIDATION predictions only, apply to test.
+    calibrator_params: dict[str, float] | None = None
+    if valid_df is not None and not valid_df.is_empty() and target in valid_df.columns:
+        v10, v50, v90 = _predict_quantiles(valid_df)
+        y_valid = valid_df[target].to_numpy()
+        n_cal = min(len(y_valid), len(v10), len(v50), len(v90))
+        if n_cal > 0:
+            calibrator = ConformalQuantileCalibrator().fit(
+                y_valid[:n_cal], v10[:n_cal], v50[:n_cal], v90[:n_cal]
+            )
+            calibrator_params = calibrator.params()
+            q10_cal, _, q90_cal = calibrator.transform(q10, q50, q90)
+            metrics["coverage_80_calibrated"] = interval_coverage(y_true, q10_cal, q90_cal)
+            metrics["mean_width_calibrated"] = interval_width(q10_cal, q90_cal)
+            print(
+                f"CQR calibration: q_hat={calibrator_params['q_hat']:.4f} "
+                f"d={calibrator_params['d']:.4f} | coverage_80 "
+                f"{metrics['coverage_80']:.3f} -> {metrics['coverage_80_calibrated']:.3f} | "
+                f"width {metrics['mean_width']:.3f} -> {metrics['mean_width_calibrated']:.3f}"
+            )
+    else:
+        print("CQR calibration skipped: no validation rows")
+
     # per-compound grouping for promotion gate (max_group_regression)
     try:
         if "compound" in test_df.columns and len(y_true) == len(test_df):
@@ -434,6 +464,10 @@ def main() -> None:
             json.dump(
                 {"alphas": quantile_alphas, "feature_cols": q_model.feature_cols}, f, indent=2
             )
+    if calibrator_params is not None:
+        (out / "model_quantile").mkdir(parents=True, exist_ok=True)
+        with open(out / "model_quantile" / "calibrator.json", "w") as f:
+            json.dump(calibrator_params, f, indent=2)
     if _tyre_model_to_save is not None:
         _tyre_model_to_save.save(out / "model_tyre")
         with open(out / "tyre_manifest.json", "w") as f:

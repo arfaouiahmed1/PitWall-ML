@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Final
+
 import polars as pl
 
 from pitwall.features.common import add_rolling_features, encode_compound
@@ -19,6 +21,25 @@ PACE_NUMERICAL = [
 ]
 
 PACE_CATEGORICAL = ["compound", "team_id", "driver_id", "circuit_id"]
+
+_GREEN_STATUS_PATTERN: Final[str] = r"^[1;]*$"
+"""Matches only green-flag codes: '1' (green) repeated, with ';' separators (e.g. '1', '1;1')."""
+
+_TARGET_OUTLIER_FACTOR: Final[float] = 1.07
+"""Null the target when the next lap exceeds this factor times rolling_median_5."""
+
+
+def _is_green(status: pl.Expr) -> pl.Expr:
+    """Green-flag predicate over a TrackStatus expression.
+
+    True when the status is missing (null / NaN-like / empty) or every character
+    is a green-flag code ('1') or a multi-code separator (';'). FastF1 statuses
+    can be multi-char ('2;4' = yellow + safety car); any non-'1' code makes the
+    lap non-green.
+    """
+    text = status.cast(pl.Utf8).str.strip_chars()
+    missing = text.is_null() | text.str.to_uppercase().is_in(["", "NAN"])
+    return missing | text.str.contains(_GREEN_STATUS_PATTERN)
 
 
 def build_pace_features(
@@ -62,9 +83,30 @@ def build_pace_features(
             pl.col("lap_time_s").shift(-1).over(group_cols).alias("next_clean_lap_s")
         )
 
-    # Flag valid training rows: current row valid AND next lap valid
+        # Target hygiene: trainable only when rows t AND t+1 ran green
+        # (yellow/SC/VSC laps teach racing-pace-foreign variance), and the next
+        # lap is not an outlier vs rolling_median_5 (fuel-less anomalies).
+        if "track_status" in df.columns:
+            green_now = _is_green(pl.col("track_status"))
+            green_next = green_now.shift(-1).over(group_cols)
+        else:
+            green_now = pl.lit(True)  # no track_status column (synthetic): treat as green
+            green_next = pl.lit(True)
+
+        outlier_next = pl.col("rolling_median_5").is_not_null() & (
+            pl.col("next_clean_lap_s") > _TARGET_OUTLIER_FACTOR * pl.col("rolling_median_5")
+        )
+        keep_target = green_now & green_next & ~outlier_next
+        df = df.with_columns(
+            pl.when(keep_target)
+            .then(pl.col("next_clean_lap_s"))
+            .otherwise(None)
+            .alias("next_clean_lap_s")
+        )
+
+    # Non-null target <=> green->green held AND 1.07x trim did not fire, so this
+    # flag AND-combines every hygiene condition for downstream filters.
     if "is_valid_training_lap" in df.columns:
-        # Use next lap validity as well if available
         df = df.with_columns(
             (pl.col("is_valid_training_lap") & pl.col("next_clean_lap_s").is_not_null()).alias(
                 "is_valid_training_lap_target"
