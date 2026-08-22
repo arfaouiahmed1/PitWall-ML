@@ -174,7 +174,7 @@ README.md: mark V3 `[x]` with one-line evidence (Grafana dashboard JSON, drift e
 F1. [x] Full suite — `.\.venv\Scripts\python.exe -m pytest -q` → 32 passed (19 baseline + 13 new), zero failures
 F2. [x] Strict lint — `.\.venv\Scripts\ruff.exe check .` exit 0 AND `ruff format --check .` clean (81 files)
 F3. [x] Frontend build — `cd apps\web; npm run build` compiles successfully (17/17 pages)
-F4. [ ] Compose valid — `docker compose config >/dev/null` exit 0; commit + push, CI workflows green on GitHub
+F4. [x] Compose valid — `docker compose config >/dev/null` exit 0; commit `085d00b` pushed; CI run 32590288048 SUCCESS (python 5m42s / frontend 1m28s / docker 1m15s) + GHCR publish 32590288054 SUCCESS
 
 ## Execution order & commit plan
 1. Item 1 (store+tests) → commit `feat(v4): feature store — point-in-time joins, online/offline serving`

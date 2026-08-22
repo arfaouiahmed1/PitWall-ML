@@ -50,3 +50,6 @@ secrets/
 # Logs
 logs/
 *.log
+
+# FastF1 download cache
+data/cache/

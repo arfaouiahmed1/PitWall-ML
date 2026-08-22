@@ -29,7 +29,7 @@ def fetch_session_laps_polars(season: int, event: str, session: str = "R"):
         raise ImportError("fastf1 not installed. Run pip install -e '.[ml]'") from e
 
     # Enable cache if not already
-    cache_dir = Path("data/.fastf1_cache")
+    cache_dir = Path("data/cache")
     cache_dir.mkdir(parents=True, exist_ok=True)
     with contextlib.suppress(Exception):
         fastf1.Cache.enable_cache(str(cache_dir))
@@ -40,6 +40,10 @@ def fetch_session_laps_polars(season: int, event: str, session: str = "R"):
     laps = sess.laps  # pandas
     if laps is None or len(laps) == 0:
         raise ValueError(f"No laps found for {season} {event} {session}")
+
+    # NaT lap times become NaN seconds downstream, which pass is_not_null()
+    # validity checks and poison targets/rolling features — drop them here.
+    laps = laps[laps["LapTime"].notna()]
 
     # Convert to polars at boundary
     import polars as pl
