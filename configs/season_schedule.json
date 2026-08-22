@@ -1,0 +1,204 @@
+[
+  {
+    "season": 2024,
+    "rounds": [
+      {
+        "round": 1,
+        "event_name": "Bahrain Grand Prix"
+      },
+      {
+        "round": 2,
+        "event_name": "Saudi Arabian Grand Prix"
+      },
+      {
+        "round": 3,
+        "event_name": "Australian Grand Prix"
+      },
+      {
+        "round": 4,
+        "event_name": "Japanese Grand Prix"
+      },
+      {
+        "round": 5,
+        "event_name": "Chinese Grand Prix"
+      },
+      {
+        "round": 6,
+        "event_name": "Miami Grand Prix"
+      },
+      {
+        "round": 7,
+        "event_name": "Emilia Romagna Grand Prix"
+      },
+      {
+        "round": 8,
+        "event_name": "Monaco Grand Prix"
+      },
+      {
+        "round": 9,
+        "event_name": "Canadian Grand Prix"
+      },
+      {
+        "round": 10,
+        "event_name": "Spanish Grand Prix"
+      },
+      {
+        "round": 11,
+        "event_name": "Austrian Grand Prix"
+      },
+      {
+        "round": 12,
+        "event_name": "British Grand Prix"
+      },
+      {
+        "round": 13,
+        "event_name": "Hungarian Grand Prix"
+      },
+      {
+        "round": 14,
+        "event_name": "Belgian Grand Prix"
+      },
+      {
+        "round": 15,
+        "event_name": "Dutch Grand Prix"
+      },
+      {
+        "round": 16,
+        "event_name": "Italian Grand Prix"
+      },
+      {
+        "round": 17,
+        "event_name": "Azerbaijan Grand Prix"
+      },
+      {
+        "round": 18,
+        "event_name": "Singapore Grand Prix"
+      },
+      {
+        "round": 19,
+        "event_name": "United States Grand Prix"
+      },
+      {
+        "round": 20,
+        "event_name": "Mexico City Grand Prix"
+      },
+      {
+        "round": 21,
+        "event_name": "S\u00e3o Paulo Grand Prix"
+      },
+      {
+        "round": 22,
+        "event_name": "Las Vegas Grand Prix"
+      },
+      {
+        "round": 23,
+        "event_name": "Qatar Grand Prix"
+      },
+      {
+        "round": 24,
+        "event_name": "Abu Dhabi Grand Prix"
+      }
+    ]
+  },
+  {
+    "season": 2025,
+    "rounds": [
+      {
+        "round": 1,
+        "event_name": "Australian Grand Prix"
+      },
+      {
+        "round": 2,
+        "event_name": "Chinese Grand Prix"
+      },
+      {
+        "round": 3,
+        "event_name": "Japanese Grand Prix"
+      },
+      {
+        "round": 4,
+        "event_name": "Bahrain Grand Prix"
+      },
+      {
+        "round": 5,
+        "event_name": "Saudi Arabian Grand Prix"
+      },
+      {
+        "round": 6,
+        "event_name": "Miami Grand Prix"
+      },
+      {
+        "round": 7,
+        "event_name": "Emilia Romagna Grand Prix"
+      },
+      {
+        "round": 8,
+        "event_name": "Monaco Grand Prix"
+      },
+      {
+        "round": 9,
+        "event_name": "Spanish Grand Prix"
+      },
+      {
+        "round": 10,
+        "event_name": "Canadian Grand Prix"
+      },
+      {
+        "round": 11,
+        "event_name": "Austrian Grand Prix"
+      },
+      {
+        "round": 12,
+        "event_name": "British Grand Prix"
+      },
+      {
+        "round": 13,
+        "event_name": "Belgian Grand Prix"
+      },
+      {
+        "round": 14,
+        "event_name": "Hungarian Grand Prix"
+      },
+      {
+        "round": 15,
+        "event_name": "Dutch Grand Prix"
+      },
+      {
+        "round": 16,
+        "event_name": "Italian Grand Prix"
+      },
+      {
+        "round": 17,
+        "event_name": "Azerbaijan Grand Prix"
+      },
+      {
+        "round": 18,
+        "event_name": "Singapore Grand Prix"
+      },
+      {
+        "round": 19,
+        "event_name": "United States Grand Prix"
+      },
+      {
+        "round": 20,
+        "event_name": "Mexico City Grand Prix"
+      },
+      {
+        "round": 21,
+        "event_name": "S\u00e3o Paulo Grand Prix"
+      },
+      {
+        "round": 22,
+        "event_name": "Las Vegas Grand Prix"
+      },
+      {
+        "round": 23,
+        "event_name": "Qatar Grand Prix"
+      },
+      {
+        "round": 24,
+        "event_name": "Abu Dhabi Grand Prix"
+      }
+    ]
+  }
+]

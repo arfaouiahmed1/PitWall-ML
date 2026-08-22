@@ -51,12 +51,21 @@ def evaluate_pace_promotion(
     if rel_imp < min_imp:
         reasons.append(f"MAE improvement {rel_imp:.2%} < required {min_imp:.2%}")
 
-    # coverage gate
-    chall_cov = challenger.get("coverage_80")
+    # coverage gate — prefer CQR-calibrated coverage when reported, fall back to raw
+    chall_cov = challenger.get("coverage_80_calibrated")
+    cov_source = "coverage_80_calibrated"
+    if chall_cov is None:
+        chall_cov = challenger.get("coverage_80")
+        cov_source = "coverage_80"
     if chall_cov is not None:
         cov_low = nominal - tol
         cov_high = nominal + tol
-        details["coverage"] = {"challenger": chall_cov, "nominal": nominal, "tol": tol}
+        details["coverage"] = {
+            "challenger": chall_cov,
+            "source": cov_source,
+            "nominal": nominal,
+            "tol": tol,
+        }
         if not (cov_low <= float(chall_cov) <= cov_high):
             reasons.append(f"Coverage {chall_cov:.3f} outside [{cov_low:.3f}, {cov_high:.3f}]")
 

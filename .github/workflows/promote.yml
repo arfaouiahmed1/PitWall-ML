@@ -1,24 +1,39 @@
 name: Register and promote challenger
 
+# Manual gated promotion of a candidate produced by retrain.yml: downloads the
+# candidate-<run_id> artifact from that run and runs the same
+# pitwall.registry.promote_cli gate used by the weekly loop.
+# Exit 0 -> promoted + champion JSONs committed; exit 1 -> blocked (see summary).
+
 on:
   workflow_dispatch:
     inputs:
       artifact_run_id:
-        description: Run ID of candidate artifact
+        description: Run ID of the retrain workflow that produced the candidate
         required: true
+        type: string
+      force:
+        description: Force promotion (first-champion install / bypass gates)
+        required: false
+        default: "false"
+        type: string
 
 permissions:
   contents: read
   actions: read
 
+concurrency:
+  group: model-retraining
+  cancel-in-progress: false
+
 jobs:
   register:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     environment: model-registry
-    env:
-      MLFLOW_TRACKING_URI: ${{ secrets.MLFLOW_TRACKING_URI }}
-      MLFLOW_TRACKING_USERNAME: ${{ secrets.MLFLOW_USERNAME }}
-      MLFLOW_TRACKING_PASSWORD: ${{ secrets.MLFLOW_PASSWORD }}
+    permissions:
+      contents: write
+      actions: read
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -26,16 +41,67 @@ jobs:
           python-version: "3.11"
           cache: pip
       - run: pip install -e ".[ml]"
-      - name: Download candidate
+      - name: Download candidate artifact
         uses: actions/download-artifact@v4
         with:
           name: candidate-${{ inputs.artifact_run_id }}
           path: artifacts
-      - name: Register challenger
-        run: echo "python -m pitwall.registry.register --bundle artifacts/candidate --alias challenger"
-      - name: Historical shadow test
-        run: echo "python -m pitwall.shadow.run --champion models:/pitwall-pace@champion --challenger models:/pitwall-pace@challenger"
-      - name: Enforce gates
-        run: echo "python -m pitwall.registry.check_promotion --report shadow.json --policy configs/promotion.yaml"
-      - name: Promote
-        run: echo "python -m pitwall.registry.promote --model pitwall-pace --from-alias challenger --to-alias champion"
+          run-id: ${{ inputs.artifact_run_id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Seed champion dir
+        run: |
+          mkdir -p artifacts/champion
+          if [ -f artifacts/champion/metrics.json ]; then
+            echo "champion_exists=true" >> "$GITHUB_ENV"
+          else
+            echo "champion_exists=false" >> "$GITHUB_ENV"
+          fi
+      - name: Promote candidate through gates
+        id: promote
+        run: |
+          set +e
+          FLAGS=""
+          if [ "$CHAMPION_EXISTS" != "true" ] || [ "${{ inputs.force }}" = "true" ]; then
+            FLAGS="--force"
+          fi
+          python -m pitwall.registry.promote_cli \
+            --candidate artifacts/candidate \
+            --champion-dir artifacts/champion \
+            --config configs/promotion.yaml \
+            $FLAGS > promote_output.txt 2>&1
+          CODE=$?
+          set -e
+          cat promote_output.txt
+          echo "exitcode=${CODE}" >> "$GITHUB_OUTPUT"
+      - name: Commit promoted champion state
+        if: steps.promote.outputs.exitcode == '0'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add artifacts/champion/metrics.json artifacts/champion/train_state.json
+          git commit -m "mlops: promote candidate ${{ inputs.artifact_run_id }} [skip ci]"
+          git push
+      - name: Write blocked summary
+        if: steps.promote.outputs.exitcode == '1'
+        run: |
+          {
+            echo "## Promotion blocked"
+            echo ""
+            echo '```'
+            cat promote_output.txt
+            echo '```'
+            echo ""
+            echo "No changes were committed."
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Fail on CLI misuse (exit 2 = missing inputs)
+        if: steps.promote.outputs.exitcode == '2'
+        run: |
+          echo "promote_cli reported missing inputs — see log above" >&2
+          exit 1
+      - name: Upload decisions log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: decisions-${{ inputs.artifact_run_id }}
+          path: artifacts/champion/decisions.jsonl
+          if-no-files-found: warn

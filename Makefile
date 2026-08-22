@@ -1,4 +1,4 @@
-.PHONY: bootstrap services services-all ingest features train-pace evaluate validate monitoring test test-all lint format clean api web docker-build
+.PHONY: bootstrap services services-all ingest features train-pace evaluate mlops-loop mlops-status validate monitoring test test-all lint format clean api web docker-build
 
 PY := python
 PIP := pip
@@ -29,6 +29,17 @@ train-pace:
 
 evaluate:
 	$(PY) -c "from pitwall.registry.promotion import check_promotion_from_files; import json; print(json.dumps(check_promotion_from_files('artifacts/champion/metrics.json', 'artifacts/candidate/metrics.json'), indent=2))"
+
+# Local twin of .github/workflows/retrain.yml: ingest missing races ->
+# train candidate -> gated promotion via the registry CLI.
+mlops-loop:
+	$(PY) scripts/ingest_missing.py
+	$(PY) -m pipelines.train --config configs/production.yaml --output-dir artifacts/candidate
+	$(PY) -m pitwall.registry.promote_cli --candidate artifacts/candidate --champion-dir artifacts/champion --config configs/promotion.yaml
+
+# Pretty-print committed champion state + last 3 promotion decisions (if any).
+mlops-status:
+	$(PY) -c "import json,pathlib as p; s=p.Path('artifacts/champion/train_state.json'); print('champion train_state:'); print(json.dumps(json.loads(s.read_text()), indent=2)); d=p.Path('artifacts/champion/decisions.jsonl'); print('last decisions:'); [print(' ', l.rstrip()) for l in d.read_text().splitlines()[-3:]] if d.exists() else print('  (no decisions log yet)')"
 
 monitoring:
 	docker compose --profile monitoring up -d prometheus grafana

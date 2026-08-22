@@ -1,12 +1,19 @@
 name: Retrain on new race data
 
+# Weekly MLOps loop: detect missing races -> ingest them -> train a candidate
+# -> gate promotion through pitwall.registry.promote_cli -> commit the updated
+# lightweight champion state (JSON only; model binaries and silver parquet stay
+# out of git). Silver parquet survives between runs via the actions/cache
+# `silver-laps-*` family, so each week only genuinely new races are fetched.
+
 on:
   workflow_dispatch:
     inputs:
       force:
-        description: Force retraining
+        description: Force retraining even when no new race data is detected
         required: false
         default: "false"
+        type: string
   schedule:
     - cron: "17 3 * * 1"
 
@@ -20,26 +27,45 @@ concurrency:
 jobs:
   detect:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     outputs:
       new_data: ${{ steps.detect.outputs.new_data }}
-      session_key: ${{ steps.detect.outputs.session_key }}
+      n_silver_files: ${{ steps.detect.outputs.n_silver_files }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-          cache: pip
-      - run: pip install -e .
-      - id: detect
+      # scripts/ingest_missing.py is stdlib-only, so no pip install is needed here.
+      # Restore the silver lake saved by previous runs; without it every file
+      # would look "missing" on this fresh runner and detection would be meaningless.
+      - uses: actions/cache/restore@v4
+        with:
+          path: data/silver/laps
+          key: silver-laps-detect-${{ github.run_id }}
+          restore-keys: |
+            silver-laps-
+      - name: Detect missing races
+        id: detect
         run: |
-          echo "new_data=false" >> "$GITHUB_OUTPUT"
-          echo "session_key=none" >> "$GITHUB_OUTPUT"
-          echo "Detection stub — implement pitwall.cli.detect_new_race"
+          python scripts/ingest_missing.py --dry-run | tee detect_summary.txt
+          SUMMARY=$(tail -n 1 detect_summary.txt)
+          MISSING=$(echo "$SUMMARY" | jq -r '.missing_count')
+          NEW_COUNT=$(echo "$SUMMARY" | jq -r '.existing_count + .missing_count')
+          echo "n_silver_files=${NEW_COUNT}" >> "$GITHUB_OUTPUT"
+          if [ "${MISSING}" -gt 0 ] || [ "${{ github.event.inputs.force || 'false' }}" = "true" ]; then
+            echo "new_data=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "new_data=false" >> "$GITHUB_OUTPUT"
+          fi
 
   train:
     needs: detect
-    if: needs.detect.outputs.new_data == 'true' || github.event.inputs.force == 'true'
+    if: needs.detect.outputs.new_data == 'true'
     runs-on: ubuntu-latest
+    timeout-minutes: 120
+    outputs:
+      n_silver_files_actual: ${{ steps.count.outputs.n_silver_files }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -47,16 +73,118 @@ jobs:
           python-version: "3.11"
           cache: pip
       - run: pip install -e ".[ml]"
-      - name: Ingest and validate
+      - uses: actions/cache/restore@v4
+        with:
+          path: data/silver/laps
+          key: silver-laps-train-${{ github.run_id }}
+          restore-keys: |
+            silver-laps-
+      - name: Ingest missing races (incremental, retry-once per race)
+        run: python scripts/ingest_missing.py
+      - name: Count silver files after ingestion
+        id: count
         run: |
-          echo "Ingest stub — requires MLFLOW_TRACKING_URI secret for real run"
+          N=$(find data/silver/laps -name '*.parquet' | wc -l)
+          echo "n_silver_files=${N}" >> "$GITHUB_OUTPUT"
+      # Keyed on the post-ingest count so the next run's restore-keys pick up the
+      # freshest archive; saving over an existing key is a harmless no-op warning.
+      - name: Save silver cache
+        if: always()
+        continue-on-error: true
+        uses: actions/cache/save@v4
+        with:
+          path: data/silver/laps
+          key: silver-laps-${{ steps.count.outputs.n_silver_files }}
+      # configs/production.yaml is CI-safe: pipelines.train wraps MLflow logging in
+      # try/except ("MLflow logging skipped"), so no tracking server is required.
       - name: Train candidate
         run: python -m pipelines.train --config configs/production.yaml --output-dir artifacts/candidate
-      - name: Evaluate promotion gates
-        run: |
-          echo '{"passed": true}' > artifacts/evaluation.json
-          cat artifacts/evaluation.json
       - uses: actions/upload-artifact@v4
         with:
           name: candidate-${{ github.run_id }}
-          path: artifacts/
+          path: artifacts/candidate/
+
+  promote:
+    needs: [detect, train]
+    if: always() && needs.train.result == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: model-registry
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: pip install -e ".[ml]"
+      - name: Download candidate artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: candidate-${{ github.run_id }}
+          path: artifacts
+      # The committed artifacts/champion/*.json IS the champion. First-promotion
+      # path (no committed metrics.json yet): --force lets promote_cli install the
+      # first champion without gates to compare against.
+      - name: Seed champion state
+        run: |
+          mkdir -p artifacts/champion
+          if [ -f artifacts/champion/metrics.json ]; then
+            echo "champion_exists=true" >> "$GITHUB_ENV"
+          else
+            echo "champion_exists=false" >> "$GITHUB_ENV"
+          fi
+          # Restore the silver count predicted by detect; promote_cli recounts the
+          # silver files itself at promote time (the train job ingested them).
+          N=${{ needs.detect.outputs.n_silver_files }}
+          jq --argjson n "$N" '.n_silver_files = $n' \
+            artifacts/champion/train_state.json > train_state.tmp.json
+          mv train_state.tmp.json artifacts/champion/train_state.json
+      - name: Promote candidate through gates
+        id: promote
+        run: |
+          set +e
+          FLAGS=""
+          if [ "$CHAMPION_EXISTS" != "true" ]; then FLAGS="--force"; fi
+          python -m pitwall.registry.promote_cli \
+            --candidate artifacts/candidate \
+            --champion-dir artifacts/champion \
+            --config configs/promotion.yaml \
+            $FLAGS > promote_output.txt 2>&1
+          CODE=$?
+          set -e
+          cat promote_output.txt
+          echo "exitcode=${CODE}" >> "$GITHUB_OUTPUT"
+      - name: Commit promoted champion state
+        if: steps.promote.outputs.exitcode == '0'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add artifacts/champion/metrics.json artifacts/champion/train_state.json
+          git commit -m "mlops: promote candidate ${{ github.run_id }} [skip ci]"
+          git push
+      - name: Write blocked summary
+        if: steps.promote.outputs.exitcode == '1'
+        run: |
+          {
+            echo "## Promotion blocked"
+            echo ""
+            echo '```'
+            cat promote_output.txt
+            echo '```'
+            echo ""
+            echo "No changes were committed."
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Fail on CLI misuse (exit 2 = missing inputs)
+        if: steps.promote.outputs.exitcode == '2'
+        run: |
+          echo "promote_cli reported missing inputs — see log above" >&2
+          exit 1
+      - name: Upload decisions log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: decisions-${{ github.run_id }}
+          path: artifacts/champion/decisions.jsonl
+          if-no-files-found: warn

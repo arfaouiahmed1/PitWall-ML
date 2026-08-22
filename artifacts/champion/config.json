@@ -1,0 +1,88 @@
+{
+  "project": "pitwall-ml",
+  "version": "0.1.0",
+  "data": {
+    "bronze_path": "data/bronze",
+    "silver_path": "data/silver",
+    "gold_path": "data/gold",
+    "regulation_era_map": {
+      "2023": "ground_effect_v2",
+      "2024": "ground_effect_v2",
+      "2025": "ground_effect_v2",
+      "2026": "revised_aero_pu_2026"
+    },
+    "max_rows": 50000
+  },
+  "features": {
+    "pace": {
+      "target": "next_clean_lap_s",
+      "exclude_lap_types": [
+        "pit_in",
+        "pit_out",
+        "safety_car",
+        "vsc",
+        "red_flag",
+        "formation"
+      ],
+      "rolling_windows": [
+        3,
+        5
+      ],
+      "categorical": [
+        "driver_id",
+        "team_id",
+        "circuit_id",
+        "compound",
+        "regulation_era"
+      ],
+      "numerical": [
+        "tyre_age",
+        "stint_no",
+        "lap_number",
+        "race_progress",
+        "position",
+        "gap_ahead_s",
+        "gap_behind_s",
+        "gap_leader_s",
+        "last_clean_lap_s",
+        "rolling_median_3",
+        "rolling_median_5",
+        "rolling_std_5",
+        "delta_to_session_median",
+        "track_temp_c",
+        "air_temp_c",
+        "humidity",
+        "rainfall"
+      ]
+    }
+  },
+  "training": {
+    "test_races": 2,
+    "validation_races": 1,
+    "min_laps_per_stint": 3,
+    "random_state": 42
+  },
+  "models": {
+    "pace": {
+      "quantile": true,
+      "quantile_alphas": [
+        0.1,
+        0.5,
+        0.9
+      ],
+      "params": {
+        "n_estimators": 100,
+        "learning_rate": 0.1,
+        "num_leaves": 15
+      }
+    }
+  },
+  "mlflow": {
+    "tracking_uri": "http://localhost:5000",
+    "experiment": "pitwall-pace-dev",
+    "registry_model": "pitwall-pace"
+  },
+  "logging": {
+    "level": "DEBUG"
+  }
+}

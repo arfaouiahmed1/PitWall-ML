@@ -10,6 +10,10 @@ dist/
 build/
 artifacts/*
 !artifacts/.gitkeep
+# Champion registry state is committed (lightweight JSON only — never binaries).
+!artifacts/champion/
+artifacts/champion/**
+!artifacts/champion/*.json
 artifacts/smoke/
 artifacts/candidate/
 

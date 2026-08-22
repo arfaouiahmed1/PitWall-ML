@@ -17,7 +17,7 @@ Everything streams to a dashboard: a live-style leaderboard, predicted pace with
 
 **https://arfaouiahmed1.github.io/PitWall-ML/**
 
-The hosted dashboard runs in demo mode: it streams a simulated race replay so it works with zero setup. The full stack (ingestion, training, inference, monitoring) runs locally; see [Quick start](#quick-start).
+The hosted dashboard runs in demo mode: it streams a simulated race replay so it works with zero setup. The full stack (ingestion, training, inference, monitoring) runs locally; see [Quick start](#quick-start). For the honest build story (what broke, what it cost, and why the numbers look the way they do), read [docs/JOURNEY.md](docs/JOURNEY.md). For the process behind it (CRISP-DM phases mapped to repo artifacts, the three-iteration log, and an honest gap analysis), read [docs/METHODOLOGY.md](docs/METHODOLOGY.md).
 
 <!-- TODO: screenshot of the race dashboard (leaderboard + predicted pace bands + pit probability) -->
 
