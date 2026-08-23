@@ -123,7 +123,13 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: candidate-${{ github.run_id }}
-          path: artifacts
+          path: artifacts/candidate
+      - name: Restore trained silver cache
+        uses: actions/cache/restore@v4
+        with:
+          path: data/silver/laps
+          key: silver-laps-${{ needs.train.outputs.n_silver_files_actual }}
+          fail-on-cache-miss: true
       # The committed artifacts/champion/*.json IS the champion. First-promotion
       # path (no committed metrics.json yet): --force lets promote_cli install the
       # first champion without gates to compare against.
@@ -131,9 +137,9 @@ jobs:
         run: |
           mkdir -p artifacts/champion
           if [ -f artifacts/champion/metrics.json ]; then
-            echo "champion_exists=true" >> "$GITHUB_ENV"
+            echo "CHAMPION_EXISTS=true" >> "$GITHUB_ENV"
           else
-            echo "champion_exists=false" >> "$GITHUB_ENV"
+            echo "CHAMPION_EXISTS=false" >> "$GITHUB_ENV"
           fi
           # Restore the silver count predicted by detect; promote_cli recounts the
           # silver files itself at promote time (the train job ingested them).
@@ -150,6 +156,7 @@ jobs:
           python -m pitwall.registry.promote_cli \
             --candidate artifacts/candidate \
             --champion-dir artifacts/champion \
+            --registry-dir artifacts/champion \
             --config configs/promotion.yaml \
             $FLAGS > promote_output.txt 2>&1
           CODE=$?
