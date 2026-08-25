@@ -3,8 +3,8 @@ name: Retrain on new race data
 # Weekly MLOps loop: detect missing races -> ingest them -> train a candidate
 # -> gate promotion through pitwall.registry.promote_cli -> commit the updated
 # lightweight champion state (JSON only; model binaries and silver parquet stay
-# out of git). Silver parquet survives between runs via the actions/cache
-# `silver-laps-*` family, so each week only genuinely new races are fetched.
+# out of git). A pinned public release asset bootstraps the first run; the
+# actions/cache `silver-laps-*` family is only an accelerator after that.
 
 on:
   workflow_dispatch:
@@ -28,6 +28,8 @@ jobs:
   detect:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    env:
+      PYTHONPATH: src
     outputs:
       new_data: ${{ steps.detect.outputs.new_data }}
       n_silver_files: ${{ steps.detect.outputs.n_silver_files }}
@@ -37,14 +39,28 @@ jobs:
         with:
           python-version: "3.11"
       # scripts/ingest_missing.py is stdlib-only, so no pip install is needed here.
-      # Restore the silver lake saved by previous runs; without it every file
-      # would look "missing" on this fresh runner and detection would be meaningless.
+      # Restore a schedule/seed-addressed lake when one exists. A restore-key
+      # hit is not trusted until the complete-lake validator passes below.
       - uses: actions/cache/restore@v4
+        name: Restore silver cache
+        id: silver-cache
         with:
           path: data/silver/laps
-          key: silver-laps-detect-${{ github.run_id }}
+          key: silver-laps-${{ hashFiles('configs/season_schedule.json') }}-${{ hashFiles('configs/silver_seed.json') }}-detect-${{ github.run_id }}
           restore-keys: |
+            silver-laps-${{ hashFiles('configs/season_schedule.json') }}-
             silver-laps-
+      - name: Bootstrap silver seed
+        if: steps.silver-cache.outputs.cache-hit != 'true'
+        run: python scripts/bootstrap_silver.py --config configs/silver_seed.json --download
+      - name: Validate complete silver lake
+        run: python scripts/bootstrap_silver.py --config configs/silver_seed.json --validate-only
+      - name: Save silver cache
+        if: steps.silver-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: data/silver/laps
+          key: silver-laps-${{ hashFiles('configs/season_schedule.json') }}-${{ hashFiles('configs/silver_seed.json') }}-seed
       - name: Detect missing races
         id: detect
         run: |
@@ -64,8 +80,11 @@ jobs:
     if: needs.detect.outputs.new_data == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 120
+    env:
+      PYTHONPATH: src
     outputs:
       n_silver_files_actual: ${{ steps.count.outputs.n_silver_files }}
+      silver_cache_key: ${{ steps.count.outputs.silver_cache_key }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -74,18 +93,29 @@ jobs:
           cache: pip
       - run: pip install -e ".[ml]"
       - uses: actions/cache/restore@v4
+        name: Restore silver cache
+        id: silver-cache
         with:
           path: data/silver/laps
-          key: silver-laps-train-${{ github.run_id }}
+          key: silver-laps-${{ hashFiles('configs/season_schedule.json') }}-${{ hashFiles('configs/silver_seed.json') }}-train-${{ github.run_id }}
           restore-keys: |
+            silver-laps-${{ hashFiles('configs/season_schedule.json') }}-
             silver-laps-
+      - name: Bootstrap silver seed
+        if: steps.silver-cache.outputs.cache-hit != 'true'
+        run: python scripts/bootstrap_silver.py --config configs/silver_seed.json --download
+      - name: Validate seed lake before ingest
+        run: python scripts/bootstrap_silver.py --config configs/silver_seed.json --validate-only
       - name: Ingest missing races (incremental, retry-once per race)
         run: python scripts/ingest_missing.py
+      - name: Validate complete silver lake
+        run: python scripts/bootstrap_silver.py --config configs/silver_seed.json --validate-only
       - name: Count silver files after ingestion
         id: count
         run: |
           N=$(find data/silver/laps -name '*.parquet' | wc -l)
           echo "n_silver_files=${N}" >> "$GITHUB_OUTPUT"
+          echo "silver_cache_key=silver-laps-${{ hashFiles('configs/season_schedule.json') }}-${N}-${{ github.run_id }}" >> "$GITHUB_OUTPUT"
       # Keyed on the post-ingest count so the next run's restore-keys pick up the
       # freshest archive; saving over an existing key is a harmless no-op warning.
       - name: Save silver cache
@@ -94,11 +124,11 @@ jobs:
         uses: actions/cache/save@v4
         with:
           path: data/silver/laps
-          key: silver-laps-${{ steps.count.outputs.n_silver_files }}
+          key: ${{ steps.count.outputs.silver_cache_key }}
       # configs/production.yaml is CI-safe: pipelines.train wraps MLflow logging in
       # try/except ("MLflow logging skipped"), so no tracking server is required.
       - name: Train candidate
-        run: python -m pipelines.train --config configs/production.yaml --output-dir artifacts/candidate
+        run: python -m pipelines.train --config configs/production.yaml --output-dir artifacts/candidate --require-real-data
       - uses: actions/upload-artifact@v4
         with:
           name: candidate-${{ github.run_id }}
@@ -128,7 +158,7 @@ jobs:
         uses: actions/cache/restore@v4
         with:
           path: data/silver/laps
-          key: silver-laps-${{ needs.train.outputs.n_silver_files_actual }}
+          key: ${{ needs.train.outputs.silver_cache_key }}
           fail-on-cache-miss: true
       # The committed artifacts/champion/*.json IS the champion. First-promotion
       # path (no committed metrics.json yet): --force lets promote_cli install the

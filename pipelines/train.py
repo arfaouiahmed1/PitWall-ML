@@ -47,6 +47,11 @@ def main() -> None:
     parser.add_argument("--config", default="configs/development.yaml")
     parser.add_argument("--output-dir", default="artifacts/candidate")
     parser.add_argument("--max-rows", type=int, default=None)
+    parser.add_argument(
+        "--require-real-data",
+        action="store_true",
+        help="fail closed instead of generating synthetic smoke-test data",
+    )
     args = parser.parse_args()
 
     cfg = load_config(args.config)
@@ -54,12 +59,22 @@ def main() -> None:
 
     # Load silver laps
     silver_root = Path(cfg.get("data", {}).get("silver_path", "data/silver"))
-    files = (
-        list((silver_root / "laps").rglob("*.parquet"))
-        if (silver_root / "laps").exists()
-        else list(silver_root.rglob("*.parquet"))
+    silver_laps_root = silver_root / "laps" if (silver_root / "laps").exists() else silver_root
+    require_real_data = args.require_real_data or bool(
+        cfg.get("data", {}).get("require_real_data", False)
     )
+    if require_real_data:
+        from pitwall.data.silver_validation import require_complete_silver_lake
+
+        schedule_path = Path(
+            cfg.get("data", {}).get("schedule_path", "configs/season_schedule.json")
+        )
+        report = require_complete_silver_lake(silver_laps_root, schedule_path)
+        print(f"Validated complete silver lake: {report.summary()}")
+    files = list(silver_laps_root.rglob("*.parquet")) if silver_laps_root.exists() else []
     if not files:
+        if require_real_data:
+            raise RuntimeError("Real-data training requires at least one silver parquet file")
         # Create synthetic data for smoke test if no real data —
         # inject realistic tyre degradation signal
         print("No silver data found — generating synthetic data for smoke test (with tyre deg)")

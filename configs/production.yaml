@@ -4,6 +4,11 @@ training:
   test_races: 4
   validation_races: 2
 
+data:
+  silver_path: data/silver
+  schedule_path: configs/season_schedule.json
+  require_real_data: true
+
 models:
   pace:
     params:
