@@ -42,6 +42,18 @@ def load_config(path: str) -> dict:
     return cfg
 
 
+def _fallback_smoke_split(sessions: list[str]) -> dict[str, list[str]]:
+    """Return a deterministic, disjoint fallback split for tiny smoke datasets."""
+    n_sessions = len(sessions)
+    if n_sessions < 2:
+        raise ValueError("Smoke-test fallback requires at least two sessions")
+    if n_sessions >= 4:
+        return {"train": sessions[:-2], "validation": [sessions[-2]], "test": [sessions[-1]]}
+    if n_sessions == 3:
+        return {"train": sessions[:1], "validation": [sessions[1]], "test": [sessions[2]]}
+    return {"train": [sessions[0]], "validation": [], "test": [sessions[1]]}
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", default="configs/development.yaml")
@@ -132,17 +144,10 @@ def main() -> None:
     try:
         splits = chronological_race_split(gold, n_test_races=n_test, n_val_races=n_val)
     except ValueError as e:
-        print(f"Split warning: {e} — using random fallback for smoke test")
-        # fallback: last sessions lexicographically; train/val must stay non-empty
-        # even when max-rows spans few sessions, else LightGBM fit crashes
+        print(f"Split warning: {e} — using deterministic fallback for smoke test")
+        # Fallback uses lexicographically ordered sessions and never overlaps splits.
         sessions = gold.select("session_id").unique().sort("session_id")["session_id"].to_list()
-        n_sessions = len(sessions)
-        if n_sessions >= 4:
-            splits = {"train": sessions[:-2], "validation": [sessions[-2]], "test": [sessions[-1]]}
-        elif n_sessions == 3:
-            splits = {"train": sessions[:1], "validation": [sessions[1]], "test": [sessions[2]]}
-        else:
-            splits = {"train": sessions[:-1], "validation": sessions[:-1], "test": sessions[-1:]}
+        splits = _fallback_smoke_split(sessions)
 
     print(
         f"Splits: train={len(splits['train'])} "
