@@ -1,4 +1,4 @@
-.PHONY: bootstrap services services-all ingest features train-pace evaluate mlops-loop mlops-status validate monitoring test test-all lint format clean api web docker-build
+.PHONY: bootstrap services services-all ingest ingest-bronze features train-pace evaluate mlops-loop mlops-status validate monitoring test test-all lint format clean api web docker-build
 
 PY := python
 PIP := pip
@@ -20,6 +20,9 @@ services-all:
 
 ingest:
 	$(PY) -m pitwall.ingestion.cli --season $(SEASON) --event "$(EVENT)" --session $(or $(SESSION),R)
+
+ingest-bronze:
+	$(PY) -m pitwall.ingest.cli --year $(or $(YEAR),$(SEASON)) --output-dir $(or $(OUTPUT_DIR),data/bronze)
 
 features:
 	$(PY) -m pipelines.features

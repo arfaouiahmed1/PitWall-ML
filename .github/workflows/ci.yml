@@ -27,7 +27,7 @@ jobs:
         run: ruff check .
       - name: Format check (ruff format)
         run: ruff format --check .
-      - name: Type check (mypy — allowed to warn)
+      - name: Type check (mypy — advisory, non-blocking)
         run: mypy src apps/api --ignore-missing-imports || true
       - name: Unit tests
         run: pytest tests/unit -q
@@ -59,8 +59,8 @@ jobs:
           cache: npm
           cache-dependency-path: apps/web/package-lock.json
       - run: npm ci || npm install
-      - run: npm run lint || true
-      # Validate both normal (SSR) and Pages (static export) builds
+      - name: Lint (advisory, non-blocking)
+        run: npm run lint || true
       - name: Build — normal (no basePath)
         run: npm run build
       - name: Build — static export (GitHub Pages)

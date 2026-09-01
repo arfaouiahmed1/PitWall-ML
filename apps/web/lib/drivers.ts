@@ -12,19 +12,212 @@ export type DriverInfo = {
   color: string;
   /** OpenF1 headshot URL when available */
   image?: string;
+  /** Driver number (1..99) */
+  number?: number;
 };
 
-/** Offline-safe identity for the demo leaderboard rows (numbers match DRIVERS in app/page.tsx). */
-export const DRIVER_FALLBACK: Record<number, DriverInfo> = {
-  1: { name: "Max Verstappen", code: "VER", team: "Red Bull", color: "#3671C6" },
-  4: { name: "Lando Norris", code: "NOR", team: "McLaren", color: "#FF8000" },
-  16: { name: "Charles Leclerc", code: "LEC", team: "Ferrari", color: "#E8002D" },
-  63: { name: "George Russell", code: "RUS", team: "Mercedes", color: "#27F4D2" },
-  55: { name: "Carlos Sainz", code: "SAI", team: "Williams", color: "#64C4FF" },
-  44: { name: "Lewis Hamilton", code: "HAM", team: "Ferrari", color: "#E8002D" },
-  12: { name: "Kimi Antonelli", code: "ANT", team: "Mercedes", color: "#27F4D2" },
-  81: { name: "Oscar Piastri", code: "PIA", team: "McLaren", color: "#FF8000" },
+/** Team colour registry — canonical 2025/2026 liveries */
+export const TEAM_COLORS: Record<string, string> = {
+  "Red Bull": "#3671c6",
+  "Red Bull Racing": "#3671c6",
+  McLaren: "#ff8000",
+  Ferrari: "#e8002d",
+  Mercedes: "#00d2be",
+  "Aston Martin": "#006f62",
+  Alpine: "#0090ff",
+  Williams: "#005aff",
+  Haas: "#b6babd",
+  "Racing Bulls": "#6692ff",
+  RB: "#6692ff",
+  Sauber: "#52e252",
+  Audi: "#52e252",
+  Cadillac: "#c9a86a",
 };
+
+function headshotUrl(code: string, num: number): string {
+  // CDN-backed OpenF1 headshot — falls back to Formula1.com static if OpenF1 unavailable.
+  // OpenF1 headshot_url is fetched live and merged via useDrivers; this is the offline fallback.
+  // Using api.openf1.org image proxy pattern + formula1.com as secondary.
+  return `https://cdn.openf1.org/drivers/${num}/headshot.png`;
+}
+
+/** Complete 2025/2026 grid — 20 drivers as specified in plan 1.2 */
+export const DRIVER_FALLBACK: Record<number, DriverInfo> = {
+  1: {
+    name: "Max Verstappen",
+    code: "VER",
+    team: "Red Bull",
+    color: "#3671c6",
+    image: headshotUrl("VER", 1),
+    number: 1,
+  },
+  4: {
+    name: "Lando Norris",
+    code: "NOR",
+    team: "McLaren",
+    color: "#ff8000",
+    image: headshotUrl("NOR", 4),
+    number: 4,
+  },
+  16: {
+    name: "Charles Leclerc",
+    code: "LEC",
+    team: "Ferrari",
+    color: "#e8002d",
+    image: headshotUrl("LEC", 16),
+    number: 16,
+  },
+  63: {
+    name: "George Russell",
+    code: "RUS",
+    team: "Mercedes",
+    color: "#00d2be",
+    image: headshotUrl("RUS", 63),
+    number: 63,
+  },
+  44: {
+    name: "Lewis Hamilton",
+    code: "HAM",
+    team: "Ferrari",
+    color: "#e8002d",
+    image: headshotUrl("HAM", 44),
+    number: 44,
+  },
+  55: {
+    name: "Carlos Sainz",
+    code: "SAI",
+    team: "Williams",
+    color: "#005aff",
+    image: headshotUrl("SAI", 55),
+    number: 55,
+  },
+  81: {
+    name: "Oscar Piastri",
+    code: "PIA",
+    team: "McLaren",
+    color: "#ff8000",
+    image: headshotUrl("PIA", 81),
+    number: 81,
+  },
+  12: {
+    name: "Kimi Antonelli",
+    code: "ANT",
+    team: "Mercedes",
+    color: "#00d2be",
+    image: headshotUrl("ANT", 12),
+    number: 12,
+  },
+  14: {
+    name: "Fernando Alonso",
+    code: "ALO",
+    team: "Aston Martin",
+    color: "#006f62",
+    image: headshotUrl("ALO", 14),
+    number: 14,
+  },
+  18: {
+    name: "Lance Stroll",
+    code: "STR",
+    team: "Aston Martin",
+    color: "#006f62",
+    image: headshotUrl("STR", 18),
+    number: 18,
+  },
+  10: {
+    name: "Pierre Gasly",
+    code: "GAS",
+    team: "Alpine",
+    color: "#0090ff",
+    image: headshotUrl("GAS", 10),
+    number: 10,
+  },
+  7: {
+    name: "Jack Doohan",
+    code: "DOO",
+    team: "Alpine",
+    color: "#0090ff",
+    image: headshotUrl("DOO", 7),
+    number: 7,
+  },
+  23: {
+    name: "Alexander Albon",
+    code: "ALB",
+    team: "Williams",
+    color: "#005aff",
+    image: headshotUrl("ALB", 23),
+    number: 23,
+  },
+  22: {
+    name: "Yuki Tsunoda",
+    code: "TSU",
+    team: "Racing Bulls",
+    color: "#6692ff",
+    image: headshotUrl("TSU", 22),
+    number: 22,
+  },
+  30: {
+    name: "Liam Lawson",
+    code: "LAW",
+    team: "Racing Bulls",
+    color: "#6692ff",
+    image: headshotUrl("LAW", 30),
+    number: 30,
+  },
+  27: {
+    name: "Nico Hulkenberg",
+    code: "HUL",
+    team: "Sauber",
+    color: "#52e252",
+    image: headshotUrl("HUL", 27),
+    number: 27,
+  },
+  5: {
+    name: "Gabriel Bortoleto",
+    code: "BOR",
+    team: "Sauber",
+    color: "#52e252",
+    image: headshotUrl("BOR", 5),
+    number: 5,
+  },
+  31: {
+    name: "Esteban Ocon",
+    code: "OCO",
+    team: "Haas",
+    color: "#b6babd",
+    image: headshotUrl("OCO", 31),
+    number: 31,
+  },
+  87: {
+    name: "Oliver Bearman",
+    code: "BEA",
+    team: "Haas",
+    color: "#b6babd",
+    image: headshotUrl("BEA", 87),
+    number: 87,
+  },
+  6: {
+    name: "Isack Hadjar",
+    code: "HAD",
+    team: "Racing Bulls",
+    color: "#6692ff",
+    image: headshotUrl("HAD", 6),
+    number: 6,
+  },
+};
+
+/** Ordered list for grids / selects */
+export const DRIVERS_LIST: Array<DriverInfo & { number: number }> = Object.entries(DRIVER_FALLBACK)
+  .map(([num, info]) => ({ ...info, number: Number(num) }))
+  .sort((a, b) => a.number - b.number);
+
+/** Lookup helper */
+export function getDriverInfo(n: number): DriverInfo | undefined {
+  return DRIVER_FALLBACK[n];
+}
+
+export function getTeamColor(team: string): string {
+  return TEAM_COLORS[team] ?? "#1e293b";
+}
 
 const OPENF1_DRIVERS_URL = "https://api.openf1.org/v1/drivers?session_key=latest";
 
@@ -43,7 +236,7 @@ export function readableTextColor(hex: string): string {
   if (!match) return "#ffffff";
   const n = parseInt(match[1], 16);
   const luminance = 0.2126 * ((n >> 16) & 255) + 0.7152 * ((n >> 8) & 255) + 0.0722 * (n & 255);
-  return luminance > 150 ? "#0a0e14" : "#ffffff";
+  return luminance > 150 ? "#080c14" : "#ffffff";
 }
 
 export const COMPOUND_NAMES: Record<string, string> = {
@@ -52,10 +245,18 @@ export const COMPOUND_NAMES: Record<string, string> = {
   H: "HARD",
   I: "INTERMEDIATE",
   W: "WET",
+  SOFT: "SOFT",
+  MEDIUM: "MEDIUM",
+  HARD: "HARD",
+  INTERMEDIATE: "INTERMEDIATE",
+  WET: "WET",
 };
 
 /** Defensive mapping of one raw OpenF1 driver row; keeps fallback values on any malformed field. */
-function mapDriver(raw: Record<string, unknown>, fallback?: DriverInfo): { num: number; info: DriverInfo } | undefined {
+function mapDriver(
+  raw: Record<string, unknown>,
+  fallback?: DriverInfo,
+): { num: number; info: DriverInfo } | undefined {
   const numRaw = raw.driver_number;
   const num = typeof numRaw === "string" ? Number(numRaw) : numRaw;
   if (typeof num !== "number" || !Number.isFinite(num)) return undefined;
@@ -73,8 +274,9 @@ function mapDriver(raw: Record<string, unknown>, fallback?: DriverInfo): { num: 
         ? teamColour.startsWith("#")
           ? teamColour
           : `#${teamColour}`
-        : (fallback?.color ?? "#243447"),
-      image: headshot && /^https?:\/\//.test(headshot) ? headshot : undefined,
+        : (fallback?.color ?? "#1e293b"),
+      image: headshot && /^https?:\/\//.test(headshot) ? headshot : fallback?.image,
+      number: num,
     },
   };
 }

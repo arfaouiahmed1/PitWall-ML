@@ -2,78 +2,347 @@
   "id": null,
   "uid": "pitwall-v3",
   "title": "PitWall ML — Race Intelligence (V3)",
+  "tags": ["pitwall", "ml", "f1", "2025-2026"],
+  "style": "dark",
   "timezone": "browser",
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "links": [],
   "schemaVersion": 39,
-  "version": 1,
+  "version": 11,
   "refresh": "5s",
   "time": { "from": "now-1h", "to": "now" },
+  "templating": {
+    "list": [
+      {
+        "name": "DS_PROMETHEUS",
+        "label": "Prometheus",
+        "type": "datasource",
+        "query": "prometheus",
+        "current": { "value": "Prometheus", "text": "Prometheus" },
+        "hide": 0,
+        "includeAll": false,
+        "multi": false,
+        "options": [],
+        "regex": ""
+      }
+    ]
+  },
   "panels": [
     {
-      "type": "stat",
-      "title": "Pace MAE (champion)",
-      "datasource": { "type": "prometheus", "uid": "Prometheus" },
-      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 0 },
-      "targets": [{ "expr": "pace_mae_seconds", "refId": "A" }],
-      "fieldConfig": { "defaults": { "unit": "s", "min": 0, "thresholds": { "steps": [{ "color": "green", "value": 0 }, { "color": "red", "value": 0.52 }] } }, "overrides": [] }
+      "id": 100,
+      "type": "row",
+      "title": "Row 1 — Executive ML Health",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+      "collapsed": false,
+      "panels": []
     },
     {
+      "id": 1,
+      "type": "stat",
+      "title": "Champion Pace MAE",
+      "description": "Champion model pace MAE (seconds) — alert >2.5s warning, >3.5s critical",
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "gridPos": { "h": 8, "w": 6, "x": 0, "y": 1 },
+      "targets": [{ "expr": "pace_mae_seconds{alias=\"champion\"}", "refId": "A", "range": true }],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": 0 },
+              { "color": "yellow", "value": 2.5 },
+              { "color": "red", "value": 3.5 }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "graphMode": "area",
+        "colorMode": "background",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }
+      }
+    },
+    {
+      "id": 2,
       "type": "gauge",
-      "title": "80% Interval Coverage",
-      "datasource": { "type": "prometheus", "uid": "Prometheus" },
-      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 0 },
-      "targets": [{ "expr": "pace_interval_coverage", "refId": "A" }],
-      "fieldConfig": { "defaults": { "unit": "percentunit", "min": 0, "max": 1, "thresholds": { "steps": [{ "color": "red", "value": 0 }, { "color": "yellow", "value": 0.75 }, { "color": "green", "value": 0.78 }] } } }
+      "title": "80% Calibrated Interval Coverage",
+      "description": "Nominal 80% coverage — healthy 72-88%, alert outside",
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "gridPos": { "h": 8, "w": 6, "x": 6, "y": 1 },
+      "targets": [{ "expr": "pace_interval_coverage", "refId": "A", "range": true }],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "min": 0,
+          "max": 1,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": 0 },
+              { "color": "yellow", "value": 0.72 },
+              { "color": "green", "value": 0.78 },
+              { "color": "yellow", "value": 0.88 },
+              { "color": "red", "value": 0.88 }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": { "showThresholdLabels": true, "showThresholdMarkers": true }
     },
     {
+      "id": 3,
       "type": "stat",
-      "title": "Inference p95",
-      "datasource": { "type": "prometheus", "uid": "Prometheus" },
-      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 0 },
-      "targets": [{ "expr": "histogram_quantile(0.95, rate(inference_duration_seconds_bucket[5m]))", "refId": "A" }],
-      "fieldConfig": { "defaults": { "unit": "s", "thresholds": { "steps": [{ "color": "green", "value": 0 }, { "color": "red", "value": 0.1 }] } } }
+      "title": "Inference p95 Latency",
+      "description": "API p95 latency — threshold 100ms",
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "gridPos": { "h": 8, "w": 6, "x": 12, "y": 1 },
+      "targets": [{ "expr": "histogram_quantile(0.95, rate(inference_duration_seconds_bucket[5m]))", "refId": "A", "range": true }],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": 0 },
+              { "color": "yellow", "value": 0.05 },
+              { "color": "red", "value": 0.1 }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "graphMode": "area",
+        "colorMode": "value",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }
+      }
     },
     {
+      "id": 4,
       "type": "stat",
-      "title": "Drifting Features Ratio",
-      "datasource": { "type": "prometheus", "uid": "Prometheus" },
-      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 0 },
-      "targets": [{ "expr": "drifting_features_ratio", "refId": "A" }],
-      "fieldConfig": { "defaults": { "unit": "percentunit", "thresholds": { "steps": [{ "color": "green", "value": 0 }, { "color": "yellow", "value": 0.1 }, { "color": "red", "value": 0.2 }] } } }
+      "title": "Rolling Drift Ratio",
+      "description": "Evidently 3-race rolling drift ratio — >0.2 warning",
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "gridPos": { "h": 8, "w": 6, "x": 18, "y": 1 },
+      "targets": [{ "expr": "drifting_features_ratio", "refId": "A", "range": true }],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "min": 0,
+          "max": 1,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": 0 },
+              { "color": "yellow", "value": 0.1 },
+              { "color": "red", "value": 0.2 }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "graphMode": "area",
+        "colorMode": "background",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }
+      }
     },
     {
+      "id": 101,
+      "type": "row",
+      "title": "Row 2 — Model Accuracy & Subgroups",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 9 },
+      "collapsed": false,
+      "panels": []
+    },
+    {
+      "id": 5,
       "type": "timeseries",
-      "title": "Event Processing Lag",
-      "datasource": { "type": "prometheus", "uid": "Prometheus" },
-      "gridPos": { "h": 6, "w": 12, "x": 0, "y": 4 },
-      "targets": [{ "expr": "event_processing_lag_seconds", "refId": "A" }]
+      "title": "Pace MAE by alias (champion vs challenger)",
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 10 },
+      "targets": [
+        { "expr": "pace_mae_seconds{alias=\"champion\"}", "refId": "A", "legendFormat": "champion {{model_version}}" },
+        { "expr": "pace_mae_seconds{alias=\"challenger\"}", "refId": "B", "legendFormat": "challenger {{model_version}}" }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "s", "min": 0, "custom": { "lineWidth": 2, "fillOpacity": 10 } },
+        "overrides": []
+      },
+      "options": { "legend": { "displayMode": "visible", "placement": "bottom" }, "tooltip": { "mode": "multi" } }
     },
     {
+      "id": 6,
+      "type": "barchart",
+      "title": "Per-Compound MAE Breakdown (Soft vs Medium vs Hard)",
+      "description": "Subgroup MAE — hard threshold 5.0s",
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "gridPos": { "h": 8, "w": 6, "x": 12, "y": 10 },
+      "targets": [
+        { "expr": "subgroup_compound_mae", "refId": "A", "legendFormat": "{{compound}} {{model_version}}", "format": "table" }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "s", "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": 0 }, { "color": "red", "value": 5 }] } },
+        "overrides": []
+      },
+      "options": { "orientation": "vertical", "xField": "compound", "barWidth": 0.8, "stacking": "none" }
+    },
+    {
+      "id": 7,
       "type": "timeseries",
-      "title": "HTTP Requests /s",
-      "datasource": { "type": "prometheus", "uid": "Prometheus" },
-      "gridPos": { "h": 6, "w": 12, "x": 12, "y": 4 },
-      "targets": [{ "expr": "rate(http_requests_total[5m])", "refId": "A", "legendFormat": "{{endpoint}} {{status}}" }]
+      "title": "Tyre Degradation MAE & Pit Hazard AUC",
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "gridPos": { "h": 8, "w": 6, "x": 18, "y": 10 },
+      "targets": [
+        { "expr": "tyre_mae_seconds", "refId": "A", "legendFormat": "tyre MAE {{model_version}}" },
+        { "expr": "pit_auc", "refId": "B", "legendFormat": "pit AUC {{model_version}}" }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "short", "custom": { "lineWidth": 2 } },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "pit AUC" }, "properties": [{ "id": "unit", "value": "percentunit" }, { "id": "min", "value": 0 }, { "id": "max", "value": 1 }] }
+        ]
+      },
+      "options": { "legend": { "displayMode": "visible", "placement": "bottom" } }
     },
     {
+      "id": 102,
+      "type": "row",
+      "title": "Row 3 — Regulation Era Drift (2025→2026) — Feature Drift",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 18 },
+      "collapsed": false,
+      "panels": []
+    },
+    {
+      "id": 8,
+      "type": "barchart",
+      "title": "Top 10 Drifting Features by PSI and Wasserstein Distance",
+      "description": "Era drift 2025->2026 — PSI >0.25 severe, W1 >1.5 high",
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "gridPos": { "h": 9, "w": 12, "x": 0, "y": 19 },
+      "targets": [
+        { "expr": "topk(10, feature_psi_value)", "refId": "A", "legendFormat": "PSI {{feature}} {{era}}" },
+        { "expr": "topk(10, feature_wasserstein_distance)", "refId": "B", "legendFormat": "W1 {{feature}} {{era}}" },
+        { "expr": "topk(10, feature_psi)", "refId": "C", "legendFormat": "PSI(alias) {{feature}}" }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": 0 },
+              { "color": "yellow", "value": 0.25 },
+              { "color": "red", "value": 0.5 }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": { "orientation": "horizontal", "xField": "feature", "barWidth": 0.9, "stacking": "none" }
+    },
+    {
+      "id": 9,
+      "type": "heatmap",
+      "title": "KS p-values Heatmap (Speed Trap, Braking Intensity, Throttle Delta)",
+      "description": "Per-feature KS statistic / p-value across telemetry dimensions",
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "gridPos": { "h": 9, "w": 12, "x": 12, "y": 19 },
+      "targets": [
+        { "expr": "feature_drift_details", "refId": "A", "legendFormat": "{{feature}}" }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "short", "min": 0, "max": 1 },
+        "overrides": []
+      },
+      "options": { "calculate": false, "yAxis": { "axisPlacement": "left" }, "rowsFrame": { "layout": "auto" }, "cellGap": 1 }
+    },
+    {
+      "id": 103,
+      "type": "row",
+      "title": "Row 4 — Real-time Service & Pipeline Telemetry",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 28 },
+      "collapsed": false,
+      "panels": []
+    },
+    {
+      "id": 10,
       "type": "timeseries",
-      "title": "Replay Events Processed",
-      "datasource": { "type": "prometheus", "uid": "Prometheus" },
-      "gridPos": { "h": 6, "w": 8, "x": 0, "y": 10 },
-      "targets": [{ "expr": "rate(replay_events_processed_total[5m])", "refId": "A" }]
+      "title": "Replay Event Ingestion Rate (events/sec)",
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 29 },
+      "targets": [{ "expr": "rate(replay_events_processed_total[5m])", "refId": "A" }],
+      "fieldConfig": { "defaults": { "unit": "ops", "min": 0 }, "overrides": [] }
     },
     {
+      "id": 11,
+      "type": "timeseries",
+      "title": "Event Processing Lag (seconds)",
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 29 },
+      "targets": [{ "expr": "event_processing_lag_seconds", "refId": "A" }],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": 0 },
+              { "color": "yellow", "value": 2 },
+              { "color": "red", "value": 5 }
+            ]
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 12,
       "type": "stat",
-      "title": "WS Clients",
-      "datasource": { "type": "prometheus", "uid": "Prometheus" },
-      "gridPos": { "h": 6, "w": 4, "x": 8, "y": 10 },
-      "targets": [{ "expr": "websocket_clients", "refId": "A" }]
+      "title": "WebSocket Active Connections",
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 29 },
+      "targets": [{ "expr": "websocket_clients", "refId": "A" }],
+      "fieldConfig": { "defaults": { "unit": "short", "min": 0 }, "overrides": [] },
+      "options": { "graphMode": "area", "colorMode": "value", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false } }
     },
     {
+      "id": 13,
+      "type": "heatmap",
+      "title": "HTTP Latency Buckets",
+      "description": "HTTP request duration histogram — p50/p95 buckets",
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 37 },
+      "targets": [{ "expr": "rate(http_request_duration_seconds_bucket[5m])", "refId": "A", "legendFormat": "{{endpoint}} {{le}}" }],
+      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] },
+      "options": { "calculate": false, "yAxis": { "axisPlacement": "left" }, "rowsFrame": { "layout": "auto" } }
+    },
+    {
+      "id": 14,
       "type": "timeseries",
-      "title": "Feature Freshness",
-      "datasource": { "type": "prometheus", "uid": "Prometheus" },
-      "gridPos": { "h": 6, "w": 12, "x": 12, "y": 10 },
-      "targets": [{ "expr": "feature_freshness_seconds", "refId": "A" }]
+      "title": "Feature Freshness (seconds)",
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 37 },
+      "targets": [{ "expr": "feature_freshness_seconds", "refId": "A" }],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": 0 },
+              { "color": "yellow", "value": 5 },
+              { "color": "red", "value": 10 }
+            ]
+          }
+        },
+        "overrides": []
+      }
     }
   ]
 }

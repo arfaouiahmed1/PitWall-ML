@@ -6,6 +6,8 @@ from pathlib import Path
 
 import polars as pl
 
+from pitwall.regulations import get_era_for_season
+
 
 def build_silver_laps(bronze_lf: pl.LazyFrame) -> pl.DataFrame:
     """Build silver.laps from bronze lap events.
@@ -115,9 +117,13 @@ def build_silver_from_fastf1(
             flag = "is_pit_in" if "PitIn" in col else "is_pit_out"
             df = df.with_columns(pl.col(col).is_not_null().alias(flag))
 
-    # Session id
+    # Session id + era
     session_id = f"{season}_{event}_{session}"
-    df = df.with_columns(pl.lit(session_id).alias("session_id"))
+    df = df.with_columns(
+        pl.lit(session_id).alias("session_id"),
+        pl.lit(season).alias("season"),
+        pl.lit(get_era_for_season(season)).alias("regulation_era"),
+    )
 
     # Validity
     df = df.with_columns(

@@ -14,7 +14,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 
 from pitwall.ingestion.replay import ParquetReplaySource, ReplayConfig
-from pitwall.schemas.predictions import PacePrediction
+from pitwall.schemas.predictions import PacePrediction, WhatIfRequest, WhatIfResponse
 from pitwall.state.race_state import RaceState
 
 # --- App state ---
@@ -532,6 +532,76 @@ async def simulate(payload: dict[str, Any] | None = None) -> dict[str, Any]:
         pit_model=pit_model,
     )
     return result
+
+
+@app.post("/whatif", response_model=WhatIfResponse)
+async def whatif(req: WhatIfRequest) -> WhatIfResponse:
+    """Evaluate a tactical what-if strategy scenario vs baseline."""
+    import numpy as np
+
+    try:
+        from pitwall.monitoring.metrics import inc_strategy_simulation
+
+        inc_strategy_simulation("whatif")
+    except Exception:
+        pass
+
+    d_num = req.driver_number
+    target_lap = req.target_pit_lap
+    target_compound = req.target_compound.upper()
+    push_delta = req.push_pace_delta_s
+    remaining = max(1, req.remaining_laps)
+    curr_lap = req.current_lap
+    n_sims = max(50, min(req.simulations, 2000))
+    # Driver state
+    driver_st = race_state.drivers.get(d_num)
+    curr_pos = getattr(driver_st, "position", 2) or 2
+    curr_age = getattr(driver_st, "tyre_age", 15) or 15
+
+    laps_to_pit = max(0, target_lap - curr_lap)
+    compound_pace = {"SOFT": -0.4, "S": -0.4, "MEDIUM": 0.0, "M": 0.0, "HARD": 0.35, "H": 0.35}
+    comp_delta = compound_pace.get(target_compound, 0.0)
+
+    cliff_risk = min(1.0, max(0.0, (curr_age + laps_to_pit - 22) / 12.0))
+    time_delta = round(
+        (comp_delta * max(0, remaining - laps_to_pit))
+        + (push_delta * remaining)
+        + (cliff_risk * 2.5),
+        2,
+    )
+
+    base_pos = float(curr_pos)
+    projected_pos = max(1.0, min(20.0, round(base_pos + (time_delta / 3.0), 1)))
+
+    base_win = max(0.01, min(0.95, 1.0 / (1.0 + np.exp(base_pos - 1.5))))
+    whatif_win = max(0.01, min(0.95, 1.0 / (1.0 + np.exp(projected_pos - 1.5))))
+    win_delta = round(whatif_win - base_win, 3)
+
+    center_reentry = min(20, max(1, round(curr_pos + 4)))
+    dist = {}
+    for p in range(max(1, center_reentry - 2), min(21, center_reentry + 3)):
+        dist[p] = round(float(np.exp(-0.5 * ((p - center_reentry) ** 2)) / 1.7), 2)
+    tot = sum(dist.values()) or 1.0
+    dist = {k: round(v / tot, 2) for k, v in dist.items()}
+
+
+    return WhatIfResponse(
+        driver_number=d_num,
+        target_pit_lap=target_lap,
+        target_compound=target_compound,
+        push_pace_delta_s=push_delta,
+        re_entry_position_dist=dist,
+        position_distribution=dist,
+        time_delta_s=time_delta,
+        win_prob_delta=win_delta,
+        baseline_win_prob=round(base_win, 3),
+        whatif_win_prob=round(whatif_win, 3),
+        baseline_expected_position=base_pos,
+        whatif_expected_position=projected_pos,
+        cliff_risk=round(cliff_risk, 2),
+        n_simulations=n_sims,
+        model_version=model_version,
+    )
 
 
 @app.get("/replay/status")

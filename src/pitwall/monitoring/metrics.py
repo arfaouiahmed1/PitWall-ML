@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import contextlib
 from typing import Any
 
 from prometheus_client import Counter, Gauge, Histogram
@@ -37,6 +38,28 @@ feature_drift_details = Gauge("feature_drift_details", "Per-feature drift (1=dri
 model_p95_ms = Gauge("model_p95_ms", "Model p95 latency ms", ["model_version"])
 tyre_mae_seconds = Gauge("tyre_mae_seconds", "Tyre MAE", ["model_version"])
 pit_auc = Gauge("pit_auc", "Pit AUC", ["model_version"])
+
+# Era drift & subgroup — V4 (2025 -> 2026)
+feature_wasserstein_distance = Gauge(
+    "feature_wasserstein_distance",
+    "Wasserstein distance (W1) per feature per era",
+    ["feature", "era"],
+)
+feature_psi_value = Gauge(
+    "feature_psi_value", "Population Stability Index per feature per era", ["feature", "era"]
+)
+# Alias for alert compatibility: alerts.yml references feature_psi, metrics spec uses feature_psi_value
+feature_psi = Gauge("feature_psi", "PSI per feature per era (alias)", ["feature", "era"])
+subgroup_compound_mae = Gauge(
+    "subgroup_compound_mae", "MAE per compound", ["compound", "model_version"]
+)
+# Alias for alert: subgroup_hard_mae_seconds (alert) is HARD view of subgroup_compound_mae
+subgroup_hard_mae_seconds = Gauge(
+    "subgroup_hard_mae_seconds", "Hard compound MAE (alias for alert)", ["model_version"]
+)
+strategy_simulations_total = Counter(
+    "strategy_simulations_total", "Strategy simulations run", ["mode"]
+)
 
 
 def observe_http(method: str, endpoint: str, status: int, duration_s: float) -> None:
@@ -101,5 +124,124 @@ def set_drift_metrics(drift_result: dict[str, Any]) -> None:
                 feature_drift_details.labels(feature=str(feat)).set(val)
             except Exception:
                 continue
+        # Extended V4: set Wasserstein and PSI per-feature if provided
+        try:
+            era = str(drift_result.get("era") or drift_result.get("regulation_era") or "2026")
+            # Explicit maps: wasserstein_by_feature / psi_by_feature
+            w_map = (
+                drift_result.get("wasserstein_by_feature") or drift_result.get("wasserstein") or {}
+            )
+            if isinstance(w_map, dict):
+                for feat, val in w_map.items():
+                    try:
+                        feature_wasserstein_distance.labels(feature=str(feat), era=era).set(
+                            float(val)
+                        )
+                    except Exception:
+                        continue
+            psi_map = drift_result.get("psi_by_feature") or drift_result.get("psi") or {}
+            if isinstance(psi_map, dict):
+                for feat, val in psi_map.items():
+                    try:
+                        fv = float(val)
+                        feature_psi_value.labels(feature=str(feat), era=era).set(fv)
+                        feature_psi.labels(feature=str(feat), era=era).set(fv)
+                    except Exception:
+                        continue
+            # Per-feature dicts containing nested metrics (era_drift_analysis style)
+            for feat, info in list(per_feat.items()):
+                if isinstance(info, dict):
+                    w = (
+                        info.get("wasserstein")
+                        or info.get("w1")
+                        or info.get("wasserstein_distance")
+                    )
+                    if w is not None:
+                        with contextlib.suppress(Exception):
+                            feature_wasserstein_distance.labels(feature=str(feat), era=era).set(
+                                float(w)
+                            )
+                    p = info.get("psi") or info.get("psi_value") or info.get("PSI")
+                    if p is not None:
+                        try:
+                            fv = float(p)
+                            feature_psi_value.labels(feature=str(feat), era=era).set(fv)
+                            feature_psi.labels(feature=str(feat), era=era).set(fv)
+                        except Exception:
+                            pass
+            # Top-level era_report handling
+            era_report = drift_result.get("era_report")
+            if isinstance(era_report, dict):
+                results = era_report.get("results") or era_report.get("per_feature") or {}
+                if isinstance(results, dict):
+                    for feat, res in results.items():
+                        if isinstance(res, dict):
+                            w = res.get("wasserstein")
+                            p = res.get("psi")
+                            if w is not None:
+                                with contextlib.suppress(Exception):
+                                    feature_wasserstein_distance.labels(
+                                        feature=str(feat), era=era
+                                    ).set(float(w))
+                            if p is not None:
+                                try:
+                                    fv = float(p)
+                                    feature_psi_value.labels(feature=str(feat), era=era).set(fv)
+                                    feature_psi.labels(feature=str(feat), era=era).set(fv)
+                                except Exception:
+                                    pass
+        except Exception:
+            pass
     except Exception:
         pass
+
+
+def set_subgroup_mae(
+    compound: str | dict[str, Any],
+    mae_seconds: float | None = None,
+    model_version: str = "champion",
+) -> None:
+    """Set subgroup MAE per compound.
+
+    Supports two call patterns:
+      set_subgroup_mae("HARD", 5.2, model_version="champion")
+      set_subgroup_mae({"SOFT": 1.1, "HARD": 5.2}, model_version="champion")
+    """
+    try:
+        # Dict form: set_subgroup_mae({"SOFT": 1.2, "MEDIUM": 2.3}, ...)
+        if isinstance(compound, dict):
+            d = compound
+            mv = (
+                str(mae_seconds)
+                if isinstance(mae_seconds, str) and mae_seconds != "champion"
+                else model_version
+            )
+            # If second arg is actually model_version when dict form is used
+            if isinstance(mae_seconds, str):
+                mv = mae_seconds
+            for comp, val in d.items():
+                try:
+                    cv = str(comp).upper()
+                    fv = float(val)  # type: ignore[arg-type]
+                    subgroup_compound_mae.labels(compound=cv, model_version=str(mv)).set(fv)
+                    if cv == "HARD":
+                        subgroup_hard_mae_seconds.labels(model_version=str(mv)).set(fv)
+                except Exception:
+                    continue
+            return
+        # Scalar form
+        if mae_seconds is None:
+            return
+        cv = str(compound).upper()
+        fv = float(mae_seconds)
+        subgroup_compound_mae.labels(compound=cv, model_version=str(model_version)).set(fv)
+        if cv == "HARD":
+            subgroup_hard_mae_seconds.labels(model_version=str(model_version)).set(fv)
+    except Exception:
+        pass
+
+
+def inc_strategy_simulation(mode: str = "whatif") -> None:
+    """Increment strategy simulation counter."""
+    with contextlib.suppress(Exception):
+        strategy_simulations_total.labels(mode=str(mode)).inc()

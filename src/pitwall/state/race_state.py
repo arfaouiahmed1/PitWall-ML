@@ -6,6 +6,7 @@ import contextlib
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 
+from pitwall.regulations import RegulationProfile, get_era_for_season, get_regulation_profile
 from pitwall.schemas.events import RaceEvent
 
 
@@ -23,6 +24,13 @@ class DriverState:
     stint_no: int | None = None
     lap_times: list[float] = field(default_factory=list)
     status: str = "running"
+    # 2026 additions
+    team_name: str | None = None
+    car_name: str | None = None
+    # energy/aero state (estimated)
+    battery_soc_percent: float | None = None
+    expected_aero_mode: str = "CORNER"
+    straight_mode_eligible: bool = True
 
 
 @dataclass
@@ -35,11 +43,29 @@ class RaceState:
     drivers: dict[int, DriverState] = field(default_factory=dict)
     last_update: datetime = field(default_factory=lambda: datetime.now(UTC))
     event_count: int = 0
+    # 2026: versioned regulation profile
+    regulation_profile: RegulationProfile | None = None
+    regulation_era: str = "unknown"
+    season: int | None = None
 
     def apply(self, event: RaceEvent) -> None:
         self.last_update = event.event_ts
         self.event_count += 1
         p = event.payload
+
+        # Infer season/era from session_id if not set
+        if self.season is None:
+            for part in self.session_id.split("_"):
+                try:
+                    self.season = int(part)
+                    self.regulation_era = get_era_for_season(self.season)
+                    break
+                except ValueError:
+                    continue
+
+        # Auto-load regulation profile lazily
+        if self.regulation_profile is None and self.season is not None:
+            self.regulation_profile = get_regulation_profile(self.season)
 
         # lap events
         if str(event.event_type) == "lap" or event.event_type == "lap":
@@ -47,6 +73,11 @@ class RaceState:
             if dn is None:
                 return
             ds = self.drivers.setdefault(dn, DriverState(driver_number=dn))
+            # capture team name for car profile lookup
+            if p.get("team_name"):
+                ds.team_name = p["team_name"]
+            elif p.get("team"):
+                ds.team_name = p["team"]
             if "lap_number" in p and p["lap_number"] is not None:
                 try:
                     lap_no = int(p["lap_number"])
@@ -120,7 +151,7 @@ class RaceState:
             var = sum((x - m) ** 2 for x in vals) / len(vals)
             return var**0.5
 
-        return {
+        result = {
             "driver_number": driver_number,
             "position": ds.position,
             "gap_ahead_s": ds.gap_ahead_s,
@@ -136,4 +167,13 @@ class RaceState:
             "track_status": self.track_status,
             "safety_car": self.safety_car,
             "vsc": self.vsc,
+            "regulation_era": self.regulation_era,
         }
+        # 2026 energy/aero fields
+        if self.season and self.season >= 2026:
+            result["team_name"] = ds.team_name
+            result["car_name"] = ds.car_name
+            result["battery_soc_percent"] = ds.battery_soc_percent
+            result["expected_aero_mode"] = ds.expected_aero_mode
+            result["straight_mode_eligible"] = ds.straight_mode_eligible
+        return result

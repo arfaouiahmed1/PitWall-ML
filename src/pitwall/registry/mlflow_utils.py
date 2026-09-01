@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import contextlib
 import os
+import subprocess
 from pathlib import Path
 from typing import Any
 
@@ -42,14 +43,141 @@ def ensure_experiment(name: str) -> str:
     return exp_id
 
 
+def _get_git_sha() -> str:
+    # Try env first (CI), then git subprocess, fallback to "unknown"
+    for key in ("GIT_SHA", "GITHUB_SHA", "COMMIT_SHA"):
+        val = os.getenv(key)
+        if val:
+            return str(val)[:40]
+    try:
+        sha = (
+            subprocess.check_output(
+                ["git", "rev-parse", "HEAD"], stderr=subprocess.DEVNULL, timeout=2
+            )
+            .decode()
+            .strip()
+        )
+        if sha:
+            return sha[:40]
+    except Exception:
+        pass
+    return "unknown"
+
+
+def _resolve_tags(
+    metrics: dict[str, Any],
+    params: dict[str, Any],
+    tags: dict[str, Any] | None = None,
+    extra: dict[str, Any] | None = None,
+) -> dict[str, str]:
+    """Build required tags: git_sha, split_type, dataset_version, dataset_rows, holdout_races."""
+    resolved: dict[str, str] = {}
+    # Start from explicit tags if provided
+    if tags:
+        for k, v in tags.items():
+            resolved[str(k)] = str(v)
+
+    # Helper to pull from params/metrics/extra/env
+    def _first(*candidates: Any) -> Any | None:
+        for c in candidates:
+            if c is not None and c != "" and c != "unknown":
+                return c
+        return None
+
+    # git_sha
+    if "git_sha" not in resolved:
+        sha = _first(
+            tags.get("git_sha") if tags else None,
+            params.get("git_sha"),
+            metrics.get("git_sha"),
+            (extra or {}).get("git_sha"),
+            os.getenv("GIT_SHA"),
+            _get_git_sha(),
+        )
+        resolved["git_sha"] = str(sha) if sha is not None else "unknown"
+
+    # split_type
+    if "split_type" not in resolved:
+        val = _first(
+            tags.get("split_type") if tags else None,
+            params.get("split_type"),
+            metrics.get("split_type"),
+            (extra or {}).get("split_type"),
+            "chronological",
+        )
+        resolved["split_type"] = str(val)
+
+    # dataset_version
+    if "dataset_version" not in resolved:
+        val = _first(
+            tags.get("dataset_version") if tags else None,
+            params.get("dataset_version"),
+            metrics.get("dataset_version"),
+            (extra or {}).get("dataset_version"),
+            os.getenv("DATASET_VERSION"),
+            "unknown",
+        )
+        resolved["dataset_version"] = str(val)
+
+    # dataset_rows
+    if "dataset_rows" not in resolved:
+        val = _first(
+            tags.get("dataset_rows") if tags else None,
+            params.get("dataset_rows"),
+            metrics.get("dataset_rows"),
+            (extra or {}).get("dataset_rows"),
+            metrics.get("n"),
+            params.get("n_rows"),
+        )
+        resolved["dataset_rows"] = str(val) if val is not None else "0"
+
+    # holdout_races
+    if "holdout_races" not in resolved:
+        val = _first(
+            tags.get("holdout_races") if tags else None,
+            params.get("holdout_races"),
+            metrics.get("holdout_races"),
+            (extra or {}).get("holdout_races"),
+            params.get("test_races"),
+            metrics.get("test_races"),
+        )
+        # If still None, try to synthesize from splits info if extra contains it
+        if val is None and extra and "holdout_races_list" in extra:
+            try:
+                val = ",".join(map(str, extra["holdout_races_list"]))  # type: ignore[arg-type]
+            except Exception:
+                val = str(extra["holdout_races_list"])
+        resolved["holdout_races"] = str(val) if val is not None else "unknown"
+
+    # Add any extra stringifiable tags that are not already present but useful
+    if extra:
+        for k in ("dataset_version", "split_type", "holdout_races", "git_sha"):
+            if k not in resolved and k in extra:
+                resolved[k] = str(extra[k])
+
+    # Ensure all values are strings and truncated to MLflow limits (500 chars)
+    for k, v in list(resolved.items()):
+        s = str(v)
+        if len(s) > 500:
+            s = s[:500]
+        resolved[k] = s
+    return resolved
+
+
 def log_pace_run(
     metrics: dict[str, Any],
     params: dict[str, Any],
     artifacts: Path | None = None,
     experiment: str = "pitwall-pace-dev",
+    tags: dict[str, Any] | None = None,
+    extra_tags: dict[str, Any] | None = None,
 ) -> str:
     if mlflow is None:
         raise ImportError("mlflow required")
+    # Resolve required tags per spec: git_sha, split_type, dataset_version, dataset_rows, holdout_races
+    resolved_tags = _resolve_tags(metrics, params, tags=tags, extra=extra_tags)
+    # Also log tags that may be present in params like dataset_version etc as tags
+    # Merge any remaining params that look like tags
     # Try primary URI, fallback to local file store if http unreachable
     uris_to_try = [get_tracking_uri(), get_fallback_uri()]
     last_err: Exception | None = None
@@ -59,10 +187,50 @@ def log_pace_run(
             # ensure experiment exists (will create if needed)
             mlflow.set_experiment(experiment)
             with mlflow.start_run() as run:
-                mlflow.log_params(params)
-                mlflow.log_metrics(
-                    {k: float(v) for k, v in metrics.items() if isinstance(v, (int, float))}
-                )
+                # Log params (sanitize: mlflow params must be strings, limit 500 chars, max 100 params)
+                # Flatten nested dicts if needed
+                flat_params: dict[str, str] = {}
+                for k, v in params.items():
+                    try:
+                        # Convert to string, handle dicts via json-like
+                        if isinstance(v, (dict, list)):
+                            import json
+
+                            s = json.dumps(v, default=str)
+                        else:
+                            s = str(v)
+                        if len(s) > 500:
+                            s = s[:500]
+                        flat_params[str(k)] = s
+                    except Exception:
+                        flat_params[str(k)] = str(v)[:500]
+                # MLflow has limit of 100 params per batch, batch if needed
+                if flat_params:
+                    # mlflow.log_params handles dict directly, but to avoid limit errors, chunk
+                    items = list(flat_params.items())
+                    for i in range(0, len(items), 100):
+                        chunk = dict(items[i : i + 100])
+                        mlflow.log_params(chunk)
+                # Log metrics (only numeric)
+                numeric_metrics = {
+                    k: float(v)
+                    for k, v in metrics.items()
+                    if isinstance(v, (int, float)) and not isinstance(v, bool)
+                }
+                # Also allow nested per_compound etc? Flatten if needed
+                # For now only top-level numerics
+                if numeric_metrics:
+                    mlflow.log_metrics(numeric_metrics)
+                # Log tags
+                try:
+                    mlflow.set_tags(resolved_tags)
+                except Exception:
+                    # Fallback per-tag
+                    for tk, tv in resolved_tags.items():
+                        try:
+                            mlflow.set_tag(tk, tv)
+                        except Exception:
+                            continue
                 if artifacts and artifacts.exists():
                     mlflow.log_artifacts(str(artifacts))
                 return run.info.run_id  # type: ignore[no-any-return]

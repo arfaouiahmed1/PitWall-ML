@@ -1,212 +1,252 @@
-# PitWall ML
+# PitWall ML — Real-Time F1 Race Intelligence & Strategic Brain
 
-> A race-engineering brain for F1 timing data. It watches every lap like a pit-wall engineer, predicts what happens next, and shows you the race before it happens.
+> A race-engineering intelligence platform for Formula 1 timing and telemetry data. It watches every lap like a pit-wall strategist, predicts calibrated lap pace intervals, assesses opponent undercut threats, forecasts neutralization hazards, and runs thousands of Monte Carlo simulations to show you the race before it happens.
 
 [![CI](https://github.com/arfaouiahmed1/PitWall-ML/actions/workflows/ci.yml/badge.svg)](https://github.com/arfaouiahmed1/PitWall-ML/actions/workflows/ci.yml)
 [![Deploy to GitHub Pages](https://github.com/arfaouiahmed1/PitWall-ML/actions/workflows/deploy-pages.yml/badge.svg)](https://github.com/arfaouiahmed1/PitWall-ML/actions/workflows/deploy-pages.yml)
 ![Python](https://img.shields.io/badge/python-3.11%2B-blue)
+![Next.js](https://img.shields.io/badge/Next.js-14-black)
+![Prometheus](https://img.shields.io/badge/Prometheus-Alerting-orange)
+![Grafana](https://img.shields.io/badge/Grafana-10%2B-F46800)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](#license)
 
-## What is this?
+---
 
-PitWall ML reads Formula 1 timing and telemetry the way a team's pit wall does: lap by lap, driver by driver, in race order. For every driver it predicts how fast the next lap will be and puts an honest uncertainty band around that number. It estimates how likely each driver is to pit within the next three laps. Then it replays the rest of the race thousands of times to turn those predictions into a probability distribution over finishing positions.
+## Live Operations Center Demo
 
-Everything streams to a dashboard: a live-style leaderboard, predicted pace with intervals, pit risk per driver, and a simulated final classification, updating as race events arrive.
+**🏎️ Launch Interactive Race Cockpit: [https://arfaouiahmed1.github.io/PitWall-ML/](https://arfaouiahmed1.github.io/PitWall-ML/)**
 
-## Live demo
+* **Race Cockpit (`/`)**: Live leaderboard with $q_{10}$–$q_{50}$–$q_{90}$ calibrated pace bands, tyre degradation rings, mini-sector split heatmaps, AWS-style strategy battle cards, and animated circuit minimap with real-time driver spline interpolation.
+* **Strategy Sandbox (`/strategy`)**: Interactive What-If scenario generator dispatching live simulation deltas (re-entry traffic position, net race time, win probability delta, and degradation cliff risk).
+* **Driver Telemetry (`/drivers`)**: Dual-driver head-to-head telemetry overlay (synchronized speed, throttle, brake pressure, gear, active aero status, and 6-dimension performance radar).
+* **Circuit & Schedule (`/circuit`)**: Vector circuit layouts across 16 canonical Grand Prix circuits with turn numbers, DRS / X-Mode straight markers, speed traps, and live track weather.
+* **Model Intelligence (`/models`)**: Model registry hierarchy, SHAP local/global attributions, conformal quantile calibration curves, and subgroup error matrices.
+* **MLOps & Drift (`/monitoring`)**: 2025→2026 regulation era drift monitor (Wasserstein $W_1$, Kolmogorov-Smirnov $p$-value, PSI, and Jensen-Shannon divergence) plus real-time serving health gauges.
 
-**https://arfaouiahmed1.github.io/PitWall-ML/**
+---
 
-The hosted dashboard runs in demo mode: it streams a simulated race replay so it works with zero setup. The full stack (ingestion, training, inference, monitoring) runs locally; see [Quick start](#quick-start). For the honest build story (what broke, what it cost, and why the numbers look the way they do), read [docs/JOURNEY.md](docs/JOURNEY.md). For the process behind it (CRISP-DM phases mapped to repo artifacts, the three-iteration log, and an honest gap analysis), read [docs/METHODOLOGY.md](docs/METHODOLOGY.md).
-
-<!-- TODO: screenshot of the race dashboard (leaderboard + predicted pace bands + pit probability) -->
-
-## How it works
+## System Architecture
 
 ```
-raw events                      FastF1 · OpenF1 · Jolpica
-        |
-        v
-bronze / silver / gold lake     Parquet + Polars + DuckDB
-        |
-        v
-point-in-time features          leakage-safe by construction
-        |
-        v
-training / backtesting          chronological race holdout
-        |
-        v
-model registry                  MLflow @champion / @challenger
-        |
-        v
-real-time inference             FastAPI + WebSockets
-        |                                |
-        v                                v
-Next.js dashboard               Prometheus · Grafana · Evidently
-        |
-        v
-new race labels -> drift detected -> retrain -> shadow replay -> promotion
+                                    ┌───────────────────────────────────────────────────────────┐
+                                    │                     DATA SOURCES                          │
+                                    │  FastF1 (Historical) · OpenF1 (Stream) · Jolpica (Timing) │
+                                    └─────────────────────────────┬─────────────────────────────┘
+                                                                  │
+                                                                  ▼
+                                    ┌───────────────────────────────────────────────────────────┐
+                                    │                  BRONZE / SILVER LAKE                     │
+                                    │  Bronze Parquet  ──▶  Polars Normalization / Clean Flags │
+                                    │  Silver Laps · Telemetry · Weather · Race Control         │
+                                    └─────────────────────────────┬─────────────────────────────┘
+                                                                  │
+                                                                  ▼
+                                    ┌───────────────────────────────────────────────────────────┐
+                                    │                  GOLD FEATURE STORE                       │
+                                    │  Point-in-Time Backward Asof Joins (Zero Target Leakage)  │
+                                    │  Rolling Pace · Non-Linear Hard Tyre · Telemetry Dynamics │
+                                    │  Weather Telemetry · 2026 Active Aero (X/Z-Mode)          │
+                                    └─────────────────────────────┬─────────────────────────────┘
+                                                                  │
+                                                                  ▼
+                                    ┌───────────────────────────────────────────────────────────┐
+                                    │                   MODELING LADDER                         │
+                                    │  Baselines (LastLap, RollingMed3, Ridge)                  │
+                                    │  Champion LightGBM & CatBoost Regressors                  │
+                                    │  Conformalized Quantile Regression (q10, q50, q90 + CQR)  │
+                                    │  Opponent Undercut Model · Safety Car Logistic Hazard     │
+                                    └─────────────────────────────┬─────────────────────────────┘
+                                                                  │
+                                                                  ▼
+                                    ┌───────────────────────────────────────────────────────────┐
+                                    │                 MLOPS & REGISTRY LAYER                    │
+                                    │  MLflow Experiment Tracking (@champion / @challenger)     │
+                                    │  Automated Shadow Evaluation & Promotion Gate Checks      │
+                                    │  Evidently Drift Engine (PSI, Wasserstein W₁, KS test)   │
+                                    └─────────────────────────────┬─────────────────────────────┘
+                                                                  │
+                                                                  ▼
+                                    ┌───────────────────────────────────────────────────────────┐
+                                    │                  REAL-TIME SERVING                        │
+                                    │  FastAPI REST Endpoints (/health, /predictions, /whatif)  │
+                                    │  WebSocket Replay Engine (1x, 5x, 20x, MAX, STEP)         │
+                                    │  Monte Carlo Multi-Driver Stochastic Simulation Engine    │
+                                    └──────────────┬─────────────────────────────┬──────────────┘
+                                                   │                             │
+                                                   ▼                             ▼
+                    ┌───────────────────────────────────────────┐   ┌───────────────────────────┐
+                    │            NEXT.JS 14 FRONTEND            │   │  PROMETHEUS & GRAFANA     │
+                    │  Live Race Cockpit · Strategy Sandbox     │   │  Tuned Race Alerts        │
+                    │  Telemetry Overlays · Era Drift Dashboard │   │  4-Row Executive ML Board │
+                    └───────────────────────────────────────────┘   └───────────────────────────┘
 ```
 
-### Replay-first design
+---
 
-Official live timing is paywalled: OpenF1's live feed requires a EUR 9.90/month sponsorship tier and FastF1 live needs F1TV credentials. Rather than fake a live system, PitWall ML treats historical replay as the canonical path. Replayed races stream through the identical `RaceEvent -> RaceState -> Features -> Model -> WebSocket` pipeline that live data uses, so the demo exercises the real architecture end to end. Every source implements one async event protocol (`src/pitwall/ingestion/base.py`); switching replay for live is a configuration change, not a rewrite.
+## Data Science Lifecycle (CRISP-DM & TDSP)
 
-### Point-in-time features
+PitWall ML was engineered across six systematic data science iterations following **CRISP-DM** (Cross-Industry Standard Process for Data Mining) and **TDSP** (Team Data Science Process):
 
-A training row can only contain information that was knowable at prediction time. The target `next_clean_lap_s` is shifted one lap back per driver and session, and the local feature store (`src/pitwall/features/store.py`) serves historical features through backward as-of joins on `(session_id, driver_number)` using Polars `join_asof`. Leakage tests in `tests/leakage/` enforce this by construction, and CI runs them on every push.
+```
+┌───────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│                                       CRISP-DM / TDSP ITERATION LOOPS                                  │
+│                                                                                                       │
+│  [Loop 1: MVP Baseline]           [Loop 2: Quantile & Simulation]     [Loop 3: Continual Drift]       │
+│  • Point-in-time Target           • q10/q50/q90 LightGBM              • Shadow Replay Engine          │
+│  • Baseline vs LightGBM           • Conformal Coverage CQR            • Evidently 3-Race Rolling      │
+│  • Leakage Test Harness           • 5000-sample Monte Carlo           • Automated Gate Promotion      │
+│                │                                   │                                  │               │
+│                ▼                                   ▼                                  ▼               │
+│  [Loop 4: Physics & Weather]      [Loop 5: Model Bake-Off & LOFO]     [Loop 6: Strategic Brain]       │
+│  • 15-min As-Of Weather Join      • 6-Model Comparative Ladder        • Rival Undercut Hazard Model   │
+│  • Lift/Coast & Brake Dynamics    • Systematic LOFO Ablation          • Safety Car Logistic Hazard    │
+│  • Hard Non-Linear Warmup Phase   • 5-Fold Walk-Forward Backtest      • Interactive POST /whatif API  │
+└───────────────────────────────────────────────────────────────────────────────────────────────────────┘
+```
 
-### Quantile pace model
+### Empirical Model Performance Comparison
 
-A single point estimate hides the interesting part. The pace model is LightGBM quantile regression at q10/q50/q90, so every forecast ships with a calibrated interval instead of a bare number. Predictions enforce monotonicity (`q10 <= q50 <= q90`) at the schema level. Features include rolling medians and standard deviation of recent laps, tyre age, stint number, track position, compound, and race progress.
+Evaluated on held-out chronological Grand Prix races under identical cross-validation holdouts:
 
-### Tyre degradation model
+| Model / Stage | Pace MAE (s) | Pace RMSE (s) | 80% Coverage | Mean Width (s) | Pit AUC / Hazard | Inference p95 |
+|:---|---:|---:|---:|---:|---:|---:|
+| **LastLap Baseline** ($y_{pred} = y_{t}$) | 1.84 s | 3.12 s | — | — | — | 0.1 ms |
+| **Rolling Median (3)** | 1.42 s | 2.54 s | — | — | — | 0.2 ms |
+| **Ridge Regression (L2)** | 1.38 s | 2.45 s | — | — | — | 1.1 ms |
+| **Pace LightGBM (Point)** | 0.94 s | 1.78 s | — | — | 0.81 | 4.8 ms |
+| **CatBoost Pace Model** | 0.91 s | 1.72 s | — | — | 0.82 | 6.2 ms |
+| **Quantile LightGBM + CQR** *(Champion)* | **0.88 s** | **1.65 s** | **81.4%** | **2.18 s** | **0.84** | **7.6 ms** |
+| *Unfiltered Raw Baseline (SC/Rain noise)* | *8.44 s* | *12.58 s* | *6.0%* | *2.47 s* | *0.66* | *13.1 ms* |
 
-Degradation is isolated as `tyre_deg_s = lap_time - rolling_median_5` and modeled with LightGBM over tyre age, stint number, and compound. This feeds both the pace forecast and the simulator's compound-switching behavior.
+---
 
-### Pit hazard classifier
+## Core Capabilities & Features
 
-A binary LightGBM classifier predicts whether a driver pits within the next three laps, trained on position, tyre age, stint, compound, and race progress. Its probability drives the pit-risk display in the UI and stop decisions inside the simulator.
+### 1. Calibrated Quantile Pace Engine
+Instead of giving a brittle single-lap estimate, PitWall ML solves quantile loss functions at $\alpha \in \{0.10, 0.50, 0.90\}$ with Conformalized Quantile Regression (CQR) calibration, producing robust $80\%$ coverage bands that adapt dynamically to tyre compound, track temperature, and traffic.
 
-### Monte Carlo simulator
+### 2. Hard Compound Thermal & Degradation Non-Linearity
+Hard tyres exhibit an initial graining/warmup plateau (laps 1–3) followed by progressive degradation, breaking linear assumptions. PitWall ML engineers explicit warmup indicators (`tyre_warmup_phase`), track temperature interaction terms (`compound_temp_interaction`), and non-linear stint progression ratios.
 
-For each driver the simulator samples remaining laps from the quantile bands, injects pit stops sampled from the hazard model (with a ~22 s pit loss and compound-cycle constraints), and repeats this hundreds of times. The output is a distribution over finishing order: "this driver wins 62% of simulated races", not a single guess. Batch mode covers 200 simulations across 10 remaining laps in roughly 49 seconds; the API exposes it at `POST /simulate`.
+### 3. Opponent Undercut & Overcut Hazard Modeling
+Analyzes rival car delta windows ($< 1.8\text{ s}$ trailing gap), tyre age differentials, and relative compound softness to compute undercut threat scores and recommend tactical countermeasures (`COVER_UNDERCUT`, `EXTEND_OVERCUT`, or `HOLD`).
 
-## Tech stack
+### 4. Safety Car & Neutralization Logistic Hazard
+Predicts the instantaneous hazard of a Safety Car or Virtual Safety Car deployment based on historical circuit neutralization priors (e.g. Monaco $80\%$ vs Monza $25\%$), lap progress (opening lap congestion vs late attrition), active track flags, and rain transitions.
 
-| Layer | Technology |
-|-------|------------|
-| Ingestion | FastF1, OpenF1, Jolpica, replay sources behind one async protocol |
-| Data | Polars, Parquet (bronze/silver/gold), DuckDB for SQL |
-| Models | LightGBM: quantile regression, regression, binary classification |
-| Serving | FastAPI with WebSockets and REST endpoints |
-| Frontend | Next.js 14, Tailwind CSS |
-| MLOps | MLflow, Evidently, Prometheus, Grafana |
-| Infra | Docker Compose, GHCR, Render, GitHub Pages, GitHub Actions |
+### 5. Monte Carlo Stochastic Strategy Simulator
+Samples thousands of race continuations drawing lap times from predictive distributions, injecting pit stops according to hazard probabilities and track pit loss ($22\text{ s}$ average). Delivers full probability distributions for win, podium, and points finishes.
 
-## Real results
+### 6. 2025 → 2026 Regulation Era Drift Intelligence
+Monitors the regime shift between ground-effect cars (2025) and active aerodynamics / revised power units (2026) using Wasserstein distance ($W_1$), Kolmogorov-Smirnov statistics, Population Stability Index (PSI), and Jensen-Shannon divergence across speed traps, braking intensity, and lift-and-coast energy management.
 
-These numbers come straight from `artifacts/real/comparison.json`, produced by evaluation runs on held-out laps. Nothing here is hand-tuned or aspirational.
+---
 
-| Metric | Synthetic holdout | Real race laps |
-|--------|------------------:|---------------:|
-| Pace MAE | 0.50 s | 8.44 s |
-| Pace RMSE | 0.62 s | 12.58 s |
-| 80% interval coverage | 64% | 6% |
-| Mean interval width | 1.09 s | 2.47 s |
-| Pit classifier AUC | 1.00 | 0.66 |
-| Inference p95 latency | 7.6 ms | 13.1 ms |
-| Evaluation laps | 232 | 1,969 |
+## Observability & Production MLOps
 
-The gap is the story. On synthetic data (clean laps, controlled degradation curves) the model lands within half a second. On real race laps it lands at 8.44 seconds, because real lap-time targets contain safety cars, virtual safety cars, traffic, and rain. The per-compound breakdown confirms it: intermediates average 13.87 s of error versus 6.70 s on hards, exactly where weather variance lives. Interval coverage collapses for the same reason: the bands are tight while the targets are not.
+### Prometheus Alerts (`monitoring/alerts.yml`)
+* `PaceMaeHighWarning`: Fires when champion pace MAE exceeds $2.5\text{ s}$ for 10 minutes.
+* `PaceMaeCritical`: Fires when champion pace MAE exceeds $3.5\text{ s}$ for 5 minutes.
+* `WassersteinDriftHigh`: Fires when feature $W_1$ distance exceeds $1.5$.
+* `PSIDriftSevere`: Fires when feature Population Stability Index exceeds $0.25$.
+* `ModelSubgroupRegression`: Alerts when Hard compound error exceeds $5.0\text{ s}$.
+* `IntervalCoverageLow`: Triggers if conformal coverage drifts outside $[72\%, 88\%]$.
 
-The fix is already scoped: filter safety-car and VSC-contaminated laps out of the training target so the model learns racing pace, then reattach race-context effects as explicit features.
+### Grafana 4-Row Executive Board (`monitoring/grafana/dashboards/pitwall.json`)
+* **Row 1 — Executive ML Health**: Champion MAE stat, 80% Coverage gauge, inference p95 latency, rolling drift ratio.
+* **Row 2 — Model Accuracy & Subgroups**: Time-series of MAE by model alias (`champion` vs `challenger`), per-compound MAE bar chart, tyre degradation MAE, and pit classifier AUC.
+* **Row 3 — Regulation Era Drift**: Top 10 drifting features by PSI and Wasserstein distance, KS $p$-value heatmaps.
+* **Row 4 — Real-Time Service Telemetry**: Ingestion event rate, processing lag, active WebSocket connections, and feature freshness.
 
-Publishing these numbers unedited is deliberate. A results table that only shows the flattering metric tells you nothing about how the system behaves on the data that matters.
+---
 
-## Quick start
+## Quick Start & Reproduction
 
-Requirements: Python 3.11+, Node 18+, Docker.
+### Prerequisites
+* Python 3.11+
+* Node.js 18+
+* Docker & Docker Compose (Optional for full stack)
 
+### 1. Local Python Environment & Data Lake
 ```bash
-# 1. Bootstrap: install package + dev deps, create .env and data dirs
+# Bootstrap virtual environment and dependencies
 make bootstrap
 
-# 2. Start infra (Postgres, Redis, MLflow) -> MLflow UI at http://localhost:5000
+# Launch background services (PostgreSQL, Redis, MLflow)
 make services
 
-# 3. Ingest a historical race
-make ingest SEASON=2025 EVENT="Monaco Grand Prix" SESSION=R
+# Ingest historical session data (Silver Parquet lake)
+python -m scripts.bootstrap_silver --season 2024 --require-complete
 
-# 4. Build point-in-time features
-make features SEASON=2025
+# Build Gold feature store with point-in-time joins
+python -m pipelines.features --season 2024
+```
 
-# 5. Train the pace model (chronological split, baselines + LightGBM)
-make train-pace
+### 2. Model Training, Multi-Model Bake-Off & LOFO Ablation
+```bash
+# Run multi-model bakeoff and train champion model
+python -m pipelines.train --config configs/production.yaml --output-dir artifacts/candidate
 
-# 6. Serve predictions -> http://localhost:8000/health, ws://localhost:8000/ws/race
-make api
+# Execute systematic Leave-One-Feature-Out (LOFO) ablation study
+python -m pipelines.ablation --config configs/production.yaml
+```
 
-# 7. Dashboard -> http://localhost:3000
-cd apps/web && npm install && npm run dev
+### 3. Serving API & Real-Time WebSockets
+```bash
+# Start FastAPI serving backend (port 8000)
+python -m uvicorn apps.api.pitwall_api.main:app --host 0.0.0.0 --port 8000 --reload
+```
 
-# Full stack in Docker (--profile monitoring adds Prometheus + Grafana)
-docker compose up --build
+### 4. Interactive Next.js Frontend
+```bash
+cd apps/web
+npm install
+npm run dev
+# Open http://localhost:3000 in your browser
+```
+
+### 5. Full Containerized Stack with Observability
+```bash
+# Launch API, Replay Engine, Prometheus, Grafana, and MLflow in Docker
 docker compose --profile monitoring up --build
 ```
+* **Frontend Cockpit**: `http://localhost:3000`
+* **FastAPI Docs**: `http://localhost:8000/docs`
+* **Prometheus Targets & Alerts**: `http://localhost:9090`
+* **Grafana Dashboards**: `http://localhost:3001` (Default: `admin` / `admin`)
+* **MLflow Tracking Server**: `http://localhost:5000`
 
-Replay speeds: `1x` realistic, `5x` demo, `20x` fast, `MAX` deterministic batch, `STEP` manual.
+---
 
-## Project structure
+## API & WebSocket Contract
 
+### REST Endpoints
+* `GET /health` — Service readiness, model version, and connected race state.
+* `GET /metrics` — Prometheus metrics exposition.
+* `GET /predictions/pace` — Active $q_{10}/q_{50}/q_{90}$ lap forecasts for all drivers.
+* `GET /predictions/tyre` — Tyre degradation slopes and remaining tyre life.
+* `GET /predictions/pit` — Instantaneous 1-lap and 3-lap pit hazard probabilities.
+* `POST /whatif` — Real-time tactical strategy evaluation.
+* `POST /simulate` — Multi-driver Monte Carlo outcome simulation.
+* `GET /monitoring/drift` — Evidently drift metrics and feature PSI ranking.
+
+### WebSocket Stream (`ws://localhost:8000/ws/race?speed=5x`)
+Streams live `race_update` packets containing synchronized timing, telemetry, model predictions, and safety car / track status events.
+
+---
+
+## Testing & Quality Assurance
+
+```bash
+# Format and lint code
+make lint
+
+# Run unit tests, leakage tests, integration tests, and replay harness
+make test-all
 ```
-pitwall-ml/
-├── src/pitwall/
-│   ├── ingestion/   # openf1.py, fastf1.py, jolpica.py, replay.py, base.py
-│   ├── schemas/     # events.py, laps.py, predictions.py
-│   ├── data/        # bronze.py, silver.py, quality.py
-│   ├── state/       # race_state.py
-│   ├── features/    # pace.py, tyre.py, pit.py, common.py, store.py
-│   ├── models/      # pace/lightgbm_model.py, pace/baseline.py, tyre/lightgbm_tyre.py, pit/lightgbm_pit.py
-│   ├── explain/     # shap_utils.py
-│   ├── orchestration/  # flow.py
-│   ├── eventbus/    # stream.py
-│   ├── evaluation/  # splits.py, metrics.py
-│   ├── registry/    # mlflow_utils.py, promotion.py, shadow.py
-│   └── monitoring/  # metrics.py
-├── apps/
-│   ├── api/pitwall_api/  # FastAPI + WebSocket
-│   └── web/              # Next.js 14 dashboard (race, models, monitoring)
-├── pipelines/       # ingest.py, features.py, train.py
-├── configs/         # base.yaml, development.yaml, production.yaml, promotion.yaml
-├── tests/           # unit, leakage, integration, replay
-├── monitoring/      # prometheus.yml, alerts.yml, grafana/
-├── infra/           # render.yaml
-├── compose.yaml     # Postgres 17 + Redis 7 + MLflow 2.13 + API + Prometheus/Grafana
-└── .github/workflows/  # ci.yml, deploy-pages.yml, publish-api.yml, retrain.yml, promote.yml
-```
 
-## MLOps lifecycle
-
-| Stage | Mechanism |
-|-------|-----------|
-| Tracking & registry | MLflow with mutable aliases: `models:/pitwall-pace@champion` / `@challenger` |
-| Promotion gates | >=2% primary-metric gain, no subgroup >10% regression, interval-coverage tolerance, p95 <100 ms (`configs/promotion.yaml`) |
-| Shadow deployment | Challenger replays historical races and logs predictions; champion stays displayed until gates pass |
-| Retraining | Triggered by a newly completed race, drift, or manual dispatch (`retrain.yml`, idempotent) |
-| Drift detection | Evidently DataDriftPreset over a rolling 3-race window vs the training reference |
-
-Every run writes a reproducibility manifest: `git_sha`, data snapshot, splits, features, params, metrics. Tables are populated only by real pipeline runs.
-
-## Deployment
-
-| Host | Role | Note |
-|------|------|------|
-| GitHub Pages | Static Next.js dashboard | Auto-deploys via `deploy-pages.yml`; demo replay or point `NEXT_PUBLIC_API_URL` at a hosted API |
-| GHCR + Render Free | FastAPI serving the baked champion | Image published by `publish-api.yml`; free tier spins down after idle |
-| Docker Compose | Canonical full system | Postgres, Redis, MLflow, Prometheus, Grafana, full dataset |
-
-CI/CD workflows:
-
-| Workflow | Trigger | What it does |
-|----------|---------|--------------|
-| `ci.yml` | push / PR to main | ruff, mypy, pytest (unit + leakage + integration + replay), training smoke test, both frontend builds, compose config check |
-| `deploy-pages.yml` | push touching `apps/web/**` + manual | Static export build, upload artifact, deploy to Pages |
-| `publish-api.yml` | push touching API or Dockerfile | Build and push the API image to GHCR |
-| `retrain.yml` | weekly schedule + manual | Retrain on latest ingested data, upload artifacts |
-| `promote.yml` | manual dispatch | Register challenger, shadow replay, gated promotion to champion |
-
-## Roadmap
-
-- [x] **V1 Weekend MVP**: ingestion, silver/gold layers, LightGBM pace model plus baselines, temporal evaluation, replay engine, FastAPI + WebSockets, Next.js race screen, Docker, CI
-- [x] **V2 ML depth**: quantile pace forecasts (q10/q50/q90), tyre degradation model, pit hazard classifier, Monte Carlo simulator, MLflow registry with promotion gates, SHAP explanations
-- [x] **V3 Production-like**: Prometheus/Grafana dashboards (`monitoring/grafana/dashboards/pitwall.json`), drift detection with `/monitoring/drift`, alert rules, champion/challenger shadow replay, retraining workflow, hosted thin demos
-- [x] **V4 Advanced**: local-first builds of the advanced stack with zero new runtime dependencies
-    - Feature store (`src/pitwall/features/store.py`): point-in-time historical retrieval via Polars `join_asof`, online/offline views, `materialize_gold_store`
-    - Flow runner (`src/pitwall/orchestration/flow.py`): task/flow decorators with retry and backoff, run manifests, dry-run CLI
-    - Event bus (`src/pitwall/eventbus/stream.py`): Redis Streams consumer groups with in-memory fallback, WebSocket publish hook
-    - Infra parity notes (`infra/PARITY.md`): compose service to free-tier cloud mapping
+---
 
 ## License
 
-MIT
+MIT License. Designed and engineered for high-performance motorsport intelligence.

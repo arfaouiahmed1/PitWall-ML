@@ -88,4 +88,4 @@ class OpenF1LiveSource:
             "OpenF1LiveSource requires sponsor subscription and MQTT implementation (V3). "
             "Use ParquetReplaySource for demo."
         )
-        yield  # make it an async generator type-wise  # noqa: unreachable
+        yield  # make it an async generator type-wise

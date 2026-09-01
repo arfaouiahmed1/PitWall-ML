@@ -20,10 +20,16 @@ groups:
         annotations: { summary: "Feature freshness >10s" }
 
       - alert: PaceMAERegression
-        expr: pace_mae_seconds > 0.52
+        expr: pace_mae_seconds > 2.5
         for: 10m
         labels: { severity: warning }
-        annotations: { summary: "Pace MAE >20% above reference" }
+        annotations: { summary: "Pace MAE >2.5s — model regression (warning threshold, real-data calibrated)" }
+
+      - alert: PaceMAERegressionCritical
+        expr: pace_mae_seconds > 3.5
+        for: 5m
+        labels: { severity: critical }
+        annotations: { summary: "Pace MAE >3.5s — model critical regression (real-data calibrated)" }
 
       - alert: DriftingFeaturesHigh
         expr: drifting_features_ratio > 0.2
@@ -32,13 +38,31 @@ groups:
         annotations: { summary: " >20% features drifting (Evidently 3-race window)" }
 
       - alert: IntervalCoverageLow
-        expr: pace_interval_coverage < 0.75 or pace_interval_coverage > 0.85
+        expr: pace_interval_coverage < 0.72 or pace_interval_coverage > 0.88
         for: 10m
         labels: { severity: warning }
-        annotations: { summary: "80% interval coverage outside 75-85% (miscalibrated)" }
+        annotations: { summary: "80% interval coverage outside 72-88% (miscalibrated, real-data tolerance)" }
 
       - alert: PitAucRegression
         expr: pit_auc < 0.65
         for: 10m
         labels: { severity: warning }
         annotations: { summary: "Pit AUC <0.65 — hazard model degraded" }
+
+      - alert: WassersteinDriftHigh
+        expr: feature_wasserstein_distance > 1.5
+        for: 10m
+        labels: { severity: warning }
+        annotations: { summary: "Wasserstein distance >1.5 — feature drift high (2025->2026 era)" }
+
+      - alert: PSIDriftSevere
+        expr: feature_psi > 0.25
+        for: 10m
+        labels: { severity: warning }
+        annotations: { summary: "PSI >0.25 — severe population shift (2025->2026 era)" }
+
+      - alert: ModelSubgroupRegression
+        expr: subgroup_hard_mae_seconds > 5.0
+        for: 10m
+        labels: { severity: warning }
+        annotations: { summary: "Hard compound MAE >5.0s — subgroup regression" }

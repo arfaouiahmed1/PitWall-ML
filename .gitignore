@@ -57,3 +57,8 @@ logs/
 
 # FastF1 download cache
 data/cache/
+
+# Local agent state and installed skills
+.hermes/
+skills-lock.json
+.omo/run-continuation/

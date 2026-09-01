@@ -1,0 +1,26 @@
+season: 2026
+era: "revised_aero_pu_2026"
+effective_from: 2026-04-20
+description: "2026 FIA Formula 1 Technical & Sporting Regulations — Active Aero & Refined MGU-K Limits"
+
+aero:
+  drs: false
+  active_aero: true
+  modes:
+    - CORNER
+    - STRAIGHT
+  mode_switch_penalty_s: 0.0
+
+energy:
+  boost_mode: true
+  overtake_mode: true
+  recharge_mode: true
+  mguk:
+    key_acceleration_kw: 350
+    other_zone_kw: 250
+  es_capacity_kj: 8000.0
+  max_deploy_kj_per_lap: 4000.0
+
+overtake:
+  eligibility_gap_seconds: 1.0
+  energy_advantage_threshold_kj: 50.0
