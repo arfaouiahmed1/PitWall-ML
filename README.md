@@ -44,6 +44,24 @@ Evaluated on held-out races (never seen during training):
 
 Hard compound error is higher (~4.3s) due to the non-linear warmup phase in laps 1–3. Bias correction applied.
 
+### Model bakeoff
+![model bakeoff](docs/img/bakeoff.png)
+
+### Feature importance (SHAP)
+![shap importance](docs/img/shap.png)
+
+### LOFO ablation — what each feature group contributes
+![feature ablation](docs/img/ablation.png)
+
+### Subgroup MAE by compound and stint
+![subgroup errors](docs/img/subgroups.png)
+
+### Conformal calibration (CQR)
+![calibration](docs/img/calibration.png)
+
+### Lap time distributions by compound
+![lap distributions](docs/img/lap_distributions.png)
+
 ## Getting started
 
 ```bash
@@ -116,6 +134,23 @@ configs/
 monitoring/
   alerts.yml      Prometheus alert rules
   grafana/        dashboard JSON
+```
+
+## Notebooks
+
+Five notebooks in `notebooks/` — run them against the actual data to see how the pipeline works end to end.
+
+| Notebook | What it covers |
+|---|---|
+| `01_data_exploration.ipynb` | Lap data quality, clean-lap filtering, compound & circuit analysis |
+| `02_feature_engineering.ipynb` | Rolling anchors, hard-compound warmup, weather joins, correlations |
+| `03_model_training_evaluation.ipynb` | Full bakeoff, residuals, calibration, subgroup errors |
+| `04_strategy_simulation.ipynb` | Monte Carlo engine, pit-window sweeps, undercut modeling |
+| `05_drift_mlops.ipynb` | 2024→2025 drift (KS, Wasserstein, PSI), promotion gates |
+
+```bash
+cd notebooks
+jupyter lab
 ```
 
 ## Tests
