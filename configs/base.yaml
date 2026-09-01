@@ -40,6 +40,7 @@ features:
 training:
   test_races: 3           # hold out last N races chronologically
   validation_races: 2
+  cqr_window_races: 3     # rolling race window for CQR calibration (val + N-1 most recent train)
   min_laps_per_stint: 3
   random_state: 42
 

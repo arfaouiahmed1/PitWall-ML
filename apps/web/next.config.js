@@ -28,6 +28,16 @@ const nextConfig = {
     NEXT_PUBLIC_GIT_SHA: process.env.GITHUB_SHA?.slice(0, 7) ?? "",
     NEXT_PUBLIC_BASE_PATH: basePath,
   },
+  // In server mode (local dev / Vercel), proxy /api/* to the FastAPI backend so
+  // client-side fetches stay same-origin and avoid CORS entirely.
+  // Static export (GitHub Pages) skips rewrites; NEXT_PUBLIC_API_URL is used directly.
+  async rewrites() {
+    if (isExport) return [];
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+    return [
+      { source: "/api/:path*", destination: `${apiUrl}/:path*` },
+    ];
+  },
 };
 
 module.exports = nextConfig;
