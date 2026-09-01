@@ -63,7 +63,7 @@ const challengerMetrics: Metrics = {
 export default function ModelsPage() {
   const [metrics, setMetrics] = useState<Metrics>(fallbackMetrics);
   const [shap, setShap] = useState<ShapSummary>(fallbackShap);
-  const [version, setVersion] = useState("pace-v14-quantile+tyre+pit @champion");
+  const [version, setVersion] = useState("lgbm-quantile-cqr @champion");
   const [live, setLive] = useState(false);
 
   useEffect(() => {

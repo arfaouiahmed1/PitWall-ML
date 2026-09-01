@@ -30,7 +30,7 @@ const FALLBACK_DRIFT: DriftRow[] = [
 ];
 
 const fallback: Overview = {
-  model_version: "pace-v14-quantile @champion",
+  model_version: "lgbm-quantile-cqr @champion",
   metrics: { mae: 0.504, rmse: 0.616, coverage_80: 0.642, p95_ms: 8.3, tyre_mae: 0.445, pit_auc: 1.0 },
   drift_ratio: 0.12,
   drifted_features: ["track_temp_c", "compound"],

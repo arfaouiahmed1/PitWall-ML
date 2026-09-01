@@ -1,3 +1,3 @@
-"""PitWall ML — Real-Time F1 Race Intelligence."""
+"""PitWall ML — F1 lap-time forecasting and race strategy."""
 
 __version__ = "0.1.0"

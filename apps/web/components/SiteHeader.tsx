@@ -93,7 +93,7 @@ export default function SiteHeader() {
             </span>
           </Link>
           <span className="hidden sm:inline-flex ml-2 text-[10px] tracking-widest px-2 py-1 rounded-full bg-[#0f172a] text-[#8b9bb4] border border-[#1e293b]">
-            V2 • PIT WALL OPS
+            2025/26 season
           </span>
         </div>
 
@@ -119,7 +119,7 @@ export default function SiteHeader() {
             title={connected ? "WebSocket round-trip" : "Client-side simulation"}
           >
             <span className={`w-2 h-2 rounded-full ${connected ? "bg-[#22c55e]" : "bg-[#64748b]"}`} />
-            {connected ? `WebSocket • ${latency}ms` : "Client Engine • active"}
+            {connected ? `ws • ${latency}ms` : "replay mode"}
           </span>
 
           <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#0f172a] border border-[#1e293b] font-mono font-black text-white text-xs">

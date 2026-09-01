@@ -253,7 +253,7 @@ export default function RacePage() {
       {/* honesty banner */}
       <div className="rounded-lg bg-[#f59e0b]/10 text-[#fbbf24] border border-[#f59e0b]/20 px-3 py-2 text-xs flex items-center gap-2">
         <span className="w-1.5 h-1.5 rounded-full bg-[#f59e0b] animate-pulse shrink-0" />
-        <span>REAL-TIME RACE REPLAY — live streaming telemetry with calibrated quantile pace forecasting, pit hazards, and stochastic strategy modeling.</span>
+        <span>Replaying historical session data — predictions run through the same pipeline as live timing.</span>
       </div>
 
       {/* cockpit density grid — 12 cols */}
@@ -321,9 +321,9 @@ export default function RacePage() {
       </div>
 
       <div className="rounded-xl bg-[#0f172a] border border-[#1e293b] p-4">
-        <h3 className="font-black text-xs tracking-widest">HOW REPLAY VALIDATES LIVE ARCHITECTURE</h3>
+        <h3 className="font-black text-xs tracking-widest">HOW REPLAY WORKS</h3>
         <p className="text-xs text-[#8b9bb4] mt-2 leading-relaxed">
-          Replay is not fake UI playback — it is an <span className="text-white font-bold">event-time integration test</span> of the live pipeline. Historical Bronze events stream through the same <code className="bg-[#080c14] border border-[#1e293b] px-1.5 py-0.5 rounded font-mono">RaceEvent → RaceState → FeatureBuilder → Model@champion → WebSocket</code> path that live timing feeds use.
+          Historical Bronze lap events stream through the same <code className="bg-[#080c14] border border-[#1e293b] px-1.5 py-0.5 rounded font-mono">RaceEvent → RaceState → FeatureBuilder → Model → WebSocket</code> path as live data. It's a decent smoke test of the full pipeline without needing a live session.
         </p>
       </div>
     </div>

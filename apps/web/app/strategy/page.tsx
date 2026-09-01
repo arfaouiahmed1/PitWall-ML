@@ -197,14 +197,14 @@ export default function StrategyPage() {
             {loading ? "SIMULATING…" : "SIMULATE STRATEGY → POST /whatif"}
           </button>
           {error && <div className="text-xs text-[#fbbf24] bg-[#f59e0b]/10 border border-[#f59e0b]/20 rounded-lg px-3 py-2">{error}</div>}
-          <div className="text-[11px] text-[#5a6b84]">Engine: <code className="bg-[#080c14] border border-[#1e293b] px-1 rounded">5000-sample Stochastic Monte Carlo</code> • real-time degradation & traffic re-entry modeling.</div>
+          <div className="text-[11px] text-[#5a6b84]">Runs 5,000 Monte Carlo samples via <code className="bg-[#080c14] border border-[#1e293b] px-1 rounded">POST /whatif</code> — falls back to client-side sim if API is offline.</div>
         </div>
 
         <div className="col-span-12 lg:col-span-7 space-y-4">
           {!result ? (
             <div className="rounded-xl bg-[#0f172a] border border-[#1e293b] p-12 text-center">
               <div className="text-sm font-black tracking-widest text-[#8b9bb4]">NO SIMULATION YET</div>
-              <div className="text-xs text-[#5a6b84] mt-2">Choose a scenario and hit Simulate — Monte Carlo comparison, re-entry position and gap trajectory will appear here.</div>
+              <div className="text-xs text-[#5a6b84] mt-2">Configure a scenario on the left and hit simulate.</div>
               <div className="mt-6 inline-flex items-center gap-2 text-xs px-3 py-2 rounded-full bg-[#080c14] border border-[#1e293b] text-[#8b9bb4] font-mono">1000 simulations • q10/q50/q90 + tyre + pit hazard</div>
             </div>
           ) : (
