@@ -27,29 +27,22 @@ def _mock_response(data: list[dict], status_code: int = 200) -> Mock:
     return resp
 
 
-def test_pagination_combines_pages(monkeypatch) -> None:
-    monkeypatch.setattr(mod, "BATCH_SIZE", 2)
+def test_request_returns_full_result_without_invalid_pagination(monkeypatch) -> None:
+    """OpenF1 rejects SQL-style limit/offset filters (404/422); _request must not send them."""
     monkeypatch.setattr(mod.time, "sleep", lambda *_: None)
 
-    call_offsets: list[int] = []
+    captured_url: list[str] = []
 
     def fake_get(url, timeout=None, headers=None):
-        # parse offset from url
-        offset = 0
-        if "offset=" in url:
-            for part in url.split("&"):
-                if part.startswith("offset="):
-                    offset = int(part.split("=")[1].split("&")[0])
-        call_offsets.append(offset)
-        if offset == 0:
-            return _mock_response([{"id": 1}, {"id": 2}])
-        return _mock_response([{"id": 3}])
+        captured_url.append(url)
+        return _mock_response([{"id": 1}, {"id": 2}, {"id": 3}])
 
     monkeypatch.setattr(mod.httpx, "get", fake_get)
     client = mod.OpenF1Client(max_retries=2)
     result = client._request("test_endpoint")
     assert result == [{"id": 1}, {"id": 2}, {"id": 3}]
-    assert call_offsets == [0, 2]
+    # No limit/offset query params sent — OpenF1 would 404 on those
+    assert "limit" not in captured_url[0] and "offset" not in captured_url[0]
 
 
 def test_404_returns_partial(monkeypatch) -> None:

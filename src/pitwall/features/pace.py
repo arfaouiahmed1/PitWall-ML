@@ -698,8 +698,15 @@ def build_pace_features(
             green_now = pl.lit(True)  # no track_status column (synthetic): treat as green
             green_next = pl.lit(True)
 
-        outlier_next = pl.col("rolling_median_5").is_not_null() & (
-            pl.col("next_clean_lap_s") > _TARGET_OUTLIER_FACTOR * pl.col("rolling_median_5")
+        # Outlier trim: the next lap must not blow out vs the rolling median.
+        # Fallback: when the median is null (short stint start), reject any
+        # target > 25% slower than the session/lap baseline — this catches
+        # safety-car / red-flag crossovers that the median can't see.
+        med = pl.col("rolling_median_5")
+        sci = pl.col("next_clean_lap_s")
+        outlier_next = (
+            (med.is_not_null() & (sci > _TARGET_OUTLIER_FACTOR * med))
+            | (med.is_null() & (sci > 1.25 * pl.col("lap_time_s") + 10.0))
         )
         keep_target = green_now & green_next & ~outlier_next
         df = df.with_columns(
