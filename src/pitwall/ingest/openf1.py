@@ -61,67 +61,56 @@ class OpenF1Client:
         self.max_retries = max_retries
 
     def _request(self, endpoint: str, **params: Any) -> list[dict[str, Any]]:
-        """Make a paginated request to the OpenF1 API."""
+        """Make a request to the OpenF1 API."""
         url = f"{self.base_url}/{endpoint}"
-        all_results: list[dict[str, Any]] = []
-        params.setdefault("limit", BATCH_SIZE)
-        params.setdefault("offset", 0)
+        # Filter out client-side pagination keys that OpenF1 treats as invalid column filters
+        clean_params = {k: v for k, v in params.items() if k not in ("limit", "offset") and v is not None}
+        qs = urlencode(clean_params)
+        full_url = f"{url}?{qs}" if qs else url
 
-        while True:
-            qs = urlencode(params)
-            full_url = f"{url}?{qs}"
-            data: Any = _REQUEST_SENTINEL
-            for attempt in range(self.max_retries):
-                try:
-                    resp = httpx.get(
-                        full_url, timeout=self.timeout, headers={"User-Agent": "PitWall-ML/1.0"}
-                    )
-                    resp.raise_for_status()
-                    data = resp.json()
-                    break
-                except httpx.HTTPStatusError as e:
-                    if e.response.status_code == 429:
-                        if attempt == self.max_retries - 1:
-                            raise RuntimeError(
-                                f"OpenF1 rate limit exhausted after {self.max_retries} retries "
-                                f"for {endpoint}"
-                            ) from e
-                        wait = (2**attempt) * 5
-                        print(f"  Rate limited, waiting {wait}s...")
-                        time.sleep(wait)
-                        continue
-                    if e.response.status_code == 404:
-                        return all_results
-                    raise
-                except Exception:
-                    if attempt < self.max_retries - 1:
-                        time.sleep(2**attempt)
-                        continue
-                    raise
-            if data is _REQUEST_SENTINEL:
-                raise RuntimeError(
-                    f"OpenF1 request failed after {self.max_retries} retries for {endpoint}"
+        data: Any = _REQUEST_SENTINEL
+        for attempt in range(self.max_retries):
+            try:
+                resp = httpx.get(
+                    full_url, timeout=self.timeout, headers={"User-Agent": "PitWall-ML/1.0"}
                 )
-            if isinstance(data, list):
-                all_results.extend(data)
-                if len(data) < BATCH_SIZE:
-                    break  # No more pages
-                params["offset"] += BATCH_SIZE
-            else:
-                # Non-list response (error or metadata)
-                return all_results if all_results else (data if isinstance(data, dict) else [])
-
-            if len(all_results) > 100_000:
-                print(f"  Warning: fetched {len(all_results)} records, capping to prevent runaway")
+                resp.raise_for_status()
+                data = resp.json()
                 break
-
-        return all_results
+            except httpx.HTTPStatusError as e:
+                if e.response.status_code == 429:
+                    if attempt == self.max_retries - 1:
+                        raise RuntimeError(
+                            f"OpenF1 rate limit exhausted after {self.max_retries} retries "
+                            f"for {endpoint}"
+                        ) from e
+                    wait = (2**attempt) * 5
+                    print(f"  Rate limited, waiting {wait}s...")
+                    time.sleep(wait)
+                    continue
+                if e.response.status_code in (400, 404, 422):
+                    return []
+                raise
+            except Exception:
+                if attempt < self.max_retries - 1:
+                    time.sleep(2**attempt)
+                    continue
+                raise
+        if data is _REQUEST_SENTINEL:
+            raise RuntimeError(
+                f"OpenF1 request failed after {self.max_retries} retries for {endpoint}"
+            )
+        if isinstance(data, list):
+            return data
+        if isinstance(data, dict):
+            return [data]
+        return []
 
     def get_sessions(
         self, year: int | None = None, session_key: int | None = None, limit: int = 100
     ) -> pl.DataFrame:
         """Fetch session metadata."""
-        params: dict[str, Any] = {"limit": limit}
+        params: dict[str, Any] = {}
         if year is not None:
             params["year"] = year
         if session_key is not None:
@@ -150,7 +139,7 @@ class OpenF1Client:
     def get_intervals(self, session_key: int) -> pl.DataFrame:
         """Fetch ~4-second interval updates: gap_to_leader, interval."""
         data = self._request("intervals", session_key=session_key)
-        return pl.DataFrame(data) if data else pl.DataFrame()
+        return pl.DataFrame(data, infer_schema_length=None) if data else pl.DataFrame()
 
     def get_overtakes(self, session_key: int) -> pl.DataFrame:
         """Fetch actual overtaking events."""
@@ -163,7 +152,7 @@ class OpenF1Client:
         if driver_number is not None:
             params["driver_number"] = driver_number
         data = self._request("laps", **params)
-        return pl.DataFrame(data) if data else pl.DataFrame()
+        return pl.DataFrame(data, infer_schema_length=None) if data else pl.DataFrame()
 
     def get_stints(self, session_key: int) -> pl.DataFrame:
         """Fetch tyre stint data."""
@@ -178,17 +167,17 @@ class OpenF1Client:
     def get_position(self, session_key: int) -> pl.DataFrame:
         """Fetch per-timestamp position data."""
         data = self._request("position", session_key=session_key)
-        return pl.DataFrame(data) if data else pl.DataFrame()
+        return pl.DataFrame(data, infer_schema_length=None) if data else pl.DataFrame()
 
     def get_weather(self, session_key: int) -> pl.DataFrame:
         """Fetch weather data: air/temp, track temp, humidity, pressure, wind, rain."""
         data = self._request("weather", session_key=session_key)
-        return pl.DataFrame(data) if data else pl.DataFrame()
+        return pl.DataFrame(data, infer_schema_length=None) if data else pl.DataFrame()
 
     def get_race_control(self, session_key: int) -> pl.DataFrame:
         """Fetch race control messages: SC, VSC, flags."""
         data = self._request("race_control", session_key=session_key)
-        return pl.DataFrame(data) if data else pl.DataFrame()
+        return pl.DataFrame(data, infer_schema_length=None) if data else pl.DataFrame()
 
 
 # ── Session discovery ─────────────────────────────────────────────────────────
@@ -226,11 +215,16 @@ def get_latest_race_sessions(year: int) -> pl.DataFrame:
 
 
 def ingest_session_bronze(
-    session_key: int, year: int, event_name: str, session_type: str, output_dir: str = "data/bronze"
+    session_key: int,
+    year: int,
+    event_name: str,
+    session_type: str,
+    output_dir: str = "data/bronze",
+    include_car_data: bool = False,
 ) -> dict[str, Path]:
-    """Ingest all data for a session into the Bronze layer.
+    """Ingest data for a session into the Bronze layer.
 
-    Returns dict of endpoint → written file path.
+    Returns dict of endpoint -> written file path.
     """
     client = OpenF1Client()
     bronze_path = (
@@ -252,18 +246,19 @@ def ingest_session_bronze(
         drivers.write_parquet(str(fpath))
         written["drivers"] = fpath
 
-    # Car telemetry (per driver)
-    all_car_data = []
-    for dn in drivers["driver_number"].to_list() if not drivers.is_empty() else [1, 4, 16, 22, 33]:
-        cd = client.get_car_data(session_key=session_key, driver_number=dn)
-        if not cd.is_empty():
-            all_car_data.append(cd)
-    if all_car_data:
-        combined = pl.concat(all_car_data, how="vertical")
-        fpath = bronze_path / "car_data.parquet"
-        combined.write_parquet(str(fpath))
-        written["car_data"] = fpath
-
+    # Car telemetry (per driver, optional)
+    if include_car_data:
+        all_car_data = []
+        sample_drivers = drivers["driver_number"].to_list()[:5] if not drivers.is_empty() else [1, 4, 16]
+        for dn in sample_drivers:
+            cd = client.get_car_data(session_key=session_key, driver_number=dn)
+            if not cd.is_empty():
+                all_car_data.append(cd)
+        if all_car_data:
+            combined = pl.concat(all_car_data, how="vertical")
+            fpath = bronze_path / "car_data.parquet"
+            combined.write_parquet(str(fpath))
+            written["car_data"] = fpath
     # Location (coordinates)
     loc = client.get_location(session_key=session_key)
     if not loc.is_empty():
