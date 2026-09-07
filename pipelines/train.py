@@ -29,7 +29,9 @@ from pitwall.features.pace import build_pace_features, get_feature_columns
 from pitwall.features.pit import build_pit_features, get_pit_feature_columns
 from pitwall.features.tyre import build_tyre_features, get_tyre_feature_columns
 from pitwall.models.pace.baseline import LastLapBaseline, RollingMedianBaseline
+from pitwall.models.pace.hybrid_model import HybridPaceModel
 from pitwall.models.pace.lightgbm_model import PaceLightGBM, QuantileLightGBM
+from pitwall.models.pace.sector_chain import SectorChainModel
 from pitwall.models.pit.lightgbm_pit import PitHazardLightGBM
 from pitwall.models.tyre.lightgbm_tyre import TyreLightGBM
 
@@ -684,7 +686,10 @@ def main() -> None:
         silver = pl.DataFrame(rows)
     else:
         print(f"Found {len(files)} silver files")
-        silver = pl.read_parquet(files)
+        try:
+            silver = pl.read_parquet(files)
+        except Exception:
+            silver = pl.concat([pl.read_parquet(f) for f in files], how="diagonal")
         if args.max_rows:
             silver = silver.head(args.max_rows)
 
@@ -988,6 +993,72 @@ def main() -> None:
     metrics["point_mae_vs_quantile_p50"] = float(np.mean(np.abs(preds[:n] - q50))) if n else 0.0
     metrics["quantile_enabled"] = quantile_enabled
     print("Metrics (pace):", json.dumps(metrics, indent=2))
+    # --- V3 Sub-Second Hybrid Pace Model (Physics + Quantile Residual) ---
+    _hybrid_model_to_save: HybridPaceModel | None = None
+    try:
+        print("Training HybridPaceModel (Stage 1 Physics + Stage 2 Quantile Residual)...")
+        _target_delta = "target_delta_s" if "target_delta_s" in train_df.columns else "next_clean_lap_s"
+        _tr_clean = (
+            train_df.filter(pl.col("target_delta_s").is_not_null() & (pl.col("target_delta_s").abs() < 2.5))
+            if "target_delta_s" in train_df.columns
+            else train_df
+        )
+        _val_clean = (
+            valid_df.filter(pl.col("target_delta_s").is_not_null() & (pl.col("target_delta_s").abs() < 2.5))
+            if valid_df is not None and "target_delta_s" in valid_df.columns
+            else valid_df
+        )
+        _hyb = HybridPaceModel(
+            params=params,
+            alphas=quantile_alphas,
+            categorical_features=cat_features,
+        )
+        _hyb.fit(_tr_clean, _val_clean, feature_cols=feature_cols, target_col=_target_delta)
+
+        # Evaluate on test
+        _te_clean = (
+            test_df.filter(pl.col("target_delta_s").is_not_null() & (pl.col("target_delta_s").abs() < 2.5))
+            if "target_delta_s" in test_df.columns
+            else test_df
+        )
+        if len(_te_clean) > 0:
+            _p_hyb_abs = _hyb.predict(_te_clean)
+            _y_hyb_true = _te_clean[target].to_numpy()
+            _hyb_mae = float(mae(_y_hyb_true, _p_hyb_abs))
+            _hyb_rmse = float(rmse(_y_hyb_true, _p_hyb_abs))
+            metrics["hybrid_mae"] = _hyb_mae
+            metrics["hybrid_mae_ms"] = round(_hyb_mae * 1000, 1)
+            metrics["hybrid_rmse"] = _hyb_rmse
+            metrics["hybrid_rmse_ms"] = round(_hyb_rmse * 1000, 1)
+            _hyb_q = _hyb.predict_quantiles(_te_clean)
+            metrics["hybrid_coverage_80"] = float(
+                np.mean((_y_hyb_true >= _hyb_q[0.1]) & (_y_hyb_true <= _hyb_q[0.9]))
+            )
+            print(f"HybridPaceModel: MAE = {_hyb_mae:.4f}s ({_hyb_mae*1000:.1f}ms) | RMSE = {_hyb_rmse:.4f}s | Cov = {metrics['hybrid_coverage_80']*100:.1f}%")
+            _hybrid_model_to_save = _hyb
+    except Exception as _e_hyb:
+        print(f"HybridPaceModel training skipped: {_e_hyb}")
+
+    # --- V3 Sector Chain Model (S1 -> S2 -> S3 Momentum Propagation) ---
+    _sector_model_to_save: SectorChainModel | None = None
+    try:
+        print("Training SectorChainModel (Chained S1 -> S2 -> S3)...")
+        _chain = SectorChainModel(
+            params=params,
+            categorical_features=cat_features,
+        )
+        _chain.fit(train_df, valid_df, base_features=feature_cols)
+        if len(test_df) > 0:
+            _sec_preds = _chain.predict_sectors(test_df)
+            _p_sec_lap = _sec_preds["s1"] + _sec_preds["s2"] + _sec_preds["s3"]
+            _sec_lap_mae = float(mae(y_true, _p_sec_lap))
+            metrics["sector_chain_mae"] = _sec_lap_mae
+            metrics["sector_chain_mae_ms"] = round(_sec_lap_mae * 1000, 1)
+            print(f"SectorChainModel: MAE = {_sec_lap_mae:.4f}s ({_sec_lap_mae*1000:.1f}ms)")
+            _sector_model_to_save = _chain
+    except Exception as _e_sec:
+        print(f"SectorChainModel training skipped: {_e_sec}")
+
 
     # --- V2.2 Tyre degradation model ---
     _tyre_model_to_save = None
@@ -1171,6 +1242,10 @@ def main() -> None:
         _pit_model_to_save.save(out / "model_pit")
         with open(out / "pit_manifest.json", "w") as f:
             json.dump({"feature_cols": _pit_feature_cols, "horizon": pit_horizon}, f, indent=2)
+    if _hybrid_model_to_save is not None:
+        _hybrid_model_to_save.save(out / "model_hybrid")
+    if _sector_model_to_save is not None:
+        _sector_model_to_save.save(out / "model_sector_chain")
 
     # --- V2.6 SHAP (pace) ---
     try:

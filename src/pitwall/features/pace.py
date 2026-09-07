@@ -55,6 +55,15 @@ PACE_NUMERICAL = [
     "tyre_warmup_phase",
     "compound_temp_interaction",
     "stint_progress_ratio",
+    # Sector split momentum & boundary speed traps
+    "speed_fl_delta",
+    "speed_i1_delta",
+    "speed_i2_delta",
+    "speed_st_delta",
+    "s1_delta",
+    "s2_delta",
+    "s3_delta",
+    "pace_offset_r3",
 ]
 
 PACE_CATEGORICAL = ["compound", "team_id", "driver_id", "circuit_id"]
@@ -650,6 +659,60 @@ def _add_hard_compound_features(df: pl.DataFrame) -> pl.DataFrame:
 
     return df
 
+def _add_sector_momentum_features(df: pl.DataFrame, group_cols: list[str]) -> pl.DataFrame:
+    """Corner exit momentum propagation & sector split features."""
+    # 1. Normalize sector duration to float seconds if not already present
+    for s_raw, s_target in [
+        ("Sector1Time", "sector1time_s"),
+        ("Sector2Time", "sector2time_s"),
+        ("Sector3Time", "sector3time_s"),
+        ("duration_sector_1", "sector1time_s"),
+        ("duration_sector_2", "sector2time_s"),
+        ("duration_sector_3", "sector3time_s"),
+    ]:
+        if s_raw in df.columns and s_target not in df.columns:
+            if df[s_raw].dtype == pl.Duration:
+                df = df.with_columns((pl.col(s_raw).dt.total_nanoseconds() / 1e9).alias(s_target))
+            else:
+                df = df.with_columns(pl.col(s_raw).cast(pl.Float64, strict=False).alias(s_target))
+
+    # 2. Sector deltas from session median
+    for s in ["sector1time_s", "sector2time_s", "sector3time_s"]:
+        delta_name = s.replace("sector", "s").replace("time_s", "_delta")
+        if s in df.columns and group_cols:
+            df = df.with_columns(
+                (pl.col(s) - pl.col(s).median().over(group_cols)).fill_null(0.0).alias(delta_name)
+            )
+        else:
+            df = df.with_columns(pl.lit(0.0).alias(delta_name))
+
+    # 3. Boundary speeds (SpeedFL, SpeedI1, SpeedI2, SpeedST)
+    for sp, sp_delta in [
+        ("SpeedFL", "speed_fl_delta"),
+        ("SpeedI1", "speed_i1_delta"),
+        ("SpeedI2", "speed_i2_delta"),
+        ("SpeedST", "speed_st_delta"),
+    ]:
+        if sp in df.columns and group_cols:
+            df = df.with_columns(
+                pl.col(sp).cast(pl.Float64, strict=False).alias(sp)
+            )
+            df = df.with_columns(
+                (pl.col(sp) - pl.col(sp).median().over(group_cols)).fill_null(0.0).alias(sp_delta)
+            )
+        else:
+            df = df.with_columns(pl.lit(0.0).alias(sp_delta))
+
+    # 4. Pace offsets vs rolling medians
+    if "lap_time_s" in df.columns and "rolling_median_3" in df.columns:
+        df = df.with_columns(
+            (pl.col("lap_time_s") - pl.col("rolling_median_3")).fill_null(0.0).alias("pace_offset_r3")
+        )
+    else:
+        df = df.with_columns(pl.lit(0.0).alias("pace_offset_r3"))
+
+    return df
+
 
 def build_pace_features(
     silver_laps: pl.DataFrame, weather: pl.DataFrame | None = None
@@ -737,6 +800,21 @@ def build_pace_features(
 
     # ── Hard-compound non-linearity ───────────────────────────────────────
     df = _add_hard_compound_features(df)
+
+    # ── Sector split momentum & boundary speed traps ──────────────────────
+    df = _add_sector_momentum_features(df, group_cols)
+
+    # Target delta: next_clean_lap_s - lap_time_s (canonical subsecond target)
+    if "next_clean_lap_s" in df.columns and "lap_time_s" in df.columns:
+        delta_expr = pl.col("next_clean_lap_s") - pl.col("lap_time_s")
+        df = df.with_columns(
+            pl.when(pl.col("next_clean_lap_s").is_not_null() & (delta_expr.abs() < 2.5))
+            .then(delta_expr)
+            .otherwise(None)
+            .alias("target_delta_s")
+        )
+    else:
+        df = df.with_columns(pl.lit(None).cast(pl.Float64).alias("target_delta_s"))
 
     # Ensure all numerical cols are present and non-null with sensible defaults
     # Rolling features keep nulls — they encode "insufficient history" and the

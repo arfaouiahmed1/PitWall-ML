@@ -21,6 +21,8 @@ from pitwall.state.race_state import RaceState
 race_state = RaceState(session_id="demo")
 ml_model = None
 quantile_model = None
+hybrid_model = None
+sector_chain_model = None
 tyre_model = None
 pit_model = None
 model_version = "demo-v0"
@@ -33,6 +35,8 @@ async def lifespan(app: FastAPI):  # type: ignore[no-untyped-def]
     global \
         ml_model, \
         quantile_model, \
+        hybrid_model, \
+        sector_chain_model, \
         tyre_model, \
         pit_model, \
         model_version, \
@@ -55,12 +59,13 @@ async def lifespan(app: FastAPI):  # type: ignore[no-untyped-def]
 
     # Try local artifacts (V2) as fallback — will override demo if present (prefer newest)
     local_candidates = [
+        Path("artifacts/candidate_smoke"),
+        Path("artifacts/candidate"),
         Path("artifacts/v2_shap_test"),
         Path("artifacts/v2_full_test"),
         Path("artifacts/v2_test_full"),
         Path("artifacts/v2_quantile_test"),
         Path("artifacts/smoke"),
-        Path("artifacts/candidate"),
     ]
     for cand in local_candidates:
         if (cand / "model" / "model.pkl").exists():
@@ -78,6 +83,12 @@ async def lifespan(app: FastAPI):  # type: ignore[no-untyped-def]
                     tyre_model = TyreLightGBM.load(cand / "model_tyre")
                 if (cand / "model_pit" / "model.pkl").exists():
                     pit_model = PitHazardLightGBM.load(cand / "model_pit")
+                if (cand / "model_hybrid" / "hybrid_manifest.json").exists():
+                    from pitwall.models.pace.hybrid_model import HybridPaceModel
+                    hybrid_model = HybridPaceModel.load(cand / "model_hybrid")
+                if (cand / "model_sector_chain" / "sector_chain_manifest.json").exists():
+                    from pitwall.models.pace.sector_chain import SectorChainModel
+                    sector_chain_model = SectorChainModel.load(cand / "model_sector_chain")
                 if (cand / "metrics.json").exists():
                     import json
 
@@ -176,7 +187,9 @@ async def get_pace_predictions() -> list[dict[str, Any]]:
     t0 = time.perf_counter()
     # Try batch quantile prediction
     try:
-        if quantile_model is not None:
+        # Prefer V3 Hybrid Model (Physics + Quantile Residual)
+        active_quantile = hybrid_model if hybrid_model is not None else quantile_model
+        if active_quantile is not None:
             drivers = list(race_state.drivers.values())
             sim_like = []
             for ds in drivers:
@@ -196,7 +209,7 @@ async def get_pace_predictions() -> list[dict[str, Any]]:
             from pitwall.simulation.engine import _build_batch_features as _bb
 
             batch = _bb(sim_like, race_progress=0.5)  # type: ignore
-            qd = quantile_model.predict(batch)
+            qd = active_quantile.predict_quantiles(batch) if hasattr(active_quantile, "predict_quantiles") else active_quantile.predict(batch)
             q10a, q50a, q90a = qd[0.1], qd[0.5], qd[0.9]
             preds: list[dict[str, Any]] = []
             for i, (dn, ds) in enumerate(race_state.drivers.items()):
