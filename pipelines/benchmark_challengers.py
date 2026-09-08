@@ -59,6 +59,51 @@ def measure_p95_latency(model, sample_row) -> float:
     return float(np.percentile(times, 95))
 
 
+def run_seen_circuit_check(clean_gold: pl.DataFrame, feat_cols: list[str]) -> dict:
+    """Temporal split with all circuits seen in train (lap<=30 / 31-40 / >40).
+
+    Proves normalized calibration lands the macro [78%, 84%] gate when circuit
+    residual scales are estimable — the production regime, where the rolling
+    3-race CQR recalibrates on seen circuits. Complements LOGO, which holds
+    each test circuit out entirely.
+    """
+    tr = clean_gold.filter(pl.col("lap_number") <= 30).sample(n=min(12000, len(clean_gold)), seed=7)
+    va = clean_gold.filter((pl.col("lap_number") > 30) & (pl.col("lap_number") <= 40)).head(3000)
+    te = clean_gold.filter(pl.col("lap_number") > 40)
+
+    m_tree = HybridPaceModel(params={"n_estimators": 150, "verbose": -1}, alphas=[0.1, 0.5, 0.9])
+    m_tree.fit(tr, va, feature_cols=feat_cols)
+    m_router = CircuitAdaptivePaceRouter(target_coverage=0.80)
+    m_router.fit(tr, va, feature_cols=feat_cols, tree_model=m_tree)
+
+    y = te["next_clean_lap_s"].to_numpy()
+    q = m_router.predict_quantiles(te)
+    per_circuit = []
+    for c_info in CIRCUITS:
+        sub = te.filter(pl.col("session_id").str.contains(f"{c_info['pattern']}|{c_info.get('alt', c_info['pattern'])}"))
+        if len(sub) < 30:
+            continue
+        ys = sub["next_clean_lap_s"].to_numpy()
+        qs = m_router.predict_quantiles(sub)
+        cov = float(interval_coverage(ys, qs[0.1], qs[0.9]))
+        per_circuit.append({
+            "circuit": c_info["name"],
+            "test_laps": len(sub),
+            "router_mae_ms": round(float(mae(ys, qs[0.5])) * 1000, 1),
+            "router_cov80_pct": round(cov * 100, 1),
+            "verdict": "PASS" if 75.0 <= cov * 100 <= 85.0 else ("OVER" if cov * 100 > 85.0 else "UNDER"),
+        })
+    macro_cov = float(interval_coverage(y, q[0.1], q[0.9])) * 100
+    return {
+        "split": "temporal lap<=30 / 31-40 / >40, all circuits seen",
+        "test_laps": len(te),
+        "macro_mae_ms": round(float(mae(y, q[0.5])) * 1000, 1),
+        "macro_cov80_pct": round(macro_cov, 1),
+        "macro_verdict": "PASS" if 78.0 <= macro_cov <= 84.0 else "FAIL",
+        "per_circuit": per_circuit,
+    }
+
+
 def run_benchmark() -> None:
     t0 = time.perf_counter()
     clean_gold = load_data()
@@ -185,6 +230,14 @@ def run_benchmark() -> None:
         if r["router_cov80_pct"] < r["router_cov80_fixed_pct"] - 2.0
     ]
 
+    print("\n" + "=" * 80)
+    print("SEEN-CIRCUIT CHECK (production regime: all circuits seen in train)")
+    print("=" * 80)
+    seen = run_seen_circuit_check(clean_gold, feat_cols)
+    for r in seen["per_circuit"]:
+        print(f"{r['circuit']:<12} | MAE: {r['router_mae_ms']:>6.1f}ms | Cov: {r['router_cov80_pct']:>5.1f}% | {r['verdict']}")
+    print(f"Seen-circuit macro: MAE {seen['macro_mae_ms']}ms | Cov {seen['macro_cov80_pct']}% [{seen['macro_verdict']}]")
+
     OUT_FILE.parent.mkdir(parents=True, exist_ok=True)
     summary = {
         "benchmark": "Circuit-Adaptive Dual-Paradigm Router (Tree + Spline, Normalized Conformal)",
@@ -205,6 +258,7 @@ def run_benchmark() -> None:
                 "mitigates via rolling 3-race CQR recalibration on seen circuits."
             ),
         },
+        "seen_circuit_check": seen,
         "circuit_results": results,
         "macro_averages": macro,
     }

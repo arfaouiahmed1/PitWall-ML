@@ -89,6 +89,29 @@ def test_circuit_regime_predicates() -> None:
     assert not is_spline_circuit("2026_Italian Grand Prix_R")
     assert not is_spline_circuit(None)
 
+def test_router_uncalibrated_falls_back_to_tree_quantiles(sample_clean_laps: pl.DataFrame, tmp_path) -> None:
+    """No-validation fits (smoke splits) must serve tree-leg intervals, not raise."""
+    train_df = sample_clean_laps.filter(pl.col("lap_number") <= 35)
+    test_df = sample_clean_laps.filter(pl.col("lap_number") > 35).head(30)
+    features = ["pace_offset_r3", "speed_fl_delta", "tyre_age", "lap_number"]
+
+    hyb = HybridPaceModel(params={"n_estimators": 50, "verbose": -1}, alphas=[0.1, 0.5, 0.9])
+    hyb.fit(train_df, None, feature_cols=features)
+    router = CircuitAdaptivePaceRouter(target_coverage=0.80)
+    router.fit(train_df, None, feature_cols=features, tree_model=hyb)
+    assert router.calibrator.q_norm_ is None
+
+    q_router = router.predict_quantiles(test_df)
+    q_tree = hyb.predict_quantiles(test_df)
+    for alpha in (0.1, 0.5, 0.9):
+        np.testing.assert_allclose(q_router[alpha], q_tree[alpha], rtol=1e-8)
+
+    save_dir = tmp_path / "uncalibrated_router"
+    router.save(save_dir)
+    loaded = CircuitAdaptivePaceRouter.load(save_dir)
+    assert loaded.calibrator.q_norm_ is None
+    q_loaded = loaded.predict_quantiles(test_df)
+    np.testing.assert_allclose(q_loaded[0.5], q_router[0.5], rtol=1e-5)
 
 def test_spline_bayesian_ridge(sample_clean_laps: pl.DataFrame, tmp_path) -> None:
     """Verify B-Spline + BayesianRidge fits, predicts, and serializes."""

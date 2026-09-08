@@ -24,6 +24,7 @@ from typing import Any
 import joblib
 import numpy as np
 import polars as pl
+from sklearn.impute import SimpleImputer
 from sklearn.linear_model import BayesianRidge
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import SplineTransformer, StandardScaler
@@ -69,13 +70,13 @@ class SplineBayesianRidgeModel:
 
     def __init__(self, n_knots: int = 5, degree: int = 3) -> None:
         self.pipeline: Pipeline = Pipeline([
+            ("imputer", SimpleImputer(strategy="median")),
             ("scaler", StandardScaler()),
             ("spline", SplineTransformer(n_knots=n_knots, degree=degree)),
             ("regressor", BayesianRidge()),
         ])
         self.feature_cols: list[str] = []
         self.calibrator: SplitConformalPredictor = SplitConformalPredictor(target_coverage=0.80)
-
     def fit(
         self,
         train_df: pl.DataFrame,
@@ -84,7 +85,15 @@ class SplineBayesianRidgeModel:
         target_col: str = "target_delta_s",
         base_lap_col: str = "lap_time_s",
     ) -> SplineBayesianRidgeModel:
-        self.feature_cols = [c for c in feature_cols if c in train_df.columns]
+        # The spline + scaler + Ridge stack cannot consume raw strings, while
+        # shared feature lists carry LightGBM categoricals (compound, team_id,
+        # driver_id, circuit_id). Keep numerics only; the tree leg still sees
+        # the full list via the router.
+        self.feature_cols = [
+            c for c in feature_cols if c in train_df.columns and train_df.schema[c].is_numeric()
+        ]
+        if not self.feature_cols:
+            raise ValueError("SplineBayesianRidgeModel needs at least one numeric feature column")
         X_tr = train_df.select(self.feature_cols).to_pandas()
         y_tr = train_df[target_col].fill_null(0.0).to_numpy()
 
@@ -193,10 +202,10 @@ class NormalizedConformalCalibrator:
         half_width = self.q_norm_ * sig
         return y_pred - half_width, y_pred + half_width
 
-    def params(self) -> dict[str, float]:
+    def params(self) -> dict[str, float | None]:
         return {
-            "q_norm": self.q_norm_ or 0.0,
-            "global_sigma": self.global_sigma_ or 0.0,
+            "q_norm": self.q_norm_,
+            "global_sigma": self.global_sigma_,
             "target_coverage": self.target_coverage,
             "min_sigma": self.min_sigma,
         }
@@ -221,7 +230,6 @@ _UNKNOWN_KEYS: frozenset[str] = frozenset({"", "unknown", "demo", "none"})
 
 
 def normalize_circuit_key(circuit: Any) -> str:
-    """Normalize a circuit/session identifier for routing lookups."""
     if circuit is None:
         return ""
     try:
@@ -313,6 +321,8 @@ class CircuitAdaptivePaceRouter:
         )
         if valid_df is not None and not valid_df.is_empty():
             self._calibrate(valid_df, base_lap_col=base_lap_col, circuit_col=circuit_col)
+        else:
+            print("CircuitAdaptivePaceRouter: no validation rows; intervals fall back to tree quantiles")
         return self
 
     def _calibrate(
@@ -377,6 +387,12 @@ class CircuitAdaptivePaceRouter:
         circuit_col: str = "session_id",
     ) -> dict[float, np.ndarray]:
         """Return normalized-conformal {0.1: q10, 0.5: p50, 0.9: q90} intervals."""
+        if self.calibrator.q_norm_ is None:
+            # No validation rows at fit time (e.g. smoke splits): serve the tree
+            # leg's own quantile intervals instead of failing the pipeline.
+            if hasattr(self.tree_model, "predict_quantiles"):
+                return self.tree_model.predict_quantiles(df, base_lap_col=base_lap_col)
+            raise ValueError("Calibrator must be fitted on validation residuals first")
         p50 = self.predict(df, base_lap_col=base_lap_col, circuit=circuit, circuit_col=circuit_col)
         keys = self._row_keys(df, circuit=circuit, circuit_col=circuit_col)
         sigma = self._sigma_for_keys(keys)

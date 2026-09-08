@@ -1274,6 +1274,8 @@ def main() -> None:
             json.dump(
                 {"alphas": quantile_alphas, "feature_cols": q_model.feature_cols}, f, indent=2
             )
+    if calibrator_params is not None:
+        (out / "model_quantile").mkdir(parents=True, exist_ok=True)
         # Merge hard compound bias correction into the calibrator artifact so
         # the serving layer can apply it in a single file read.
         if hard_bias != 0.0:
