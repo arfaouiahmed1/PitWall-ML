@@ -33,17 +33,34 @@ The frontend replays historical race sessions at 20x speed through the same pipe
 
 ## Results
 
-Evaluated on held-out races (never seen during training):
+### Sub-Second Hybrid Architecture Benchmark
 
-| Model | MAE | 80% Coverage |
-|---|---|---|
-| Last-lap baseline | 0.38s | — |
-| Rolling median (3 laps) | 1.77s | — |
-| LightGBM point | 1.70s | 63.6% |
-| **QuantileLightGBM + CQR** | **1.67s** | **86.4%** |
+Evaluated on held-out 2026 clean race laps:
 
-Hard compound error is higher (~4.3s) due to the non-linear warmup phase in laps 1–3. Bias correction applied.
+| Architecture | Target Formulation | MAE (s) | MAE (ms) | 80% Coverage |
+|:---|:---|---:|---:|---:|
+| Absolute LightGBM (Old) | Absolute lap time ($y_{t+1}$) | 1.424 s | 1,424.0 ms | 78.3% |
+| Last-Lap Baseline | $y_{t+1} = y_t$ | 0.419 s | 419.2 ms | — |
+| Sector Chain Model | Chained $S_1 \to S_2 \to S_3$ | 0.383 s | 382.7 ms | — |
+| **Two-Stage Hybrid V3** | **Physics + Quantile Residual** | **0.302 s** | **301.8 ms** | **78.9%** |
 
+### Cross-Circuit Generalization (Leave-One-GP-Out, 18,336 Laps)
+
+To verify generalization, models were evaluated across 8 distinct circuit archetypes. In each run, the model was trained on historical data from all *other* circuits and evaluated on the held-out GP:
+
+| Circuit | Archetype | Test Laps | LastLap | Absolute | SectorChain | Hybrid V3 | Gain vs Abs |
+|:---|:---|---:|---:|---:|---:|---:|---:|
+| **Monza** | Low-Downforce High-Speed | 3,361 | 334.9 ms | 10,968.4 ms | 296.1 ms | **294.0 ms** | **+97.3%** |
+| **Suzuka** | High-Speed Flowing S-Curves | 887 | 383.7 ms | 2,747.7 ms | 374.4 ms | **343.9 ms** | **+87.5%** |
+| **Shanghai** | Technical Long-Straight | 2,329 | 340.5 ms | 6,775.3 ms | 312.7 ms | **299.7 ms** | **+95.6%** |
+| **Melbourne** | Semi-Street High-Speed | 2,675 | 438.7 ms | 6,569.9 ms | 424.1 ms | **386.4 ms** | **+94.1%** |
+| **Miami** | Street High-Speed Straights | 2,460 | 336.7 ms | 2,302.8 ms | 314.5 ms | **292.4 ms** | **+87.3%** |
+| **Silverstone** | Extreme Lateral G-Force | 1,092 | 576.6 ms | 4,841.8 ms | 872.2 ms | **642.0 ms** | **+86.7%** |
+| **Spa** | Elevation & High Speed | 3,397 | 396.0 ms | 7,089.6 ms | 410.2 ms | **357.1 ms** | **+95.0%** |
+| **Monaco** | Tight Low-Speed Street | 2,135 | 546.8 ms | 2,995.8 ms | 592.8 ms | **533.0 ms** | **+82.2%** |
+| **MACRO AVG** | **Cross-Circuit Generalization** | **18,336** | **419.2 ms** | **5,536.4 ms** | **449.6 ms** | **393.6 ms** | **+92.9%** |
+
+![gp generalization](docs/img/gp_generality_benchmark.png)
 ### Model bakeoff
 ![model bakeoff](docs/img/bakeoff.png)
 
