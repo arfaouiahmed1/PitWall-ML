@@ -22,6 +22,7 @@ race_state = RaceState(session_id="demo")
 ml_model = None
 quantile_model = None
 hybrid_model = None
+adaptive_router = None
 sector_chain_model = None
 tyre_model = None
 pit_model = None
@@ -36,6 +37,7 @@ async def lifespan(app: FastAPI):  # type: ignore[no-untyped-def]
         ml_model, \
         quantile_model, \
         hybrid_model, \
+        adaptive_router, \
         sector_chain_model, \
         tyre_model, \
         pit_model, \
@@ -86,6 +88,10 @@ async def lifespan(app: FastAPI):  # type: ignore[no-untyped-def]
                 if (cand / "model_hybrid" / "hybrid_manifest.json").exists():
                     from pitwall.models.pace.hybrid_model import HybridPaceModel
                     hybrid_model = HybridPaceModel.load(cand / "model_hybrid")
+                if (cand / "model_adaptive_router" / "router_manifest.json").exists():
+                    from pitwall.models.pace.challengers import CircuitAdaptivePaceRouter
+
+                    adaptive_router = CircuitAdaptivePaceRouter.load(cand / "model_adaptive_router")
                 if (cand / "model_sector_chain" / "sector_chain_manifest.json").exists():
                     from pitwall.models.pace.sector_chain import SectorChainModel
                     sector_chain_model = SectorChainModel.load(cand / "model_sector_chain")
@@ -187,8 +193,12 @@ async def get_pace_predictions() -> list[dict[str, Any]]:
     t0 = time.perf_counter()
     # Try batch quantile prediction
     try:
-        # Prefer V3 Hybrid Model (Physics + Quantile Residual)
-        active_quantile = hybrid_model if hybrid_model is not None else quantile_model
+        # Prefer Circuit-Adaptive Router (Tree + Spline regimes), then Hybrid, then quantile.
+        if adaptive_router is not None:
+            active_quantile = adaptive_router
+        else:
+            active_quantile = hybrid_model if hybrid_model is not None else quantile_model
+        use_circuit_routing = active_quantile is adaptive_router and adaptive_router is not None
         if active_quantile is not None:
             drivers = list(race_state.drivers.values())
             sim_like = []
@@ -205,11 +215,13 @@ async def get_pace_predictions() -> list[dict[str, Any]]:
                 d.position = getattr(ds, "position", 0) or 0
                 d.gap_to_leader_s = getattr(ds, "gap_to_leader_s", 0) or 0
                 sim_like.append(d)
-
             from pitwall.simulation.engine import _build_batch_features as _bb
 
             batch = _bb(sim_like, race_progress=0.5)  # type: ignore
-            qd = active_quantile.predict_quantiles(batch) if hasattr(active_quantile, "predict_quantiles") else active_quantile.predict(batch)
+            if use_circuit_routing:
+                qd = active_quantile.predict_quantiles(batch, circuit=race_state.session_id)
+            else:
+                qd = active_quantile.predict_quantiles(batch) if hasattr(active_quantile, "predict_quantiles") else active_quantile.predict(batch)
             q10a, q50a, q90a = qd[0.1], qd[0.5], qd[0.9]
             preds: list[dict[str, Any]] = []
             for i, (dn, ds) in enumerate(race_state.drivers.items()):

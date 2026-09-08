@@ -7,6 +7,11 @@ pace:
     p95_ms_max: 100
   interval:
     nominal_coverage: 0.80
+    # Binding gates: macro average governs promotion; per-circuit blocks regressions.
+    macro_coverage_low: 0.78
+    macro_coverage_high: 0.84
+    per_circuit_coverage_low: 0.75
+    per_circuit_coverage_high: 0.85
     coverage_tolerance: 0.05
   required_checks:
     - schema

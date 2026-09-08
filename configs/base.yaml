@@ -60,3 +60,11 @@ models:
       n_estimators: 500
       early_stopping_rounds: 50
     quantile_alphas: [0.1, 0.5, 0.9]
+    # Binding promotion gates for 80% conformal intervals (normalized calibration).
+    # Macro average MUST land in [0.78, 0.84]; every individual circuit in [0.75, 0.85].
+    # The macro gate governs promotion; the per-circuit gate blocks circuit regressions.
+    coverage_gates:
+      macro_80_low: 0.78
+      macro_80_high: 0.84
+      per_circuit_80_low: 0.75
+      per_circuit_80_high: 0.85

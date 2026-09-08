@@ -23,6 +23,21 @@ from __future__ import annotations
 import polars as pl
 
 
+def traffic_loss_factor_expr(gap_expr: pl.Expr) -> pl.Expr:
+    """Shared traffic-loss attenuation factor from gap to car ahead.
+
+    Returns ``1 - exp(-clip(gap, 0, 2) / 2)`` when ``gap < 2.0s`` and ``0.0``
+    otherwise (clean air, including null gaps). Single source of truth for
+    both :func:`decompose_lap_time` and pace feature builders — do not
+    re-implement the exponential inline elsewhere.
+    """
+    return (
+        pl.when(gap_expr.is_null() | (gap_expr >= 2.0))
+        .then(0.0)
+        .otherwise(1.0 - (-gap_expr.clip(0.0, 2.0) / 2.0).exp())
+    )
+
+
 def decompose_lap_time(
     silver_laps: pl.DataFrame,
     session_col: str = "session_id",
@@ -170,7 +185,7 @@ def decompose_lap_time(
         # When gap > 2s (clean air), traffic_loss ≈ 0
         df = df.with_columns(
             pl.when(pl.col("gap_ahead_s") < 2.0)
-            .then(pl.col("_residual") * (1.0 - (-pl.col("gap_ahead_s").clip(0.0, 2.0) / 2.0).exp()))
+            .then(pl.col("_residual") * traffic_loss_factor_expr(pl.col("gap_ahead_s")))
             .otherwise(0.0)
             .alias("traffic_loss_s")
         )

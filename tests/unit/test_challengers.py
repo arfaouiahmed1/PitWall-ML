@@ -1,4 +1,4 @@
-"""Unit tests for non-tree smooth challengers, split conformal calibration, and multi-paradigm ensemble."""
+"""Unit tests for the circuit-adaptive dual-paradigm router and normalized conformal calibration."""
 
 from __future__ import annotations
 
@@ -11,10 +11,12 @@ import pytest
 from pitwall.evaluation.metrics import interval_coverage, mae
 from pitwall.features.pace import build_pace_features
 from pitwall.models.pace.challengers import (
-    MultiParadigmEnsemble,
-    NeuralResidualMLPModel,
+    CircuitAdaptivePaceRouter,
+    NormalizedConformalCalibrator,
     SplineBayesianRidgeModel,
     SplitConformalPredictor,
+    is_spline_circuit,
+    normalize_circuit_key,
 )
 from pitwall.models.pace.hybrid_model import HybridPaceModel
 
@@ -48,6 +50,46 @@ def test_split_conformal_predictor() -> None:
     assert 0.75 <= cov <= 0.85, f"Coverage {cov*100:.1f}% outside 80% tolerance"
 
 
+def test_normalized_conformal_scales_with_local_difficulty() -> None:
+    """Heteroscedastic groups get widths proportional to local sigma, ~80% cover."""
+    rng = np.random.default_rng(7)
+    # Low-variance group (sigma 0.15) and high-variance group (sigma 0.60)
+    n_lo, n_hi = 400, 400
+    y_lo = rng.normal(85.0, 0.15, n_lo)
+    y_hi = rng.normal(85.0, 0.60, n_hi)
+    y_val = np.concatenate([y_lo, y_hi])
+    pred_val = y_val + np.concatenate([
+        rng.normal(0.0, 0.15, n_lo), rng.normal(0.0, 0.60, n_hi),
+    ])
+    sigma_val = np.concatenate([np.full(n_lo, 0.15), np.full(n_hi, 0.60)])
+
+    cal = NormalizedConformalCalibrator(target_coverage=0.80)
+    cal.fit(y_val, pred_val, sigma_val=sigma_val)
+    assert cal.q_norm_ is not None and cal.q_norm_ > 0.0
+
+    y_test = np.concatenate([rng.normal(85.0, 0.15, 300), rng.normal(85.0, 0.60, 300)])
+    pred_test = y_test + np.concatenate([
+        rng.normal(0.0, 0.15, 300), rng.normal(0.0, 0.60, 300),
+    ])
+    sigma_test = np.concatenate([np.full(300, 0.15), np.full(300, 0.60)])
+    q10, q90 = cal.predict_intervals(pred_test, sigma_test)
+    cov = interval_coverage(y_test, q10, q90)
+    assert 0.75 <= cov <= 0.85, f"Normalized coverage {cov*100:.1f}% outside [75%, 85%]"
+
+    widths = q90 - q10
+    assert widths[300:].mean() > 2.0 * widths[:300].mean(), "High-sigma band must be wider"
+
+
+def test_circuit_regime_predicates() -> None:
+    assert normalize_circuit_key("2026_British Grand Prix_R") == "2026_british grand prix_r"
+    assert is_spline_circuit("Silverstone")
+    assert is_spline_circuit("2026_British Grand Prix_R")
+    assert is_spline_circuit("Suzuka")
+    assert not is_spline_circuit("Monza")
+    assert not is_spline_circuit("2026_Italian Grand Prix_R")
+    assert not is_spline_circuit(None)
+
+
 def test_spline_bayesian_ridge(sample_clean_laps: pl.DataFrame, tmp_path) -> None:
     """Verify B-Spline + BayesianRidge fits, predicts, and serializes."""
     train_df = sample_clean_laps.filter(pl.col("lap_number") <= 35)
@@ -70,27 +112,31 @@ def test_spline_bayesian_ridge(sample_clean_laps: pl.DataFrame, tmp_path) -> Non
     np.testing.assert_allclose(preds, p_load, rtol=1e-5)
 
 
-def test_neural_residual_mlp_convergence(sample_clean_laps: pl.DataFrame) -> None:
-    """Verify MLP converges cleanly without reaching max_iter."""
-    train_df = sample_clean_laps.filter(pl.col("lap_number") <= 35)
-    test_df = sample_clean_laps.filter(pl.col("lap_number") > 35)
+def test_router_routes_by_regime_and_blends_unknown(sample_clean_laps: pl.DataFrame) -> None:
+    """Spline circuits use the spline leg, tree circuits the tree leg, unknown blends 70/30."""
+    train_df = sample_clean_laps.filter(pl.col("lap_number") <= 28)
+    val_df = sample_clean_laps.filter((pl.col("lap_number") > 28) & (pl.col("lap_number") <= 38))
+    test_df = sample_clean_laps.filter(pl.col("lap_number") > 38).head(20)
     features = ["pace_offset_r3", "speed_fl_delta", "tyre_age", "lap_number"]
 
-    mlp = NeuralResidualMLPModel(hidden_layer_sizes=(32, 16), max_iter=800)
-    mlp.fit(train_df, None, feature_cols=features)
+    hyb = HybridPaceModel(params={"n_estimators": 50, "verbose": -1}, alphas=[0.1, 0.5, 0.9])
+    hyb.fit(train_df, val_df, feature_cols=features)
+    router = CircuitAdaptivePaceRouter(target_coverage=0.80)
+    router.fit(train_df, val_df, feature_cols=features, tree_model=hyb)
 
-    # Check optimizer converged well before max_iter
-    mlp_step = mlp.pipeline.named_steps["mlp"]
-    assert mlp_step.n_iter_ < 800, f"MLP did not converge! Used {mlp_step.n_iter_} iterations"
+    p_tree = hyb.predict(test_df)
+    p_spline = router.spline_model.predict(test_df)
 
-    preds = mlp.predict(test_df)
-    y_true = test_df["next_clean_lap_s"].to_numpy()
-    err_s = mae(y_true, preds)
-    assert err_s < 0.450, f"MLP MAE {err_s*1000:.1f}ms exceeds 450ms"
+    p_monza = router.predict(test_df, circuit="2026_Italian Grand Prix_R")
+    np.testing.assert_allclose(p_monza, p_tree, rtol=1e-8)
+    p_silver = router.predict(test_df, circuit="Silverstone")
+    np.testing.assert_allclose(p_silver, p_spline, rtol=1e-8)
+    p_unknown = router.predict(test_df, circuit="demo")
+    np.testing.assert_allclose(p_unknown, 0.70 * p_tree + 0.30 * p_spline, rtol=1e-8)
 
 
-def test_multi_paradigm_ensemble_and_latency(sample_clean_laps: pl.DataFrame) -> None:
-    """Verify MultiParadigmEnsemble achieves sub-350ms MAE, 80% coverage, and sub-15ms latency."""
+def test_router_coverage_latency_and_persistence(sample_clean_laps: pl.DataFrame, tmp_path) -> None:
+    """Router hits sub-350ms MAE, [75%, 85%] normalized coverage, sub-15ms p95, round-trips."""
     train_df = sample_clean_laps.filter(pl.col("lap_number") <= 28)
     val_df = sample_clean_laps.filter((pl.col("lap_number") > 28) & (pl.col("lap_number") <= 38))
     test_df = sample_clean_laps.filter(pl.col("lap_number") > 38)
@@ -106,31 +152,30 @@ def test_multi_paradigm_ensemble_and_latency(sample_clean_laps: pl.DataFrame) ->
         "lap_number",
     ]
 
-    # 1. Fit hybrid tree
     hyb = HybridPaceModel(params={"n_estimators": 100, "verbose": -1}, alphas=[0.1, 0.5, 0.9])
     hyb.fit(train_df, val_df, feature_cols=features)
+    router = CircuitAdaptivePaceRouter(target_coverage=0.80)
+    router.fit(train_df, val_df, feature_cols=features, tree_model=hyb)
 
-    # 2. Fit ensemble
-    ensemble = MultiParadigmEnsemble(weights=(0.50, 0.25, 0.25), target_coverage=0.80)
-    ensemble.fit(train_df, val_df, feature_cols=features, tree_model=hyb)
-
-    # 3. Predict on test
-    preds = ensemble.predict(test_df)
+    preds = router.predict(test_df)
     y_true = test_df["next_clean_lap_s"].to_numpy()
     err_ms = mae(y_true, preds) * 1000.0
-    assert err_ms <= 350.0, f"Ensemble MAE {err_ms:.1f}ms exceeds 350ms gate"
+    assert err_ms <= 350.0, f"Router MAE {err_ms:.1f}ms exceeds 350ms gate"
 
-    # 4. Conformal coverage
-    q_all = ensemble.predict_quantiles(test_df)
+    q_all = router.predict_quantiles(test_df)
     cov = interval_coverage(y_true, q_all[0.1], q_all[0.9])
-    assert 0.75 <= cov <= 0.85, f"Calibrated coverage {cov*100:.1f}% outside [75%, 85%] gate"
+    assert 0.75 <= cov <= 0.85, f"Normalized coverage {cov*100:.1f}% outside [75%, 85%] gate"
 
-    # 5. Measure latency
+    save_dir = tmp_path / "adaptive_router"
+    router.save(save_dir)
+    loaded = CircuitAdaptivePaceRouter.load(save_dir)
+    np.testing.assert_allclose(loaded.predict(test_df), preds, rtol=1e-5)
+
     latencies = []
     sample_row = test_df.head(1)
     for _ in range(50):
         t0 = time.perf_counter()
-        _ = ensemble.predict(sample_row)
+        _ = router.predict(sample_row)
         latencies.append((time.perf_counter() - t0) * 1000.0)
-    p95 = np.percentile(latencies, 95)
+    p95 = float(np.percentile(latencies, 95))
     assert p95 < 15.0, f"Latency p95 {p95:.2f}ms exceeds 15ms SLA"

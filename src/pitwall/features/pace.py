@@ -36,6 +36,7 @@ PACE_NUMERICAL = [
     "position",
     "gap_ahead_s",
     "gap_behind_s",
+    "traffic_loss_s",
     "rolling_median_3",
     "rolling_median_5",
     "rolling_std_5",
@@ -743,6 +744,24 @@ def build_pace_features(
         df = df.join(total, on="session_id", how="left")
         df = df.with_columns((pl.col("lap_number") / pl.col("_total_laps")).alias("race_progress"))
         df = df.drop("_total_laps")
+    # ── Traffic loss feature (reuses race_decomposition factor; no duplication) ──
+    # Leakage-safe: current-lap positive deviation vs backward-only rolling
+    # median, scaled by shared gap attenuation. Null gap/median → 0 (clean air).
+    if "gap_ahead_s" in df.columns and "lap_time_s" in df.columns:
+        from pitwall.features.race_decomposition import traffic_loss_factor_expr
+
+        if "rolling_median_5" in df.columns:
+            _resid = pl.when(pl.col("rolling_median_5").is_null()).then(0.0).otherwise(
+                (pl.col("lap_time_s") - pl.col("rolling_median_5")).clip(0.0)
+            )
+        else:
+            _resid = pl.lit(0.0)
+        df = df.with_columns(
+            (_resid * traffic_loss_factor_expr(pl.col("gap_ahead_s"))).fill_null(0.0).alias("traffic_loss_s")
+        )
+    else:
+        df = df.with_columns(pl.lit(0.0).alias("traffic_loss_s"))
+
 
     # Target: next lap time per driver/session
     # Shift -1 within group so row t predicts lap t+1

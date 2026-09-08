@@ -1039,6 +1039,54 @@ def main() -> None:
     except Exception as _e_hyb:
         print(f"HybridPaceModel training skipped: {_e_hyb}")
 
+    # --- V3 Circuit-Adaptive Dual-Paradigm Router (Tree + Spline, Normalized Conformal) ---
+    _router_model_to_save = None
+    try:
+        from pitwall.models.pace.challengers import CircuitAdaptivePaceRouter
+
+        print("Training CircuitAdaptivePaceRouter (Tree + Spline regimes)...")
+        _r_target_delta = "target_delta_s" if "target_delta_s" in train_df.columns else "next_clean_lap_s"
+        _r_tr = (
+            train_df.filter(pl.col("target_delta_s").is_not_null() & (pl.col("target_delta_s").abs() < 2.5))
+            if "target_delta_s" in train_df.columns
+            else train_df
+        )
+        _r_val = (
+            valid_df.filter(pl.col("target_delta_s").is_not_null() & (pl.col("target_delta_s").abs() < 2.5))
+            if valid_df is not None and "target_delta_s" in valid_df.columns
+            else valid_df
+        )
+        _router = CircuitAdaptivePaceRouter(target_coverage=0.80)
+        _router.fit(
+            _r_tr,
+            _r_val,
+            feature_cols=feature_cols,
+            tree_model=_hybrid_model_to_save,
+            target_col=_r_target_delta,
+        )
+        _r_te = (
+            test_df.filter(pl.col("target_delta_s").is_not_null() & (pl.col("target_delta_s").abs() < 2.5))
+            if "target_delta_s" in test_df.columns
+            else test_df
+        )
+        if len(_r_te) > 0:
+            _p_router_abs = _router.predict(_r_te)
+            _y_router_true = _r_te[target].to_numpy()
+            _router_mae = float(mae(_y_router_true, _p_router_abs))
+            _router_rmse = float(rmse(_y_router_true, _p_router_abs))
+            metrics["router_mae"] = _router_mae
+            metrics["router_mae_ms"] = round(_router_mae * 1000, 1)
+            metrics["router_rmse"] = _router_rmse
+            metrics["router_rmse_ms"] = round(_router_rmse * 1000, 1)
+            _router_q = _router.predict_quantiles(_r_te)
+            metrics["router_coverage_80"] = float(
+                np.mean((_y_router_true >= _router_q[0.1]) & (_y_router_true <= _router_q[0.9]))
+            )
+            print(f"CircuitAdaptivePaceRouter: MAE = {_router_mae:.4f}s ({_router_mae*1000:.1f}ms) | RMSE = {_router_rmse:.4f}s | Cov = {metrics['router_coverage_80']*100:.1f}%")
+            _router_model_to_save = _router
+    except Exception as _e_router:
+        print(f"CircuitAdaptivePaceRouter training skipped: {_e_router}")
+
     # --- V3 Sector Chain Model (S1 -> S2 -> S3 Momentum Propagation) ---
     _sector_model_to_save: SectorChainModel | None = None
     try:
@@ -1226,8 +1274,6 @@ def main() -> None:
             json.dump(
                 {"alphas": quantile_alphas, "feature_cols": q_model.feature_cols}, f, indent=2
             )
-    if calibrator_params is not None:
-        (out / "model_quantile").mkdir(parents=True, exist_ok=True)
         # Merge hard compound bias correction into the calibrator artifact so
         # the serving layer can apply it in a single file read.
         if hard_bias != 0.0:
@@ -1244,6 +1290,8 @@ def main() -> None:
             json.dump({"feature_cols": _pit_feature_cols, "horizon": pit_horizon}, f, indent=2)
     if _hybrid_model_to_save is not None:
         _hybrid_model_to_save.save(out / "model_hybrid")
+    if _router_model_to_save is not None:
+        _router_model_to_save.save(out / "model_adaptive_router")
     if _sector_model_to_save is not None:
         _sector_model_to_save.save(out / "model_sector_chain")
 
