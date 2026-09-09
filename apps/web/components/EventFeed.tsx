@@ -18,13 +18,13 @@ export type FeedEvent = {
 
 const MOCK_EVENTS: FeedEvent[] = [
   { id: 1, lap: 31, type: "FASTEST", driverNumber: 4, code: "NOR", text: "Fastest lap", detail: "1:19.31 • +0.22 vs predicted", time: "14:32:11" },
-  { id: 2, lap: 31, type: "PIT", driverNumber: 16, code: "LEC", text: "Pit stop — MED → HARD", detail: "Box, box — 2.34s • age 21", time: "14:32:48" },
-  { id: 3, lap: 32, type: "ANOMALY", driverNumber: 63, code: "RUS", text: "Anomalous lap delta", detail: "+1.42s — traffic / lift & coast", time: "14:33:22" },
-  { id: 4, lap: 32, type: "OVERTAKE", driverNumber: 81, code: "PIA", text: "Overtake — PIA → P5", detail: "DRS on main straight vs HAM", time: "14:34:02" },
-  { id: 5, lap: 33, type: "YELLOW", text: "Yellow flag — Sector 2", detail: "Turn 9 — debris • delta +2.1s", time: "14:35:11" },
-  { id: 6, lap: 33, type: "GREEN", text: "Green flag", detail: "Racing resumes — gaps frozen", time: "14:35:42" },
-  { id: 7, lap: 34, type: "PIT", driverNumber: 44, code: "HAM", text: "Pit stop — HARD → MED", detail: "Undercut attempt • 2.18s", time: "14:36:30" },
-  { id: 8, lap: 35, type: "SC", text: "Safety Car deployed", detail: "Incident — field bunched", time: "14:37:05" },
+  { id: 2, lap: 31, type: "PIT", driverNumber: 16, code: "LEC", text: "Pit stop : MED → HARD", detail: "Box, box : 2.34s • age 21", time: "14:32:48" },
+  { id: 3, lap: 32, type: "ANOMALY", driverNumber: 63, code: "RUS", text: "Anomalous lap delta", detail: "+1.42s : traffic / lift & coast", time: "14:33:22" },
+  { id: 4, lap: 32, type: "OVERTAKE", driverNumber: 81, code: "PIA", text: "Overtake : PIA → P5", detail: "DRS on main straight vs HAM", time: "14:34:02" },
+  { id: 5, lap: 33, type: "YELLOW", text: "Yellow flag : Sector 2", detail: "Turn 9 : debris • delta +2.1s", time: "14:35:11" },
+  { id: 6, lap: 33, type: "GREEN", text: "Green flag", detail: "Racing resumes : gaps frozen", time: "14:35:42" },
+  { id: 7, lap: 34, type: "PIT", driverNumber: 44, code: "HAM", text: "Pit stop : HARD → MED", detail: "Undercut attempt • 2.18s", time: "14:36:30" },
+  { id: 8, lap: 35, type: "SC", text: "Safety Car deployed", detail: "Incident : field bunched", time: "14:37:05" },
 ];
 
 function typeMeta(t: FeedEventType): { icon: string; bg: string; border: string; text: string; stripe: string } {
@@ -84,7 +84,7 @@ export function EventFeed({
 
       <div ref={scrollRef} className="flex-1 overflow-auto max-h-[380px] divide-y divide-[#1e293b]/60 bg-[#080c14] scroll-smooth">
         {visible.length === 0 ? (
-          <div className="p-6 text-center text-sm text-[#64748b]">No events — waiting for race control…</div>
+          <div className="p-6 text-center text-sm text-[#64748b]">No events : waiting for race control…</div>
         ) : (
           visible.map((e, idx) => {
             const meta = typeMeta(e.type);

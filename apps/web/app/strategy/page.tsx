@@ -197,7 +197,7 @@ export default function StrategyPage() {
             {loading ? "SIMULATING…" : "SIMULATE STRATEGY → POST /whatif"}
           </button>
           {error && <div className="text-xs text-[#fbbf24] bg-[#f59e0b]/10 border border-[#f59e0b]/20 rounded-lg px-3 py-2">{error}</div>}
-          <div className="text-[11px] text-[#5a6b84]">Runs 5,000 Monte Carlo samples via <code className="bg-[#080c14] border border-[#1e293b] px-1 rounded">POST /whatif</code> — falls back to client-side sim if API is offline.</div>
+          <div className="text-[11px] text-[#5a6b84]">Runs 5,000 Monte Carlo samples via <code className="bg-[#080c14] border border-[#1e293b] px-1 rounded">POST /whatif</code> : falls back to client-side sim if API is offline.</div>
         </div>
 
         <div className="col-span-12 lg:col-span-7 space-y-4">
@@ -211,7 +211,7 @@ export default function StrategyPage() {
             <>
               <div className="rounded-xl bg-[#0f172a] border border-[#1e293b] p-5">
                 <div className="flex items-center justify-between">
-                  <h3 className="font-black text-xs tracking-widest">MONTE CARLO COMPARISON — FINISHING DISTRIBUTION</h3>
+                  <h3 className="font-black text-xs tracking-widest">MONTE CARLO COMPARISON : FINISHING DISTRIBUTION</h3>
                   <span className="text-[10px] px-2 py-1 rounded-full bg-[#1e293b] text-[#8b9bb4] border border-[#243447] font-mono">1000 runs • Δ {(result.delta > 0 ? "+" : "") + result.delta.toFixed(2)}s</span>
                 </div>
                 <div className="mt-4 space-y-2">
@@ -250,7 +250,7 @@ export default function StrategyPage() {
                 <div className="rounded-xl bg-[#0f172a] border border-[#1e293b] p-4">
                   <div className="text-[11px] tracking-widest text-[#8b9bb4] font-bold">NET RACE TIME DELTA</div>
                   <div className={`mt-2 text-2xl font-black font-mono ${result.delta < 0 ? "text-[#22c55e]" : "text-[#ef4444]"}`}>{result.delta > 0 ? "+" : ""}{result.delta.toFixed(2)}s <span className="text-xs font-normal text-[#8b9bb4]">vs baseline</span></div>
-                  <div className="text-xs mt-1 text-[#8b9bb4]">{result.delta < -0.8 ? "What-if is faster — undercut opportunity." : result.delta > 0.8 ? "What-if loses time — hold position." : "Marginal — tyre strategy decides."}</div>
+                  <div className="text-xs mt-1 text-[#8b9bb4]">{result.delta < -0.8 ? "What-if is faster : undercut opportunity." : result.delta > 0.8 ? "What-if loses time : hold position." : "Marginal : tyre strategy decides."}</div>
                   <div className="mt-3 text-[10px] font-mono text-[#5a6b84]">Tyre deg 0.045·age + 0.004·age² • Hard cold-track penalty • X-Mode gain on straights</div>
                 </div>
               </div>

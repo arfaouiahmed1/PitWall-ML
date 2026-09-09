@@ -16,7 +16,7 @@ export type DriverInfo = {
   number?: number;
 };
 
-/** Team colour registry — canonical 2025/2026 liveries */
+/** Team colour registry : canonical 2025/2026 liveries */
 export const TEAM_COLORS: Record<string, string> = {
   "Red Bull": "#3671c6",
   "Red Bull Racing": "#3671c6",
@@ -35,13 +35,37 @@ export const TEAM_COLORS: Record<string, string> = {
 };
 
 function headshotUrl(code: string, num: number): string {
-  // CDN-backed OpenF1 headshot — falls back to Formula1.com static if OpenF1 unavailable.
-  // OpenF1 headshot_url is fetched live and merged via useDrivers; this is the offline fallback.
-  // Using api.openf1.org image proxy pattern + formula1.com as secondary.
+  // High-resolution Formula1 CDN media headshots with OpenF1 fallback
+  const SLUGS: Record<number, string> = {
+    1: "M/MAXVER01_Max_Verstappen/maxver01.png",
+    4: "L/LANNOR01_Lando_Norris/lannor01.png",
+    16: "C/CHALEC01_Charles_Leclerc/chalec01.png",
+    44: "L/LEWHAM01_Lewis_Hamilton/lewham01.png",
+    63: "G/GEORUS01_George_Russell/georus01.png",
+    81: "O/OSCPIA01_Oscar_Piastri/oscpia01.png",
+    55: "C/CARSAI01_Carlos_Sainz/carsai01.png",
+    14: "F/FERALO01_Fernando_Alonso/feralo01.png",
+    18: "L/LANSTR01_Lance_Stroll/lanstr01.png",
+    10: "P/PIEGAS01_Pierre_Gasly/piegas01.png",
+    23: "A/ALEALB01_Alexander_Albon/alealb01.png",
+    22: "Y/YUKTSU01_Yuki_Tsunoda/yuktsu01.png",
+    27: "N/NICHUL01_Nico_Hulkenberg/nichul01.png",
+    31: "E/ESTOCO01_Esteban_Ocon/estoco01.png",
+    12: "K/KIMANT01_Kimi_Antonelli/kimant01.png",
+    87: "O/OLIBEA01_Oliver_Bearman/olibea01.png",
+    30: "L/LIALAW01_Liam_Lawson/lialaw01.png",
+    7: "J/JACDOO01_Jack_Doohan/jacdoo01.png",
+    5: "G/GABBOR01_Gabriel_Bortoleto/gabbor01.png",
+    6: "I/ISAHAD01_Isack_Hadjar/isahad01.png",
+  };
+  const slug = SLUGS[num];
+  if (slug) {
+    return `https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/${slug}`;
+  }
   return `https://cdn.openf1.org/drivers/${num}/headshot.png`;
 }
 
-/** Complete 2025/2026 grid — 20 drivers as specified in plan 1.2 */
+/** Complete 2025/2026 grid : 20 drivers as specified in plan 1.2 */
 export const DRIVER_FALLBACK: Record<number, DriverInfo> = {
   1: {
     name: "Max Verstappen",
@@ -282,9 +306,10 @@ function mapDriver(
 }
 
 /**
- * Live driver identities keyed by driver_number. Starts from DRIVER_FALLBACK so the
- * leaderboard always renders, then merges OpenF1 `?session_key=latest` data on mount.
- * Any fetch/parse error is swallowed — fallback entries stay untouched.
+ * Live driver identities keyed strictly by canonical driver number.
+ * Starts from DRIVER_FALLBACK so the leaderboard always renders.
+ * Protects against test session artifacts where multiple drivers drive the same car number
+ * or test cars swap numbers (e.g. Norris in car 1 during 2026 tests).
  */
 export function useDrivers(): Record<number, DriverInfo> {
   const [drivers, setDrivers] = useState<Record<number, DriverInfo>>(DRIVER_FALLBACK);
@@ -296,16 +321,47 @@ export function useDrivers(): Record<number, DriverInfo> {
       .then((rows: unknown) => {
         if (cancelled || !Array.isArray(rows)) return;
         const merged: Record<number, DriverInfo> = { ...DRIVER_FALLBACK };
+        const seenCodes = new Set<string>();
+
+        for (const f of Object.values(DRIVER_FALLBACK)) {
+          seenCodes.add(f.code);
+        }
+
         for (const row of rows) {
           if (row === null || typeof row !== "object") continue;
           const raw = row as Record<string, unknown>;
-          const mapped = mapDriver(raw, DRIVER_FALLBACK[Number(raw.driver_number)]);
-          if (mapped) merged[mapped.num] = mapped.info;
+          const rawNum = typeof raw.driver_number === "string" ? Number(raw.driver_number) : Number(raw.driver_number);
+          const rawCode = str(raw.name_acronym);
+          const rawName = str(raw.full_name);
+
+          const canonical = Object.values(DRIVER_FALLBACK).find(
+            (d) => (rawCode && d.code === rawCode) || (rawName && d.name.toLowerCase() === rawName.toLowerCase())
+          );
+
+          if (canonical) {
+            const targetNum = canonical.number ?? Number(rawNum);
+            const fallback = DRIVER_FALLBACK[targetNum];
+            const mapped = mapDriver(raw, fallback);
+            if (mapped) {
+              merged[targetNum] = {
+                ...mapped.info,
+                number: targetNum,
+                code: canonical.code,
+                name: canonical.name,
+              };
+            }
+          } else if (Number.isFinite(rawNum) && !DRIVER_FALLBACK[rawNum]) {
+            const mapped = mapDriver(raw);
+            if (mapped && !seenCodes.has(mapped.info.code)) {
+              merged[mapped.num] = mapped.info;
+              seenCodes.add(mapped.info.code);
+            }
+          }
         }
         setDrivers(merged);
       })
       .catch(() => {
-        /* offline / blocked — keep fallback identities */
+        // offline or blocked: keep canonical fallback identities
       });
     return () => {
       cancelled = true;

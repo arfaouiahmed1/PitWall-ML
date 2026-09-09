@@ -1,4 +1,4 @@
-// Unified TypeScript interfaces — shared design tokens and data contracts
+// Unified TypeScript interfaces : shared design tokens and data contracts
 // Background: #080c14, Card: #0f172a, Border: #1e293b
 // Neon: #ff1801 Racing Red, #00d2be Mercedes Cyan, #3671c6 Red Bull Blue, #ff8000 Papaya, #e8002d Ferrari, #22c55e Green, #eab308 Yellow
 

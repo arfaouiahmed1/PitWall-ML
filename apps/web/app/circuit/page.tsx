@@ -5,7 +5,7 @@ import { WeekendSchedule } from "@/components/WeekendSchedule";
 import { WeatherWidget } from "@/components/WeatherWidget";
 import { useRaceSim } from "@/lib/raceSim";
 import { DRIVER_FALLBACK } from "@/lib/drivers";
-
+import { CALENDAR_2025 } from "@/lib/calendar";
 const META: Record<string, { len: string; turns: number; drs: string; sectors: string; record: string; energy: string }> = {
   bahrain:    { len: "5.412 km", turns: 15, drs: "3 zones",                 sectors: "S1 T1-4, S2 T5-10, S3 T11-15",              record: "1:31.447 PEDRO 2005", energy: "High • traction limited" },
   monaco:     { len: "3.337 km", turns: 19, drs: "1 zone",                  sectors: "S1 T1-6, S2 T7-12, S3 T13-19",              record: "1:12.909 HAM 2021",   energy: "Low • mechanical grip" },
@@ -23,7 +23,16 @@ const META: Record<string, { len: string; turns: number; drs: string; sectors: s
   cota:       { len: "5.513 km", turns: 20, drs: "2 zones • X-Mode",        sectors: "S1 T1-9, S2 T10-15, S3 T16-20",             record: "1:36.169 VER 2023",   energy: "High" },
   lasvegas:   { len: "6.201 km", turns: 17, drs: "2 zones • X-Mode 1.9 km", sectors: "S1 T1-6, S2 T7-12, S3 T13-17",             record: "1:35.490 LEC 2023",   energy: "Very High • casino strip" },
   yasmarina:  { len: "5.281 km", turns: 16, drs: "2 zones",                 sectors: "S1 T1-6, S2 T7-12, S3 T13-16",              record: "1:26.103 VER 2021",   energy: "Medium" },
-  default:    { len: "—",        turns: 16, drs: "2 zones",                 sectors: "S1/S2/S3",                                   record: "—",                   energy: "Medium" },
+  melbourne:  { len: "5.278 km", turns: 14, drs: "4 zones",                 sectors: "S1 T1-5, S2 T6-10, S3 T11-14",              record: "1:19.813 LEC 2024",   energy: "Medium • street/park" },
+  shanghai:   { len: "5.451 km", turns: 16, drs: "2 zones • 1.2 km",        sectors: "S1 T1-4, S2 T5-10, S3 T11-16",              record: "1:31.095 MSC 2004",   energy: "High • front tyre deg" },
+  jeddah:     { len: "6.174 km", turns: 27, drs: "3 zones",                 sectors: "S1 T1-12, S2 T13-22, S3 T23-27",            record: "1:30.734 HAM 2021",   energy: "Very High • ultra-fast street" },
+  imola:      { len: "4.909 km", turns: 19, drs: "1 zone",                  sectors: "S1 T1-6, S2 T7-14, S3 T15-19",              record: "1:15.484 HAM 2020",   energy: "Medium-High • kerb ride" },
+  montreal:   { len: "4.361 km", turns: 14, drs: "2 zones",                 sectors: "S1 T1-5, S2 T6-9, S3 T10-14",               record: "1:13.078 BOT 2019",   energy: "High • stop and go" },
+  hungaroring:{ len: "4.381 km", turns: 14, drs: "2 zones",                 sectors: "S1 T1-3, S2 T4-11, S3 T12-14",              record: "1:16.627 HAM 2020",   energy: "Medium • high downforce" },
+  mexico:     { len: "4.304 km", turns: 17, drs: "3 zones",                 sectors: "S1 T1-3, S2 T4-11, S3 T12-17",              record: "1:17.774 BOT 2021",   energy: "Medium • thin air cooling" },
+  lusail:     { len: "5.419 km", turns: 16, drs: "1 zone",                  sectors: "S1 T1-5, S2 T6-11, S3 T12-16",              record: "1:24.319 VER 2023",   energy: "Very High • high lateral g" },
+  madrid:     { len: "5.474 km", turns: 20, drs: "3 zones",                 sectors: "S1 T1-6, S2 T7-14, S3 T15-20",              record: "1:29.850 PREV 2026", energy: "High • semi-street" },
+  default:    { len: "N/A",      turns: 16, drs: "2 zones",                 sectors: "S1/S2/S3",                                   record: "N/A",                 energy: "Medium" },
 };
 
 export default function CircuitPage() {
@@ -31,7 +40,20 @@ export default function CircuitPage() {
   const sim = useRaceSim("20x", true);
   const info = CIRCUITS.find((c) => c.id === circuitId) ?? CIRCUITS.find((c) => c.id === "barcelona")!;
   const meta = META[circuitId] ?? META.default;
+  const calendarRound = useMemo(
+    () => CALENDAR_2025.find((r) => r.circuitId === circuitId) ?? CALENDAR_2025[0],
+    [circuitId]
+  );
 
+  const calendarSessions = useMemo(() => {
+    return calendarRound.sessions.map((s) => ({
+      kind: (s.type === "Qualifying" ? "Quali" : s.type) as any,
+      label: s.label,
+      day: new Date(s.startUtc).toLocaleDateString([], { weekday: "short", month: "short", day: "numeric" }),
+      utc: s.startUtc,
+      durationMin: s.durationMin,
+    }));
+  }, [calendarRound]);
   const dots: DriverDot[] = useMemo(() => {
     return sim.entries.slice(0, 8).map((e, i) => {
       const fallback = DRIVER_FALLBACK[e.driver_number];
@@ -51,7 +73,6 @@ export default function CircuitPage() {
             <span className="text-[11px] tracking-widest text-[#8b9bb4] font-bold">SELECT CIRCUIT</span>
             <select value={circuitId} onChange={(e) => setCircuitId(e.target.value)} className="bg-[#080c14] border border-[#1e293b] rounded-lg px-3 py-2 text-sm font-mono">
               {CIRCUITS.map((c) => <option key={c.id} value={c.id}>{c.name} • {c.country}</option>)}
-              {CIRCUITS.length < 10 && (<><option value="suzuka">Suzuka GP • JP</option></>)}
             </select>
           </div>
         </div>
@@ -78,8 +99,8 @@ export default function CircuitPage() {
           </div>
         </div>
         <div className="col-span-12 lg:col-span-5 space-y-4">
-          <WeekendSchedule circuitName={info.name} />
-          <WeatherWidget />
+          <WeekendSchedule circuitName={calendarRound.officialName} roundNumber={calendarRound.round} sprintWeekend={calendarRound.isSprint} sessions={calendarSessions} />
+          <WeatherWidget circuitId={circuitId} />
         </div>
       </div>
     </div>

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { DRIVER_FALLBACK, lastName, readableTextColor, useDrivers } from "@/lib/drivers";
 import { TelemetryOverlay } from "@/components/TelemetryOverlay";
 import { CarSideView, CarTopView } from "@/components/CarRenders";
+import { DriverAvatar } from "@/components/DriverAvatar";
 import type { PerformanceVector } from "@/lib/types";
 
 const RADAR: Record<number, PerformanceVector> = {
@@ -46,7 +47,7 @@ function RadarChart({ radar, color }: { radar: PerformanceVector; color: string 
 export function DriverDetailClient({ driverParam }: { driverParam: string }) {
   const num = Number(driverParam ?? "4");
   const drivers = useDrivers();
-  const info = useMemo(() => drivers[num] ?? DRIVER_FALLBACK[num] ?? { name: `Driver ${num}`, code: String(num), team: "—", color: "#243447" }, [drivers, num]);
+  const info = useMemo(() => drivers[num] ?? DRIVER_FALLBACK[num] ?? { name: `Driver ${num}`, code: String(num), team: "N/A", color: "#243447" }, [drivers, num]);
   const radar = RADAR[num] ?? { highSpeed: 82, lowSpeed: 82, traction: 82, tyreConservation: 82, energyEfficiency: 82, reliability: 82 };
   const rival = num === 4 ? 1 : 4;
   const rivalInfo = drivers[rival] ?? DRIVER_FALLBACK[rival];
@@ -64,12 +65,16 @@ export function DriverDetailClient({ driverParam }: { driverParam: string }) {
         <div className="h-1 w-full" style={{ background: info.color }} />
         <div className="p-6 flex flex-wrap gap-6 items-center justify-between">
           <div className="flex items-center gap-4">
-            {info.image ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={info.image} alt={info.name} width={64} height={64} referrerPolicy="no-referrer" className="w-16 h-16 rounded-2xl object-cover border border-[#1e293b] bg-[#080c14]" />
-            ) : (
-              <span className="w-16 h-16 rounded-2xl flex items-center justify-center text-lg font-black border border-[#1e293b]" style={{ background: info.color, color: readableTextColor(info.color) }}>{info.code}</span>
-            )}
+            <DriverAvatar
+              src={info.image}
+              name={info.name}
+              code={info.code}
+              number={num}
+              color={info.color}
+              team={info.team}
+              size={64}
+              className="rounded-2xl"
+            />
             <div>
               <div className="text-[11px] tracking-widest text-[#8b9bb4] font-bold">{info.team.toUpperCase()} • #{num}</div>
               <h1 className="text-2xl font-black tracking-tight">{lastName(info.name).toUpperCase()} <span className="text-[#8b9bb4] font-bold text-lg">• {info.code}</span></h1>

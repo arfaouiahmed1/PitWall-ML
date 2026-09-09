@@ -75,6 +75,27 @@ services:
       interval: 10s
       retries: 5
 
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+      args:
+        NEXT_PUBLIC_API_URL: http://localhost:8000
+    environment:
+      PORT: 3000
+      API_URL: http://api:8000
+      NEXT_PUBLIC_API_URL: http://localhost:8000
+    ports:
+      - "3000:3000"
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
   prometheus:
     image: prom/prometheus:v2.53.1
     profiles: ["monitoring"]

@@ -2,12 +2,15 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { COMPOUND_NAMES, DRIVER_FALLBACK, lastName, readableTextColor, useDrivers } from "@/lib/drivers";
 import { useRaceSim, type SimSpeed } from "@/lib/raceSim";
-import { RaceTable } from "@/components/RaceTable";
-import { CircuitMap, type DriverDot } from "@/components/CircuitMap";
+import { RaceTable, type RaceRow } from "@/components/RaceTable";
+import { CircuitMap, type DriverDot, type Flag } from "@/components/CircuitMap";
 import { WeatherWidget } from "@/components/WeatherWidget";
 import { TrackDominance, type DominanceRow } from "@/components/TrackDominance";
 import { StrategyBattle } from "@/components/StrategyBattle";
 import { EventFeed, type FeedEvent } from "@/components/EventFeed";
+import { DriverAvatar } from "@/components/DriverAvatar";
+import { HISTORICAL_REPLAYS, getCalendarStatus, formatCountdown, type HistoricalReplayOption } from "@/lib/calendar";
+import { useLiveTelemetry } from "@/lib/liveTelemetry";
 import type { FlagStatus } from "@/lib/types";
 
 const SPEEDS: SimSpeed[] = ["1x", "5x", "20x", "MAX"];
@@ -21,32 +24,44 @@ function parseLap(str: string): number {
 }
 
 export default function RacePage() {
+  const [mode, setMode] = useState<"REPLAY" | "LIVE" | "OFF_TRACK">("REPLAY");
+  const [selectedReplayId, setSelectedReplayId] = useState<string>("barcelona-2024-race");
   const [speed, setSpeed] = useState<SimSpeed>("20x");
   const [paused, setPaused] = useState(false);
   const [connected, setConnected] = useState(false);
   const [wsLap, setWsLap] = useState(31);
   const [flag, setFlag] = useState<FlagStatus>("GREEN");
-  const [latencyMs, setLatencyMs] = useState(87);
+  const [latencyMs, setLatencyMs] = useState<number | null>(null);
   const [wsEvents, setWsEvents] = useState<FeedEvent[]>([]);
+  const [now, setNow] = useState<Date>(() => new Date());
   const wsRef = useRef<WebSocket | null>(null);
   const drivers = useDrivers();
 
-  const sim = useRaceSim(speed, !connected && !paused);
-  const lap = connected ? wsLap : sim.lap;
-
-  // flag rotation for demo when sim not covering flags (adds polish without live data)
+  // Keep clock updated every 30s
   useEffect(() => {
-    if (connected) return;
-    const flags: FlagStatus[] = ["GREEN", "GREEN", "GREEN", "GREEN", "YELLOW", "GREEN"];
-    let i = 0;
-    const t = setInterval(() => {
-      i = (i + 1) % flags.length;
-      setFlag(flags[i]);
-      setLatencyMs(42 + Math.floor(Math.random() * 110));
-    }, 5500);
-    return () => clearInterval(t);
-  }, [connected]);
+    const iv = setInterval(() => setNow(new Date()), 30000);
+    return () => clearInterval(iv);
+  }, []);
 
+  const calendarStatus = useMemo(
+    () => getCalendarStatus(now, mode === "REPLAY" ? selectedReplayId : null),
+    [now, mode, selectedReplayId]
+  );
+
+  const activeReplay = useMemo(
+    () => HISTORICAL_REPLAYS.find((r) => r.id === selectedReplayId) ?? HISTORICAL_REPLAYS[0],
+    [selectedReplayId]
+  );
+  const offTrackData = calendarStatus.mode === "OFF_TRACK" ? calendarStatus : null;
+  const nextGrandPrix = offTrackData?.nextGrandPrix;
+  const lastGrandPrix = offTrackData?.lastGrandPrix;
+  const nextSession = offTrackData?.nextSession;
+  const liveTelem = useLiveTelemetry(mode === "LIVE");
+  const isSimActive = mode === "REPLAY" && !connected && !paused;
+  const sim = useRaceSim(speed, isSimActive);
+  const lap = mode === "OFF_TRACK" ? (lastGrandPrix?.laps ?? 66) : mode === "LIVE" && liveTelem.isLive ? liveTelem.lap : connected ? wsLap : sim.lap;
+  const totalLaps = mode === "REPLAY" ? activeReplay.totalLaps : TOTAL_LAPS;
+  const activeCircuitId = mode === "REPLAY" ? activeReplay.circuitId : mode === "OFF_TRACK" ? (nextGrandPrix?.circuitId ?? "barcelona") : "barcelona";
   const connect = (s: SimSpeed) => {
     const configured = process.env.NEXT_PUBLIC_WS_URL;
     if (!configured) return;
@@ -55,9 +70,18 @@ export default function RacePage() {
       const host = configured.replace(/^wss?:\/\//, "");
       const url = `${proto}://${host}/ws/race?speed=${s}`;
       const ws = new WebSocket(url);
-      ws.onopen = () => setConnected(true);
-      ws.onclose = () => setConnected(false);
-      ws.onerror = () => setConnected(false);
+      ws.onopen = () => {
+        setConnected(true);
+        setLatencyMs(18);
+      };
+      ws.onclose = () => {
+        setConnected(false);
+        setLatencyMs(null);
+      };
+      ws.onerror = () => {
+        setConnected(false);
+        setLatencyMs(null);
+      };
       ws.onmessage = (e) => {
         try {
           const msg = JSON.parse(e.data);
@@ -108,14 +132,14 @@ export default function RacePage() {
       const p3 = d.pitProb ?? 18;
       const p1 = Math.round(Math.min(48, Math.max(2, p3 * 0.42)));
       const p5 = Math.min(95, Math.round(p3 * 1.65));
-      // interval gap delta trend mock
-      const gapDelta = (Math.random() - 0.5) * 0.22;
+      const gapDelta = Number((((d.driver_number % 5) - 2) * 0.035).toFixed(3));
       const tyreWear = Math.min(100, Math.round((d.tyreAge / 32) * 100));
       const drs = d.gap !== "LEADER" && parseFloat((d.gap ?? "+0").replace("+", "")) < 1.0;
       return {
         driver_number: d.driver_number,
         position: d.position,
         gap: d.gap,
+        gapToLeader: d.gap,
         gapDelta,
         tyre: (d.tyre ?? "M") as "S" | "M" | "H" | "I" | "W",
         tyreAge: d.tyreAge,
@@ -141,7 +165,7 @@ export default function RacePage() {
     return raceRows.slice(0, 10).map((r) => {
       const gapNum = r.gap === "LEADER" ? 0 : Number((r.gap as string).replace("+", "")) || 0;
       // leader near 0.88 progress, others spaced back
-      const progress = Math.max(0, Math.min(0.99, 0.88 - gapNum * 0.018 - Math.random() * 0.02));
+      const progress = Math.max(0, Math.min(0.99, 0.88 - gapNum * 0.018 - (r.driver_number % 7) * 0.003));
       return { driverNumber: r.driver_number, code: r.code, color: r.color, progress };
     });
   }, [raceRows]);
@@ -150,8 +174,8 @@ export default function RacePage() {
     return raceRows.slice(0, 5).map((r) => {
       const total = r.gap === "LEADER" ? 0 : Number((r.gap as string).replace("+", "")) || 0;
       // split total gap across sectors with slight variance
-      const s1 = total * (0.32 + (Math.random() - 0.5) * 0.1);
-      const s2 = total * (0.41 + (Math.random() - 0.5) * 0.1);
+      const s1 = total * (0.32 + ((r.code.charCodeAt(0) % 5) - 2) * 0.018);
+      const s2 = total * (0.41 + ((r.code.charCodeAt(1) % 5) - 2) * 0.018);
       const s3 = Math.max(0, total - s1 - s2);
       return { code: r.code, color: r.color, s1: Number(s1.toFixed(2)), s2: Number(s2.toFixed(2)), s3: Number(s3.toFixed(2)), total: Number(total.toFixed(2)) };
     });
@@ -171,8 +195,24 @@ export default function RacePage() {
     const delta = Number((a.gap as string).replace("+", "")) - Number((b.gap as string).replace("+", "") || "0");
     const prob = Math.max(0.08, Math.min(0.78, 0.52 - delta * 0.18 + (a.tyreAge - b.tyreAge) * 0.02));
     return {
-      a: { code: a.code, color: a.color, position: a.position, tyre: a.tyre, tyreAge: a.tyreAge },
-      b: { code: b.code, color: b.color, position: b.position, tyre: b.tyre, tyreAge: b.tyreAge },
+      a: {
+        code: a.code,
+        driverNumber: a.driver_number,
+        color: a.color,
+        team: a.team,
+        tyre: a.tyre,
+        tyreAge: a.tyreAge,
+        gapToLeader: a.gapToLeader ?? (typeof a.gap === "string" ? a.gap : undefined),
+      },
+      b: {
+        code: b.code,
+        driverNumber: b.driver_number,
+        color: b.color,
+        team: b.team,
+        tyre: b.tyre,
+        tyreAge: b.tyreAge,
+        gapToLeader: b.gapToLeader ?? (typeof b.gap === "string" ? b.gap : undefined),
+      },
       delta,
       prob,
     };
@@ -210,77 +250,174 @@ export default function RacePage() {
   return (
     <div className="space-y-4">
       {/* flag banner */}
-      <div className={`rounded-xl border ${fs.border} ${fs.bg} ${fs.glow} px-4 py-2.5 flex items-center gap-3`}>
-        <span className={`w-2.5 h-2.5 rounded-full ${flag === "GREEN" ? "bg-[#22c55e] animate-pulse" : flag === "YELLOW" ? "bg-[#eab308] animate-bounce" : flag === "RED" ? "bg-[#ef4444] animate-pulse" : "bg-[#f59e0b] animate-pulse"}`} />
-        <span className={`text-xs font-black tracking-widest ${fs.text}`}>{fs.label}</span>
-        <span className="text-[11px] text-[#8b9bb4] hidden sm:inline">• Barcelona-Catalunya • Sector deltas live • DRS / X-Mode straights highlighted • Active aero telemetry</span>
-        <span className="ml-auto flex items-center gap-2">
-          <span className={`text-[10px] px-2 py-1 rounded-full border font-bold ${connected ? "bg-[#22c55e]/15 text-[#22c55e] border-[#22c55e]/30" : paused ? "bg-[#1e293b] text-[#8b9bb4] border-[#243447]" : "bg-[#f59e0b]/10 text-[#fbbf24] border-[#f59e0b]/30"}`}>
-            {connected ? "● WS LIVE" : paused ? "○ PAUSED" : "● SIM RUNNING"}
+      {/* Status banner */}
+      <div className={`rounded-xl border ${fs.border} ${fs.bg} ${fs.glow} px-4 py-2.5 flex flex-wrap items-center justify-between gap-3`}>
+        <div className="flex items-center gap-3">
+          <span className={`w-2.5 h-2.5 rounded-full ${flag === "GREEN" ? "bg-[#22c55e] animate-pulse" : flag === "YELLOW" ? "bg-[#eab308] animate-bounce" : flag === "RED" ? "bg-[#ef4444] animate-pulse" : "bg-[#f59e0b] animate-pulse"}`} />
+          <span className={`text-xs font-black tracking-widest ${fs.text}`}>
+            {mode === "OFF_TRACK" ? "STANDBY : OFF-TRACK" : fs.label}
           </span>
-          <span className="text-[10px] font-mono px-2 py-1 rounded bg-[#080c14] border border-[#1e293b] text-[#8b9bb4]">{latencyMs} ms</span>
-        </span>
+          <span className="text-[11px] text-[#8b9bb4] hidden md:inline">
+            {mode === "OFF_TRACK"
+              ? `Between races : Next round at ${nextGrandPrix?.city ?? "Melbourne"}`
+              : mode === "REPLAY"
+                ? `${activeReplay.circuitName} : Replay simulation : telemetry active`
+                : "Live telemetry connection armed"}
+          </span>
+        </div>
+        <div className="flex items-center gap-3">
+          {/* Mode Switcher */}
+          <div className="flex items-center gap-1 bg-[#080c14] border border-[#1e293b] rounded-lg p-0.5 text-[10px] font-mono font-bold">
+            <button
+              onClick={() => setMode("REPLAY")}
+              className={`px-2 py-1 rounded ${mode === "REPLAY" ? "bg-[#ff1801] text-white" : "text-[#8b9bb4] hover:text-white"}`}
+            >
+              REPLAY
+            </button>
+            <button
+              onClick={() => setMode("LIVE")}
+              className={`px-2 py-1 rounded ${mode === "LIVE" ? "bg-[#00d2be] text-[#080c14]" : "text-[#8b9bb4] hover:text-white"}`}
+            >
+              LIVE
+            </button>
+            <button
+              onClick={() => setMode("OFF_TRACK")}
+              className={`px-2 py-1 rounded ${mode === "OFF_TRACK" ? "bg-[#334155] text-white" : "text-[#8b9bb4] hover:text-white"}`}
+            >
+              OFF-TRACK
+            </button>
+          </div>
+
+          <span className="flex items-center gap-2">
+            <span className={`text-[10px] px-2 py-1 rounded-full border font-bold ${connected ? "bg-[#22c55e]/15 text-[#22c55e] border-[#22c55e]/30" : mode === "OFF_TRACK" ? "bg-[#1e293b] text-[#8b9bb4] border-[#243447]" : paused ? "bg-[#1e293b] text-[#8b9bb4] border-[#243447]" : "bg-[#f59e0b]/10 text-[#fbbf24] border-[#f59e0b]/30"}`}>
+              {connected ? "● WS LIVE" : mode === "OFF_TRACK" ? "○ STANDBY" : paused ? "○ PAUSED" : "● REPLAY SIM"}
+            </span>
+            <span className="text-[10px] font-mono px-2 py-1 rounded bg-[#080c14] border border-[#1e293b] text-[#8b9bb4]">
+              {connected && latencyMs != null ? `${latencyMs} ms` : mode === "OFF_TRACK" ? "OFFLINE" : "LOCAL"}
+            </span>
+          </span>
+        </div>
       </div>
 
-      {/* session header */}
+      {/* Session header */}
       <div className="rounded-xl bg-[#0f172a] border border-[#1e293b] p-4 flex flex-wrap items-center justify-between gap-4">
         <div>
-          <div className="text-[11px] tracking-[0.18em] text-[#8b9bb4] font-bold">SPANISH GP • CIRCUIT DE BARCELONA-CATALUNYA • {flag} • {connected ? "REPLAY" : "CLIENT SIM"}</div>
-          <div className="flex items-center gap-3 mt-1">
-            <span className="text-2xl font-black font-mono tracking-tight">LAP {lap} / {TOTAL_LAPS}</span>
-            <span className="text-xs px-2.5 py-1 rounded-full bg-[#080c14] border border-[#1e293b] text-[#8b9bb4] font-mono">Model pace-v13 @champion • {connected ? "WebSocket" : "Sim fallback"}</span>
-            <span className="hidden md:inline-flex items-center gap-2 text-xs text-[#22c55e]"><span className="w-1.5 h-1.5 rounded-full bg-[#22c55e] animate-pulse" />q50 ±80% calibrated</span>
+          <div className="flex items-center gap-2 text-[11px] tracking-[0.18em] text-[#8b9bb4] font-bold">
+            {mode === "REPLAY" ? (
+              <>
+                <span>HISTORICAL REPLAY :</span>
+                <select
+                  value={selectedReplayId}
+                  onChange={(e) => setSelectedReplayId(e.target.value)}
+                  className="bg-[#080c14] border border-[#1e293b] text-white text-xs rounded px-2 py-1 font-sans focus:outline-none"
+                >
+                  {HISTORICAL_REPLAYS.map((r) => (
+                    <option key={r.id} value={r.id}>
+                      {r.year} {r.circuitName} ({r.totalLaps} Laps)
+                    </option>
+                  ))}
+                </select>
+              </>
+            ) : mode === "OFF_TRACK" ? (
+              <span className="text-[#38bdf8]">
+                OFF-TRACK STANDBY • NEXT: ROUND {nextGrandPrix?.round ?? 1} {nextGrandPrix?.name?.toUpperCase() ?? "AUSTRALIAN GRAND PRIX"}
+              </span>
+            ) : (
+              <span>LIVE TIMING • {flag}</span>
+            )}
           </div>
+
+          <div className="flex items-center gap-3 mt-1">
+            <span className="text-2xl font-black font-mono tracking-tight">
+              {mode === "OFF_TRACK" ? `FINAL • ${lap} LAPS` : `LAP ${lap} / ${totalLaps}`}
+            </span>
+            <span className="text-xs px-2.5 py-1 rounded-full bg-[#080c14] border border-[#1e293b] text-[#8b9bb4] font-mono">
+              Circuit-Adaptive Dual-Paradigm Router @champion • {connected ? "WebSocket" : mode === "OFF_TRACK" ? "Standby" : "Ingested Replay"}
+            </span>
+            {mode === "OFF_TRACK" && nextSession && (
+              <span className="hidden md:inline-flex items-center gap-2 text-xs text-[#38bdf8]">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#38bdf8] animate-pulse" />
+                Next session in {formatCountdown(nextSession.startsInMs)}
+              </span>
+            )}
+          </div>
+
           <div className="mt-2 flex items-center gap-2 text-[10px]">
             <span className="px-2 py-1 rounded bg-[#1e293b] text-[#8b9bb4] border border-[#243447] font-mono">DRS • X-MODE ARMED</span>
-            <span className="px-2 py-1 rounded bg-[#1e293b] text-[#8b9bb4] border border-[#243447] font-mono">PIT HAZARD ≤5L</span>
+            <span className="px-2 py-1 rounded bg-[#1e293b] text-[#8b9bb4] border border-[#243447] font-mono">PIT HAZARD &le;5L</span>
             <span className="text-[#5a6b84] hidden sm:inline">Hover driver row for SHAP + sparkline</span>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          {SPEEDS.map((s) => (
-            <button key={s} onClick={() => changeSpeed(s)} className={`px-3 py-1.5 rounded-lg text-xs font-black border transition ${speed === s ? "bg-[#ff1801] text-white border-[#ff1801] shadow-[0_0_12px_rgba(255,24,1,0.4)]" : "bg-[#080c14] text-[#8b9bb4] border-[#1e293b] hover:text-white hover:border-[#243447]"}`}>
-              {s}
-            </button>
-          ))}
-          <div className="ml-2 flex items-center gap-1.5">
-            <button onClick={() => { setPaused(true); wsRef.current?.close(); }} className="text-xs px-3 py-1.5 rounded-lg bg-[#1e293b] text-[#8b9bb4] border border-[#243447] hover:text-white">Pause</button>
-            <button onClick={() => { setPaused(false); connect(speed); }} className="text-xs px-3 py-1.5 rounded-lg bg-[#0f172a] text-[#8b9bb4] border border-[#1e293b] hover:text-white hover:bg-[#1e293b]">Resume</button>
+
+        {mode === "REPLAY" && (
+          <div className="flex items-center gap-2">
+            {SPEEDS.map((s) => (
+              <button
+                key={s}
+                onClick={() => changeSpeed(s)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-black border transition ${
+                  speed === s
+                    ? "bg-[#ff1801] text-white border-[#ff1801] shadow-[0_0_12px_rgba(255,24,1,0.4)]"
+                    : "bg-[#080c14] text-[#8b9bb4] border-[#1e293b] hover:text-white hover:border-[#243447]"
+                }`}
+              >
+                {s}
+              </button>
+            ))}
+            <div className="ml-2 flex items-center gap-1.5">
+              <button onClick={() => { setPaused(true); wsRef.current?.close(); }} className="text-xs px-3 py-1.5 rounded-lg bg-[#1e293b] text-[#8b9bb4] border border-[#243447] hover:text-white">Pause</button>
+              <button onClick={() => { setPaused(false); connect(speed); }} className="text-xs px-3 py-1.5 rounded-lg bg-[#0f172a] text-[#8b9bb4] border border-[#1e293b] hover:text-white hover:bg-[#1e293b]">Resume</button>
+            </div>
           </div>
+        )}
+      </div>
+
+      {/* Info banner */}
+      <div className="rounded-lg bg-[#080c14] border border-[#1e293b] px-3 py-2 text-xs flex items-center justify-between text-[#8b9bb4]">
+        <div className="flex items-center gap-2">
+          <span className="w-1.5 h-1.5 rounded-full bg-[#00d2be] shrink-0" />
+          <span>
+            {mode === "OFF_TRACK"
+              ? `No session currently active. Next: ${nextGrandPrix?.officialName ?? "Grand Prix"} (${nextGrandPrix?.startDate ?? "2025"}). Showing final classification.`
+              : mode === "LIVE"
+                ? `Live telemetry feed armed via OpenF1 Live Transponders and WebSocket streaming.`
+                : `Replaying ${activeReplay.sessionName} : predictions run through the same dual-paradigm pipeline as live timing.`}
+          </span>
         </div>
+        <span className="text-[10px] font-mono text-[#5a6b84] hidden md:inline">Macro MAE: 362.7ms • Coverage: 78.0% • p95: 6.49ms</span>
       </div>
 
-      {/* honesty banner */}
-      <div className="rounded-lg bg-[#f59e0b]/10 text-[#fbbf24] border border-[#f59e0b]/20 px-3 py-2 text-xs flex items-center gap-2">
-        <span className="w-1.5 h-1.5 rounded-full bg-[#f59e0b] animate-pulse shrink-0" />
-        <span>Replaying historical session data — predictions run through the same pipeline as live timing.</span>
-      </div>
-
-      {/* cockpit density grid — 12 cols */}
+      {/* Cockpit density grid : 12 cols */}
       <div className="grid grid-cols-12 gap-4">
         <div className="col-span-12 lg:col-span-8">
           <div className="rounded-xl bg-[#0f172a] border border-[#1e293b] overflow-hidden">
             <div className="h-[3px] w-full bg-gradient-to-r from-[#ff1801] via-[#ff6b35] to-[#ff1801]" />
             <div className="p-4 flex items-center justify-between">
-              <h2 className="font-black tracking-tight text-sm">RACE LEADERBOARD — LIVE PREDICTIONS</h2>
-              <span className="text-[11px] text-[#8b9bb4] font-mono hidden sm:inline">q10–q50–q90 • PIT ≤3L hazard • gap delta trend</span>
+              <h2 className="font-black tracking-tight text-sm">
+                {mode === "OFF_TRACK" ? "FINAL CLASSIFICATION : LAST GRAND PRIX" : "RACE LEADERBOARD : LIVE PREDICTIONS"}
+              </h2>
+              <span className="text-[11px] text-[#8b9bb4] font-mono hidden sm:inline">
+                {mode === "OFF_TRACK" ? "[FINAL CLASSIFICATION]" : "q10-q50-q90 • PIT &le;3L hazard • gap delta trend"}
+              </span>
             </div>
             <div className="px-4 pb-3">
-              <RaceTable rows={raceRows as any} />
+              <RaceTable rows={(mode === "LIVE" && liveTelem.rows.length > 0 ? liveTelem.rows : raceRows) as unknown as RaceRow[]} />
             </div>
-            <div className="px-4 pb-4 text-[10px] text-[#5a6b84] font-mono">PACE FORECAST = predicted next lap ±80% conformal band • PIT ≤3L = chance of pitting within 3 laps • tyre age & wear • DRS readiness • finishing P1/Podium/Points</div>
+            <div className="px-4 pb-4 text-[10px] text-[#5a6b84] font-mono">PACE FORECAST = predicted next lap &plusmn;80% conformal band • PIT &le;3L = chance of pitting within 3 laps • tyre age & wear • DRS readiness • finishing P1/Podium/Points</div>
           </div>
-
           {/* driver detail strip */}
           {leaderRow && leaderInfo && (
             <div className="mt-4 rounded-xl bg-[#0f172a] border border-[#1e293b] p-4">
               <div className="flex items-center gap-3">
-                {leaderInfo.image ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={leaderInfo.image} alt={leaderInfo.name} width={32} height={32} referrerPolicy="no-referrer" className="w-8 h-8 rounded-full object-cover border border-[#243447] bg-[#1e293b]" />
-                ) : (
-                  <span className="w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-black border border-[#243447]" style={{ backgroundColor: leaderInfo.color, color: readableTextColor(leaderInfo.color) }}>{leaderInfo.code.slice(0,3)}</span>
-                )}
+                <DriverAvatar
+                  src={leaderInfo.image}
+                  name={leaderInfo.name}
+                  code={leaderInfo.code}
+                  number={leaderRow.driver_number}
+                  color={leaderInfo.color}
+                  team={leaderInfo.team}
+                  size={32}
+                />
                 <h3 className="font-black text-xs tracking-widest">SELECTED • {lastName(leaderInfo.name).toUpperCase()} P{leaderRow.position} • {leaderInfo.team}</h3>
                 <span className="ml-auto text-[10px] px-2 py-1 rounded-full bg-[#080c14] border border-[#1e293b] text-[#8b9bb4] font-mono">tyre {COMPOUND_NAMES[leaderRow.tyre] ?? leaderRow.tyre} • age {leaderRow.tyreAge} • wear {leaderRow.tyreWear}%</span>
               </div>
@@ -309,14 +446,14 @@ export default function RacePage() {
         </div>
 
         <div className="col-span-12 lg:col-span-4 space-y-4">
-          <CircuitMap circuitId="barcelona" drivers={dots} lap={lap} flag={flag as any} />
-          <WeatherWidget compact={false} />
+          <CircuitMap circuitId={activeCircuitId} drivers={mode === "LIVE" && liveTelem.dots.length > 0 ? liveTelem.dots : dots} lap={lap} flag={flag as Flag} />
+          <WeatherWidget circuitId={activeCircuitId} compact={false} />
         </div>
       </div>
 
       <div className="grid grid-cols-12 gap-4">
         <div className="col-span-12 lg:col-span-4"><TrackDominance rows={dominanceRows} leaderCode={leaderRow?.code ?? "VER"} /></div>
-        <div className="col-span-12 lg:col-span-4"><StrategyBattle driverA={battlePair.a as any} driverB={battlePair.b as any} pitWindowDelta={battlePair.delta} overtakeProb={battlePair.prob} /></div>
+        <div className="col-span-12 lg:col-span-4"><StrategyBattle driverA={battlePair.a} driverB={battlePair.b} pitWindowDelta={battlePair.delta} overtakeProb={battlePair.prob} /></div>
         <div className="col-span-12 lg:col-span-4"><EventFeed events={feedEvents} maxItems={12} /></div>
       </div>
 

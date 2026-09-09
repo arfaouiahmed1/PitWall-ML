@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
-
+import { useEffect, useMemo, useState } from "react";
+import { getCalendarStatus, formatCountdown } from "@/lib/calendar";
 type Flag = "GREEN" | "YELLOW" | "SC" | "VSC" | "RED";
 
 const FLAG_META: Record<Flag, { label: string; dot: string; bar: string; cls: string }> = {
@@ -34,8 +34,18 @@ export default function SiteHeader() {
   const [lap, setLap] = useState(31);
   const [totalLaps] = useState(66);
   const [connected, setConnected] = useState(false);
-  const [latency, setLatency] = useState(18);
+  const [latency, setLatency] = useState<number | null>(null);
   const [replaySpeed] = useState("20x");
+  const [now, setNow] = useState<Date>(() => new Date());
+
+  // Keep clock updated every 30 seconds for session timing
+  useEffect(() => {
+    const clockInterval = setInterval(() => setNow(new Date()), 30000);
+    return () => clearInterval(clockInterval);
+  }, []);
+  // Deterministic calendar state resolver
+  const calendarStatus = useMemo(() => getCalendarStatus(now), [now]);
+  const nextGpCity = calendarStatus.mode === "OFF_TRACK" ? calendarStatus.nextGrandPrix?.city ?? "R1" : "R1";
 
   useEffect(() => {
     let ws: WebSocket | null = null;
@@ -45,33 +55,25 @@ export default function SiteHeader() {
         const proto = typeof window !== "undefined" && window.location.protocol === "https:" ? "wss" : "ws";
         const host = url.replace(/^wss?:\/\//, "");
         ws = new WebSocket(`${proto}://${host}/ws/race?speed=${replaySpeed}`);
-        ws.onopen = () => setConnected(true);
-        ws.onclose = () => setConnected(false);
+        ws.onopen = () => {
+          setConnected(true);
+          setLatency(16);
+        };
+        ws.onclose = () => {
+          setConnected(false);
+          setLatency(null);
+        };
         ws.onmessage = (e) => {
           try {
             const msg = JSON.parse(e.data);
             if (msg.race_state?.lap) setLap(msg.race_state.lap);
             if (msg.race_state?.flag) setFlag(msg.race_state.flag as Flag);
+            if (msg.race_state?.latency_ms) setLatency(msg.race_state.latency_ms);
           } catch {}
         };
       } catch {}
     }
-    let t: ReturnType<typeof setInterval>;
-    if (!url) {
-      t = setInterval(() => {
-        setLatency((v) => Math.max(8, Math.min(42, v + (Math.random() - 0.5) * 6)) | 0);
-        if (Math.random() < 0.04) {
-          const flags: Flag[] = ["GREEN", "GREEN", "GREEN", "YELLOW", "SC", "VSC"];
-          setFlag(flags[Math.floor(Math.random() * flags.length)]);
-        }
-      }, 1200);
-    } else {
-      t = setInterval(() => {
-        setLatency((v) => Math.max(8, Math.min(90, v + (Math.random() - 0.5) * 4)) | 0);
-      }, 1800);
-    }
     return () => {
-      clearInterval(t);
       try {
         ws?.close();
       } catch {}
@@ -102,28 +104,37 @@ export default function SiteHeader() {
             className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border font-bold tracking-wide text-[11px] ${
               connected
                 ? "bg-[#00d2be]/10 text-[#00d2be] border-[#00d2be]/30"
-                : "bg-[#ff8000]/10 text-[#eab308] border-[#ff8000]/25"
+                : calendarStatus.mode === "LIVE_SESSION"
+                  ? "bg-[#22c55e]/10 text-[#22c55e] border-[#22c55e]/30"
+                  : "bg-[#0f172a] text-[#8b9bb4] border-[#1e293b]"
             }`}
           >
-            <span className={`w-2 h-2 rounded-full ${connected ? "bg-[#00d2be]" : "bg-[#eab308]"} latency-dot`} />
-            {connected ? "REPLAY LIVE" : "CLIENT SIM"}
-            <span className="opacity-60 font-mono">• {replaySpeed}</span>
+            <span className={`w-2 h-2 rounded-full ${connected ? "bg-[#00d2be]" : calendarStatus.mode === "LIVE_SESSION" ? "bg-[#22c55e]" : "bg-[#64748b]"} latency-dot`} />
+            {connected
+              ? "WS CONNECTED"
+              : calendarStatus.mode === "LIVE_SESSION"
+                ? `LIVE : ${calendarStatus.session.type}`
+                : `STANDBY • NEXT: ${nextGpCity}`}
+            {connected && <span className="opacity-60 font-mono">• {replaySpeed}</span>}
           </span>
 
           <span
-            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border font-mono text-[11px] ${
-              connected
-                ? "bg-[#0f172a] text-[#e2e8f0] border-[#1e293b]"
-                : "bg-[#0f172a] text-[#94a3b8] border-[#1e293b]"
-            }`}
-            title={connected ? "WebSocket round-trip" : "Client-side simulation"}
+            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border font-mono text-[11px] bg-[#0f172a] text-[#94a3b8] border-[#1e293b]"
+            title={connected ? "WebSocket round-trip" : "Session telemetry state"}
           >
             <span className={`w-2 h-2 rounded-full ${connected ? "bg-[#22c55e]" : "bg-[#64748b]"}`} />
-            {connected ? `ws • ${latency}ms` : "replay mode"}
+            {connected && latency != null ? `ws • ${latency}ms` : calendarStatus.mode === "LIVE_SESSION" ? "on track" : "off track"}
           </span>
-
           <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#0f172a] border border-[#1e293b] font-mono font-black text-white text-xs">
-            LAP <span className="text-[#ff1801]">{lap}</span> / {totalLaps}
+            {calendarStatus.mode === "OFF_TRACK" && !connected ? (
+              <>
+                <span className="text-[#8b9bb4]">FINAL</span> {calendarStatus.lastGrandPrix?.laps ?? 66} / {calendarStatus.lastGrandPrix?.laps ?? 66}
+              </>
+            ) : (
+              <>
+                LAP <span className="text-[#ff1801]">{lap}</span> / {totalLaps}
+              </>
+            )}
           </span>
 
           <span

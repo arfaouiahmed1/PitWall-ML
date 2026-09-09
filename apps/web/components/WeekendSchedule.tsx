@@ -69,10 +69,12 @@ export function WeekendSchedule({
   sessions,
   circuitName = "Circuit de Barcelona-Catalunya",
   sprintWeekend = false,
+  roundNumber,
 }: {
   sessions?: WeekendSession[];
   circuitName?: string;
   sprintWeekend?: boolean;
+  roundNumber?: number;
 }) {
   const baseSessions = useMemo(() => {
     if (sessions && sessions.length) return sessions;
@@ -96,7 +98,7 @@ export function WeekendSchedule({
       <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 border-b border-[#1e293b] bg-[#080c14]">
         <div>
           <h3 className="font-black tracking-tight text-sm">GRAND PRIX WEEKEND</h3>
-          <p className="text-[11px] text-[#64748b]">{circuitName} • Round 9 • {nextUpcoming ? countdown(nextUpcoming.utc, nowMs) + " to " + nextUpcoming.label : ""}</p>
+          <p className="text-[11px] text-[#64748b]">{circuitName} • Round {roundNumber ?? 9} • {nextUpcoming ? countdown(nextUpcoming.utc, nowMs) + " to " + nextUpcoming.label : ""}</p>
         </div>
         <div className="flex items-center gap-2">
           <span className="hidden sm:inline text-[10px] tracking-widest text-[#475569]">TIMES IN</span>
@@ -120,7 +122,7 @@ export function WeekendSchedule({
       {/* countdown banner for next session */}
       {nextUpcoming && new Date(nextUpcoming.utc).getTime() > nowMs && (
         <div className="px-4 py-2 flex items-center justify-between bg-[#ff1801]/[0.07] border-b border-[#1e293b]">
-          <span className="text-[11px] font-bold tracking-widest text-[#ff453a]">NEXT — {nextUpcoming.label.toUpperCase()}</span>
+          <span className="text-[11px] font-bold tracking-widest text-[#ff453a]">NEXT : {nextUpcoming.label.toUpperCase()}</span>
           <span className="font-mono text-xs font-black text-[#ffedd5] tracking-wide">
             {countdown(nextUpcoming.utc, nowMs)} <span className="font-normal text-[#94a3b8]">• {fmtDate(nextUpcoming.utc)} {fmtTime(nextUpcoming.utc, utcMode)}</span>
           </span>

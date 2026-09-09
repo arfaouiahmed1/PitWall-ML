@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
+import { useLiveWeather, type LiveWeatherData } from "@/lib/liveWeather";
 
 export type WeatherData = {
   airTempC: number;
@@ -41,22 +42,18 @@ function tempColor(c: number, isTrack: boolean): string {
 }
 
 export function WeatherWidget({
+  circuitId = "barcelona",
   data,
   compact = false,
 }: {
+  circuitId?: string;
   data?: WeatherData;
   compact?: boolean;
 }) {
-  const d = data ?? DEFAULT_DATA;
-  const [liveTrack, setLiveTrack] = useState(d.trackTempC);
-  const [liveAir, setLiveAir] = useState(d.airTempC);
-  useEffect(() => {
-    const iv = setInterval(() => {
-      setLiveTrack((v) => Math.max(28, Math.min(48, v + (Math.random() - 0.5) * 0.6)));
-      setLiveAir((v) => Math.max(20, Math.min(33, v + (Math.random() - 0.5) * 0.3)));
-    }, 3000);
-    return () => clearInterval(iv);
-  }, []);
+  const { weather } = useLiveWeather(circuitId);
+  const d = data ?? weather;
+  const liveTrack = d.trackTempC;
+  const liveAir = d.airTempC;
 
   const precip = d.precipHours ?? DEFAULT_DATA.precipHours!;
   const maxPrecip = Math.max(...precip, 0.25);
@@ -79,7 +76,10 @@ export function WeatherWidget({
         <div className="flex items-center gap-2">
           <span className="w-2 h-2 rounded-full bg-[#38bdf8] animate-pulse shadow-[0_0_8px_rgba(56,189,248,0.6)]" />
           <h3 className="font-black tracking-tight text-sm">TRACK WEATHER</h3>
-          <span className="hidden sm:inline text-[10px] tracking-widest text-[#475569]">LIVE ENVIRONMENT</span>
+          <span className="hidden sm:inline text-[10px] tracking-widest text-[#22c55e] font-mono flex items-center gap-1">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#22c55e] animate-pulse" />
+            {weather.source}
+          </span>
         </div>
         <span className="text-[11px] px-2 py-1 rounded-full bg-[#1e293b] border border-[#334155] text-[#94a3b8] font-mono">{d.condition}</span>
       </div>
@@ -169,7 +169,7 @@ export function WeatherWidget({
           </div>
           <div className="mt-2 flex items-center gap-1.5">
             <span className={`w-2 h-2 rounded-full ${d.pressureMbar < 1005 ? "bg-[#ef4444] animate-pulse" : d.pressureMbar > 1018 ? "bg-[#38bdf8]" : "bg-[#22c55e]"}`} />
-            <span className="text-[10px] text-[#94a3b8]">{d.pressureMbar < 1005 ? "Low — rain risk" : d.pressureMbar > 1018 ? "High — stable" : "Normal"}</span>
+            <span className="text-[10px] text-[#94a3b8]">{d.pressureMbar < 1005 ? "Low : rain risk" : d.pressureMbar > 1018 ? "High : stable" : "Normal"}</span>
           </div>
           <div className="mt-2 h-1 rounded-full bg-[#1e293b] overflow-hidden">
             <div className="h-full bg-[#38bdf8]" style={{ width: `${Math.min(100, Math.max(0, ((d.pressureMbar - 980) / 50) * 100))}%` }} />
@@ -186,7 +186,7 @@ export function WeatherWidget({
               <span className="absolute bottom-1 text-[7px] font-bold text-[#475569]">S</span>
               <span className="absolute left-1.5 text-[7px] font-bold text-[#475569]">W</span>
               <span className="absolute right-1.5 text-[7px] font-bold text-[#475569]">E</span>
-              {/* arrow — points where wind is going? convention: from. Rotate to windDeg */}
+              {/* arrow : points where wind is going */}
               <div
                 className="absolute w-0.5 h-8 bg-gradient-to-t from-[#ef4444] to-[#fca5a5] rounded-full origin-center transition-transform duration-700"
                 style={{ transform: `rotate(${d.windDeg}deg)` }}
@@ -198,7 +198,7 @@ export function WeatherWidget({
             <div>
               <div className="font-mono font-black text-lg leading-none">{d.windSpeedKmh.toFixed(1)}<span className="text-xs font-bold text-[#94a3b8]"> km/h</span></div>
               <div className="text-[11px] font-bold text-[#7dd3fc]">{windLabel} • {Math.round(d.windDeg)}°</div>
-              <div className="text-[10px] text-[#64748b]">{d.windSpeedKmh > 25 ? "Strong — aero sensitive" : d.windSpeedKmh > 12 ? "Moderate" : "Light"}</div>
+              <div className="text-[10px] text-[#64748b]">{d.windSpeedKmh > 25 ? "Strong : aero sensitive" : d.windSpeedKmh > 12 ? "Moderate" : "Light"}</div>
             </div>
           </div>
         </div>

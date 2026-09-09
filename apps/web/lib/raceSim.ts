@@ -10,7 +10,7 @@ import { DRIVER_FALLBACK } from "./drivers";
  * advances a lightweight race model entirely in the browser: per-driver base
  * pace, tyre degradation, stochastic lap noise, occasional slow laps and pit
  * stops inside the classic 12–40 window. It keeps the dashboard alive without
- * touching the real WebSocket path — when a live replay connects, the page
+ * touching the real WebSocket path : when a live replay connects, the page
  * simply passes `enabled=false` and the sim freezes.
  */
 
@@ -42,7 +42,7 @@ export type RaceSimState = {
 
 export const TOTAL_LAPS = 66;
 
-/** Race snapshot the static page ships with — the sim resumes from here. */
+/** Race snapshot the static page ships with : the sim resumes from here. */
 const START_LAP = 31;
 
 const TICK_MS: Record<Exclude<SimSpeed, "MAX">, number> = {
@@ -190,7 +190,7 @@ function stepLap(world: SimWorld, nextFeedId: () => number): FeedItem[] {
         pitted = true;
         items.push({
           id: nextFeedId(),
-          text: `LAP ${world.lap} · ${code(d.driver_number)} PIT — box confirmed, +${PIT_LOSS_S}s, out on ${d.compound}·fresh`,
+          text: `LAP ${world.lap} · ${code(d.driver_number)} PIT : box confirmed, +${PIT_LOSS_S}s, out on ${d.compound}·fresh`,
         });
       }
     }
@@ -214,7 +214,7 @@ function stepLap(world: SimWorld, nextFeedId: () => number): FeedItem[] {
   if (world.lap >= TOTAL_LAPS) {
     items.push({
       id: nextFeedId(),
-      text: `LAP ${TOTAL_LAPS} · CHEQUERED FLAG — simulated race complete`,
+      text: `LAP ${TOTAL_LAPS} · CHEQUERED FLAG : simulated race complete`,
     });
   }
 
@@ -224,7 +224,7 @@ function stepLap(world: SimWorld, nextFeedId: () => number): FeedItem[] {
 /**
  * Drive the dashboard from a local simulation.
  *
- * @param speed   tick cadence — 900ms (1x), 300ms (5x), 120ms (20x); MAX resolves
+ * @param speed   tick cadence : 900ms (1x), 300ms (5x), 120ms (20x); MAX resolves
  *                every remaining lap up to 66 in a single synchronous burst.
  * @param enabled false pauses the ticks (Pause button, or a real WS connected).
  */
@@ -258,7 +258,7 @@ export function useRaceSim(speed: SimSpeed, enabled: boolean): RaceSimState {
     }
 
     const tick = () => commit(stepLap(world, () => feedIdRef.current++));
-    tick(); // move immediately on start/resume/speed change — no dead first second
+    tick(); // move immediately on start/resume/speed change : no dead first second
     const interval = setInterval(tick, TICK_MS[speed]);
     return () => clearInterval(interval);
   }, [speed, enabled]);

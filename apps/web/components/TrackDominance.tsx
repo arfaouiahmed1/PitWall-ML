@@ -94,7 +94,7 @@ export function TrackDominance({
                   {[r.s1, r.s2, r.s3].map((v, idx) => (
                     <td key={idx} className="px-2 py-2 text-center">
                       <span className={`inline-flex min-w-[64px] justify-center px-2 py-1.5 rounded-lg border font-bold text-xs ${cellColor(v, isLeader)}`}>
-                        {isLeader ? "—" : `${v > 0 ? "+" : ""}${v.toFixed(3)}`}
+                        {isLeader ? "0.000" : `${v > 0 ? "+" : ""}${v.toFixed(3)}`}
                       </span>
                     </td>
                   ))}

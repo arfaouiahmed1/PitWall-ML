@@ -1,3 +1,5 @@
+const path = require("path");
+
 /** @type {import('next').NextConfig} */
 const isExport =
   process.env.STATIC_EXPORT === "true" ||
@@ -14,7 +16,8 @@ const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? (isExport ? derivedBasePat
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  output: isExport ? "export" : undefined,
+  output: isExport ? "export" : "standalone",
+  outputFileTracingRoot: path.join(__dirname),
   // GitHub Pages serves static export from /out with no image optimizer
   images: isExport ? { unoptimized: true } : undefined,
   // Required for project pages (e.g. /PitWall-ML); empty for custom domain / user site
@@ -33,7 +36,7 @@ const nextConfig = {
   // Static export (GitHub Pages) skips rewrites; NEXT_PUBLIC_API_URL is used directly.
   async rewrites() {
     if (isExport) return [];
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+    const apiUrl = process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
     return [
       { source: "/api/:path*", destination: `${apiUrl}/:path*` },
     ];

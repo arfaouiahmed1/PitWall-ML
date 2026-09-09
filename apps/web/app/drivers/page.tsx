@@ -4,7 +4,7 @@ import Link from "next/link";
 import { DRIVER_FALLBACK, useDrivers } from "@/lib/drivers";
 import { TelemetryOverlay } from "@/components/TelemetryOverlay";
 import { CarTopView } from "@/components/CarRenders";
-
+import { DriverAvatar } from "@/components/DriverAvatar";
 type Radar = { highSpeed: number; lowSpeed: number; traction: number; tyreConservation: number; energyEfficiency: number; reliability: number };
 const RADAR_MOCK: Record<number, Radar> = {
   1: { highSpeed: 96, lowSpeed: 88, traction: 91, tyreConservation: 84, energyEfficiency: 78, reliability: 93 },
@@ -89,7 +89,7 @@ export default function DriversPage() {
                 }}
                 className={`w-full text-left rounded-xl border p-3 flex items-center gap-3 transition ${d.num === a || d.num === b ? "bg-[#080c14] border-[#ff1801]/40 shadow-[0_0_10px_rgba(255,24,1,0.15)]" : "bg-[#0f172a] border-[#1e293b] hover:border-[#243447]"}`}
               >
-                <span className="w-1 h-10 rounded-full" style={{ background: d.info.color }} />
+                <DriverAvatar src={d.info.image} name={d.info.name} code={d.info.code} number={d.num} color={d.info.color} team={d.info.team} size={32} />
                 <div className="flex-1 min-w-0">
                   <div className="text-xs font-black font-mono">{d.info.code} <span className="text-[#8b9bb4] font-normal">#{d.num}</span> {(d.num === a || d.num === b) && <span className="ml-1 text-[10px] px-1 py-0.5 rounded bg-[#ff1801] text-white">{d.num === a ? "A" : "B"}</span>}</div>
                   <div className="text-[11px] text-[#8b9bb4] truncate">{d.info.name} • {d.info.team}</div>
@@ -120,7 +120,7 @@ export default function DriversPage() {
             ].map((x) => (
               <div key={x.label} className="rounded-xl bg-[#0f172a] border border-[#1e293b] p-4">
                 <div className="flex items-center gap-3">
-                  <span className="w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-black text-white" style={{ background: x.info?.color ?? "#243447" }}>{x.info?.code ?? x.label}</span>
+                  <DriverAvatar src={x.info?.image} name={x.info?.name ?? `Driver ${x.label}`} code={x.info?.code ?? x.label} number={x.label === "A" ? a : b} color={x.info?.color} team={x.info?.team} size={36} />
                   <div>
                     <div className="text-sm font-black">{x.info?.name ?? `Driver ${x.label}`} <span className="text-[#8b9bb4] font-normal text-xs">#{x.label === "A" ? a : b}</span></div>
                     <div className="text-[11px] text-[#8b9bb4]">{x.info?.team}</div>

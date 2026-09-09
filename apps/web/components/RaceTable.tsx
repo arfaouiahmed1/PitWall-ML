@@ -2,9 +2,10 @@
 
 import { useMemo, useState } from "react";
 import { COMPOUND_NAMES, DRIVER_FALLBACK, readableTextColor, type DriverInfo } from "@/lib/drivers";
+import { DriverAvatar } from "@/components/DriverAvatar";
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Types — unified leaderboard row (accepts legacy shape + enriched fields)
+// Types : unified leaderboard row (accepts legacy shape + enriched fields)
 // ─────────────────────────────────────────────────────────────────────────────
 export type Pace = { q50: number; q10: number; q90: number };
 export type PitHazard = { p1: number; p3: number; p5: number }; // 0-100
@@ -78,7 +79,20 @@ export function RaceTable({ rows }: { rows: RaceRow[] | any[] }) {
   const [sortBy] = useState<"pos">("pos");
 
   const enriched: Enriched[] = useMemo(() => {
-    const list: Enriched[] = (rows as RaceRow[]).map((r, idx) => {
+    const seen = new Set<number>();
+    const seenCodes = new Set<string>();
+    const uniqueRows: RaceRow[] = [];
+    for (const r of (rows as RaceRow[])) {
+      const dn = r.driver_number;
+      const code = r.code ?? (dn ? DRIVER_FALLBACK[dn]?.code : undefined);
+      if (dn != null && seen.has(dn)) continue;
+      if (code && seenCodes.has(code)) continue;
+      if (dn != null) seen.add(dn);
+      if (code) seenCodes.add(code);
+      uniqueRows.push(r);
+    }
+
+    const list: Enriched[] = uniqueRows.map((r, idx) => {
       const dn = (r.driver_number ?? (idx + 1)) as number;
       const fallback = DRIVER_FALLBACK[dn];
       const info: DriverInfo = {
@@ -107,13 +121,13 @@ export function RaceTable({ rows }: { rows: RaceRow[] | any[] }) {
         p5: Math.round(Math.min(98, (r.pitProb ?? 18) * 1.8)),
       };
       const finishingNorm: FinishingDist = r.finishing ?? {
-        p1: Math.max(1, 38 - idx * 7 - Math.floor(Math.random() * 6)),
+        p1: Math.max(1, 38 - idx * 7 - (idx % 3) * 2),
         podium: Math.max(2, 72 - idx * 9),
         points: Math.max(5, 92 - idx * 4),
       };
-      const gapDeltaNorm = typeof r.gapDelta === "number" ? r.gapDelta : (Math.random() - 0.52) * 0.4;
+      const gapDeltaNorm = typeof r.gapDelta === "number" ? r.gapDelta : Number((((idx % 5) - 2) * 0.04).toFixed(3));
       const wearNorm = typeof r.tyreWear === "number" ? r.tyreWear : Math.max(6, 100 - (r.tyreAge ?? 0) * 3.2 - idx * 2);
-      const gapStr = r.gap ?? (idx === 0 ? "LEADER" : `+${(idx * 1.8 + Math.random() * 1.2).toFixed(2)}`);
+      const gapStr = r.gap ?? (idx === 0 ? "LEADER" : `+${(idx * 1.84 + (idx % 3) * 0.22).toFixed(2)}`);
       return {
         driver_number: dn,
         position: r.position ?? idx + 1,
@@ -124,9 +138,9 @@ export function RaceTable({ rows }: { rows: RaceRow[] | any[] }) {
         image: info.image,
         gap: gapStr,
         gapToLeader: r.gapToLeader ?? gapStr,
-        gapToAhead: r.gapToAhead ?? (idx === 0 ? "—" : `+${(0.6 + Math.random() * 1.4).toFixed(2)}`),
+        gapToAhead: r.gapToAhead ?? (idx === 0 ? "LEADER" : `+${(0.75 + (idx % 4) * 0.28).toFixed(2)}`),
         gapDelta: gapDeltaNorm,
-        drs: typeof r.drs === "boolean" ? r.drs : idx !== 0 && Math.random() > 0.45,
+        drs: typeof r.drs === "boolean" ? r.drs : idx > 0 && (idx % 3 !== 0),
         tyre: (r.tyre ?? "M") as RaceRow["tyre"],
         tyreAge: r.tyreAge ?? 10 + idx * 2,
         tyreWear: wearNorm,
@@ -136,7 +150,7 @@ export function RaceTable({ rows }: { rows: RaceRow[] | any[] }) {
         pitProb: r.pitProb,
         pit: pitNorm,
         finishing: finishingNorm,
-        stintLaps: r.stintLaps ?? Array.from({ length: 7 }, (_, i) => 79.2 + (Math.random() - 0.5) * 0.6 + i * 0.04),
+        stintLaps: r.stintLaps ?? Array.from({ length: 7 }, (_, i) => Number((79.2 + ((idx % 3) - 1) * 0.12 + i * 0.04).toFixed(2))),
         shapTop3: r.shapTop3 ?? [
           { feature: "tyre_age", value: "+0.21s" },
           { feature: "track_temp", value: "-0.08s" },
@@ -162,7 +176,7 @@ export function RaceTable({ rows }: { rows: RaceRow[] | any[] }) {
       <div className="flex items-center justify-between px-4 py-3 bg-[#080c14] border-b border-[#1e293b]">
         <div className="flex items-center gap-2">
           <span className="w-2 h-2 rounded-full bg-[#ff1801] shadow-[0_0_8px_rgba(255,24,1,0.6)] animate-pulse" />
-          <h2 className="font-black tracking-tight text-sm">RACE LEADERBOARD — LIVE PREDICTIONS</h2>
+          <h2 className="font-black tracking-tight text-sm">RACE LEADERBOARD : LIVE PREDICTIONS</h2>
           <span className="hidden lg:inline text-[10px] tracking-widest px-2 py-1 rounded-full bg-[#1e293b] border border-[#334155] text-[#64748b]">q10–q50–q90 • Monte Carlo 1k</span>
         </div>
         <span className="hidden sm:inline text-[11px] text-[#64748b]">hover row → SHAP + sparkline</span>
@@ -208,14 +222,15 @@ export function RaceTable({ rows }: { rows: RaceRow[] | any[] }) {
                   <td className="px-3 py-2">
                     <div className="flex items-center gap-2.5 min-w-[190px]">
                       <span aria-hidden className="w-1 h-8 rounded-full shrink-0" style={{ background: r.info.color }} />
-                      {r.info.image ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={r.info.image} alt={r.info.name} width={30} height={30} loading="lazy" referrerPolicy="no-referrer" className="w-8 h-8 rounded-full object-cover border border-[#334155] bg-[#080c14] shrink-0" />
-                      ) : (
-                        <span className="w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-black border border-[#334155] shrink-0" style={{ background: r.info.color, color: readableTextColor(r.info.color) }}>
-                          {r.info.code.slice(0, 3)}
-                        </span>
-                      )}
+                      <DriverAvatar
+                        src={r.image ?? r.info.image}
+                        name={r.name ?? r.info.name}
+                        code={r.code ?? r.info.code}
+                        number={r.driver_number}
+                        color={r.color ?? r.info.color}
+                        team={r.team ?? r.info.team}
+                        size={32}
+                      />
                       <span className="flex flex-col leading-tight">
                         <span className="flex items-center gap-1.5">
                           <span className="font-black text-xs font-sans">{r.info.code}</span>
@@ -239,7 +254,7 @@ export function RaceTable({ rows }: { rows: RaceRow[] | any[] }) {
                           title={`Gap delta ${delta > 0 ? "+" : ""}${delta.toFixed(3)} s/lap`}
                         >
                           <span className={`${closing ? "text-[#22c55e]" : dropping ? "text-[#ef4444]" : "text-[#475569]"} text-[11px] leading-none`}>
-                            {closing ? "▲" : dropping ? "▼" : "—"}
+                            {closing ? "▲" : dropping ? "▼" : "•"}
                           </span>
                           {delta > 0 ? "+" : ""}{delta.toFixed(2)}
                         </span>
@@ -248,7 +263,7 @@ export function RaceTable({ rows }: { rows: RaceRow[] | any[] }) {
                         <span className="text-[10px] text-[#475569]">{r.gapToAhead}</span>
                         {r.position !== 1 && (
                           <span className={`text-[9px] font-black tracking-widest px-1.5 py-0.5 rounded border ${r.drs ? "bg-[#00d2be]/15 text-[#00d2be] border-[#00d2be]/30 shadow-[0_0_6px_rgba(0,210,190,0.25)]" : "bg-[#1e293b] text-[#475569] border-[#334155]"}`}>
-                            {r.drs ? "DRS ●" : "DRS —"}
+                            {r.drs ? "DRS ●" : "DRS -"}
                           </span>
                         )}
                       </div>
@@ -308,7 +323,7 @@ export function RaceTable({ rows }: { rows: RaceRow[] | any[] }) {
                         </span>
                         <span className="text-[9px] font-mono text-[#475569]">{r.paceNorm.q90.toFixed(2)}</span>
                       </div>
-                      <div className="text-[10px] text-[#475569] mt-0.5">{r.paceNorm.q10.toFixed(2)} — {r.paceNorm.q50.toFixed(2)} — {r.paceNorm.q90.toFixed(2)}</div>
+                      <div className="text-[10px] text-[#475569] mt-0.5">{r.paceNorm.q10.toFixed(2)} / {r.paceNorm.q50.toFixed(2)} / {r.paceNorm.q90.toFixed(2)}</div>
                     </div>
                   </td>
 

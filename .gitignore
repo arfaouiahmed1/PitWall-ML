@@ -37,6 +37,7 @@ out/
 dist/
 apps/web/.next/
 apps/web/node_modules/
+*.tsbuildinfo
 
 # OS
 .DS_Store

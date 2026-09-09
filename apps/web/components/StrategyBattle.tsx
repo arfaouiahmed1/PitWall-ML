@@ -112,18 +112,18 @@ export function StrategyBattle({
       <div className="px-4 py-3 grid grid-cols-1 sm:grid-cols-3 gap-3 border-b border-[#1e293b] bg-[#0f172a]">
         <div className="sm:col-span-2">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] tracking-widest font-bold text-[#64748b]">TARGET PIT LAP — {a.code}</span>
+            <span className="text-[10px] tracking-widest font-bold text-[#64748b]">TARGET PIT LAP : {a.code}</span>
             <span className="font-mono font-black text-sm px-2 py-0.5 rounded bg-[#1e293b] border border-[#334155]">Lap {pitLap}</span>
           </div>
           <input type="range" min={18} max={34} value={pitLap} onChange={(e) => setPitLap(Number(e.target.value))} className="w-full mt-2 accent-[#ff8000]" />
-          <div className="flex justify-between text-[10px] font-mono text-[#475569]"><span>Lap 18 — early undercut</span><span>Lap 34 — overcut</span></div>
+          <div className="flex justify-between text-[10px] font-mono text-[#475569]"><span>Lap 18 : early undercut</span><span>Lap 34 : overcut</span></div>
         </div>
         <div className="rounded-lg border border-[#1e293b] bg-[#080c14] p-3">
           <div className="text-[10px] tracking-widest font-bold text-[#64748b]">PIT WINDOW Δ</div>
           <div className={`mt-1 font-mono font-black text-xl leading-none ${windowDelta < 0 ? "text-[#22c55e]" : windowDelta < 0.8 ? "text-[#facc15]" : "text-[#ef4444]"}`}>
             {windowDelta > 0 ? "+" : ""}{windowDelta.toFixed(2)}s
           </div>
-          <div className="text-[10px] text-[#94a3b8] mt-1">{windowDelta < 0 ? "Net gain — rejoin ahead" : windowDelta < 1 ? "Nose-to-tail — DRS battle" : "Rejoin in traffic"}</div>
+          <div className="text-[10px] text-[#94a3b8] mt-1">{windowDelta < 0 ? "Net gain : rejoin ahead" : windowDelta < 1 ? "Nose-to-tail : DRS battle" : "Rejoin in traffic"}</div>
         </div>
       </div>
 
@@ -167,7 +167,7 @@ export function StrategyBattle({
             <span className="font-black text-3xl font-mono leading-none" style={{ color: prob > 60 ? "#22c55e" : prob > 35 ? "#eab308" : "#ef4444" }}>{prob}%</span>
             <span className="text-xs font-bold text-[#94a3b8]">prob</span>
             <span className={`ml-auto text-[10px] font-black px-2 py-1 rounded-full border ${prob > 60 ? "bg-[#22c55e]/12 text-[#22c55e] border-[#22c55e]/30" : prob > 35 ? "bg-[#eab308]/10 text-[#facc15] border-[#eab308]/30" : "bg-[#ef4444]/10 text-[#f87171] border-[#ef4444]/30"}`}>
-              {prob > 60 ? "FAVOURS UNDERCUT" : prob > 35 ? "50:50 — DRS" : "OVERCUT SAFER"}
+              {prob > 60 ? "FAVOURS UNDERCUT" : prob > 35 ? "50:50 • DRS" : "OVERCUT SAFER"}
             </span>
           </div>
           <div className="mt-3 h-2 rounded-full bg-[#1e293b] overflow-hidden">
@@ -181,7 +181,7 @@ export function StrategyBattle({
             </div>
             <div className="rounded-lg border border-[#1e293b] bg-[#0f172a] p-2">
               <div className="text-[10px] tracking-widest text-[#64748b]">DRS</div>
-              <div className={`font-bold text-xs mt-1 ${Math.abs(exitGap) < 1 ? "text-[#22c55e]" : "text-[#94a3b8]"}`}>{Math.abs(exitGap) < 1 ? "READY" : "—"}</div>
+              <div className={`font-bold text-xs mt-1 ${Math.abs(exitGap) < 1 ? "text-[#22c55e]" : "text-[#94a3b8]"}`}>{Math.abs(exitGap) < 1 ? "READY" : "N/A"}</div>
               <div className="text-[10px] text-[#475569]">if &lt;1.0s</div>
             </div>
             <div className="rounded-lg border border-[#1e293b] bg-[#0f172a] p-2">
@@ -191,7 +191,7 @@ export function StrategyBattle({
             </div>
           </div>
           <div className="mt-3 text-[10px] leading-relaxed text-[#94a3b8]">
-            Pit on lap <span className="font-mono font-bold text-white">{pitLap}</span> → rejoin <span className="font-mono text-white">{exitGap > 0 ? "+" : ""}{exitGap.toFixed(2)}s</span> to {b.code}. {prob > 60 ? "Undercut wins — fresh tyre does the work." : prob > 35 ? "Coin-flip — track position decides. DRS within 2 laps." : "Stay out — overcut preserves clean air."}
+            Pit on lap <span className="font-mono font-bold text-white">{pitLap}</span> → rejoin <span className="font-mono text-white">{exitGap > 0 ? "+" : ""}{exitGap.toFixed(2)}s</span> to {b.code}. {prob > 60 ? "Undercut wins : fresh tyre does the work." : prob > 35 ? "Coin-flip : track position decides. DRS within 2 laps." : "Stay out : overcut preserves clean air."}
           </div>
         </div>
       </div>

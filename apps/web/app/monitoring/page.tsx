@@ -230,7 +230,7 @@ export default function MonitoringPage() {
             <div className="text-[11px] tracking-widest text-[#8b9bb4] font-bold">EVIDENTLY • 3-RACE ROLLING DRIFT RATIO</div>
             <div className="mt-2 flex items-baseline gap-2"><span className="text-2xl font-mono font-black">{(data.drift_ratio * 100).toFixed(1)}%</span><span className="text-xs text-[#8b9bb4]">features drifted • {data.drifted_features.length} flagged</span></div>
             <div className="mt-2 h-2 rounded-full bg-[#1e293b] overflow-hidden"><div className="h-full rounded-full" style={{ width: `${Math.min(100, data.drift_ratio * 100)}%`, background: data.drift_ratio > 0.25 ? "#ef4444" : data.drift_ratio > 0.12 ? "#eab308" : "#22c55e" }} /></div>
-            <div className="mt-2 text-[11px] text-[#5a6b84]">Flagged: {data.drifted_features.join(", ") || "—"}</div>
+            <div className="mt-2 text-[11px] text-[#5a6b84]">Flagged: {data.drifted_features.join(", ") || "None"}</div>
           </div>
         </div>
       </div>

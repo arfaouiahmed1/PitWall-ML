@@ -84,7 +84,7 @@ export function TelemetryOverlay({
     const apexB = Math.min(...traceB.map((p) => p.speed));
     const maxA = Math.max(...traceA.map((p) => p.speed));
     const maxB = Math.max(...traceB.map((p) => p.speed));
-    // brake point distance delta — approximate by where brake >80 first occurs
+    // brake point distance delta : approximate by where brake >80 first occurs
     const brakeIdxA = traceA.findIndex((p) => p.brake > 70);
     const brakeIdxB = traceB.findIndex((p) => p.brake > 70);
     const brakeDeltaM = ((brakeIdxA - brakeIdxB) * 12); // ~12m per 2% distance on ~4.6km lap
@@ -289,7 +289,7 @@ export function TelemetryOverlay({
           </div>
         </div>
 
-        {/* Performance radar — simple polygon */}
+        {/* Performance radar : simple polygon */}
         <div className="p-4 border-t lg:border-t-0 lg:border-l border-[#1e293b] bg-[#0f172a]">
           <div className="text-[11px] font-bold tracking-widest text-[#64748b]">PERFORMANCE VECTOR</div>
           <div className="mt-2 flex items-center gap-4">

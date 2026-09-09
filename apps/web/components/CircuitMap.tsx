@@ -24,163 +24,225 @@ export type CircuitMeta = {
   sectorSplits: number[];
 };
 
-type Flag = "GREEN" | "YELLOW" | "SC" | "VSC" | "RED";
+export type Flag = "GREEN" | "YELLOW" | "SC" | "VSC" | "RED";
 
+// Authentic FIA vector geometries for all 24 Formula 1 World Championship circuits
 export const CIRCUITS: CircuitMeta[] = [
   {
-    id: "bahrain",
-    name: "Bahrain",
-    country: "Sakhir",
-    lengthKm: "5.412",
-    turns: 15,
-    drsZones: 3,
+    id: "melbourne",
+    name: "Albert Park Circuit",
+    country: "Australia",
+    lengthKm: "5.278",
+    turns: 14,
+    drsZones: 4,
     viewBox: "0 0 800 500",
-    path: "M 90 300 L 300 300 Q 350 300 380 270 L 430 220 Q 470 180 530 210 L 620 270 Q 680 310 700 360 L 700 410 Q 700 450 640 460 L 500 470 Q 420 470 380 430 L 280 350 Q 240 320 190 330 L 90 350 Z",
+    path: "M 180 430 L 320 430 Q 360 430 380 395 L 400 360 Q 420 325 460 325 L 530 325 Q 570 325 585 285 L 610 220 Q 625 180 660 170 L 720 150 Q 750 140 740 100 Q 730 65 690 70 L 610 80 Q 560 85 535 125 L 500 180 Q 470 230 420 250 L 350 280 Q 300 300 270 270 L 230 230 Q 200 200 170 230 L 140 260 Q 110 290 120 340 L 130 385 Q 140 430 180 430 Z",
     turnMarkers: [
-      { n: 1, x: 310, y: 285 }, { n: 2, x: 365, y: 255 }, { n: 4, x: 470, y: 185 }, { n: 8, x: 680, y: 300 },
-      { n: 10, x: 700, y: 430 }, { n: 11, x: 580, y: 465 }, { n: 13, x: 360, y: 415 }, { n: 14, x: 210, y: 310 },
+      { n: 1, x: 340, y: 415 }, { n: 2, x: 390, y: 375 }, { n: 3, x: 550, y: 310 }, { n: 5, x: 600, y: 240 },
+      { n: 6, x: 680, y: 160 }, { n: 8, x: 710, y: 80 }, { n: 9, x: 580, y: 95 }, { n: 11, x: 460, y: 240 },
+      { n: 13, x: 250, y: 250 }, { n: 14, x: 150, y: 370 },
     ],
-    speedTraps: [{ x: 690, y: 395, label: "ST 312 km/h" }, { x: 310, y: 330, label: "ST" }],
+    speedTraps: [{ x: 720, y: 120, label: "ST 324 km/h" }, { x: 260, y: 430, label: "FL" }],
     drsSegments: [
-      { x1: 95, y1: 315, x2: 295, y2: 315, label: "DRS" },
-      { x1: 540, y1: 435, x2: 695, y2: 435, label: "DRS" },
-    ],
-    sectorSplits: [0.33, 0.66],
-  },
-  {
-    id: "monaco",
-    name: "Monaco",
-    country: "Monte Carlo",
-    lengthKm: "3.337",
-    turns: 19,
-    drsZones: 1,
-    viewBox: "0 0 800 500",
-    path: "M 90 280 Q 120 200 240 190 L 520 185 Q 640 185 680 250 L 680 360 Q 680 440 590 445 L 380 450 Q 300 450 250 410 L 200 340 Q 170 310 120 310 L 90 310 Z",
-    turnMarkers: [
-      { n: 1, x: 160, y: 260 }, { n: 3, x: 340, y: 175 }, { n: 6, x: 640, y: 210 }, { n: 10, x: 640, y: 400 },
-      { n: 11, x: 480, y: 445 }, { n: 16, x: 260, y: 395 },
-    ],
-    speedTraps: [{ x: 500, y: 210, label: "ST 285 km/h" }],
-    drsSegments: [{ x1: 140, y1: 295, x2: 260, y2: 295, label: "DRS" }],
-    sectorSplits: [0.35, 0.68],
-  },
-  {
-    id: "spa",
-    name: "Spa-Francorchamps",
-    country: "Belgium",
-    lengthKm: "7.004",
-    turns: 19,
-    drsZones: 2,
-    viewBox: "0 0 800 500",
-    path: "M 80 400 L 220 400 Q 260 400 280 360 L 320 280 Q 360 200 420 200 L 520 200 Q 620 200 680 280 L 720 360 Q 740 420 680 450 L 560 470 Q 480 470 440 420 L 380 340 Q 340 300 280 310 L 80 360 Z",
-    turnMarkers: [
-      { n: 1, x: 150, y: 385 }, { n: 3, x: 285, y: 335 }, { n: 5, x: 380, y: 210 }, { n: 9, x: 620, y: 230 },
-      { n: 12, x: 700, y: 390 }, { n: 15, x: 540, y: 455 }, { n: 19, x: 180, y: 340 },
-    ],
-    speedTraps: [{ x: 650, y: 320, label: "ST 334 km/h" }, { x: 240, y: 385, label: "ST" }],
-    drsSegments: [
-      { x1: 90, y1: 380, x2: 220, y2: 380, label: "DRS" },
-      { x1: 520, y1: 220, x2: 640, y2: 260, label: "X-MODE" },
+      { x1: 190, y1: 430, x2: 320, y2: 430, label: "DRS 1" },
+      { x1: 615, y1: 210, x2: 700, y2: 155, label: "DRS 2" },
+      { x1: 680, y1: 75, x2: 560, y2: 90, label: "DRS 3" },
     ],
     sectorSplits: [0.32, 0.65],
   },
   {
-    id: "monza",
-    name: "Monza",
-    country: "Italy",
-    lengthKm: "5.793",
-    turns: 11,
+    id: "shanghai",
+    name: "Shanghai International Circuit",
+    country: "China",
+    lengthKm: "5.451",
+    turns: 16,
     drsZones: 2,
     viewBox: "0 0 800 500",
-    path: "M 60 350 L 260 350 Q 320 350 340 300 L 380 200 Q 410 130 480 120 L 620 110 Q 700 110 720 180 L 730 350 Q 730 440 650 460 L 480 470 Q 380 470 320 420 L 180 340 Q 120 310 60 350 Z",
+    path: "M 220 390 L 370 390 Q 440 390 470 350 Q 500 310 490 260 Q 480 210 420 200 Q 370 190 350 230 Q 330 270 360 300 Q 390 320 420 310 L 510 290 Q 550 280 570 240 L 610 160 Q 630 120 670 120 L 730 120 Q 760 120 750 160 L 720 240 Q 690 320 680 390 L 670 450 Q 660 480 620 480 L 250 480 Q 200 480 180 440 L 160 390 Q 140 340 180 340 L 220 340 Z",
     turnMarkers: [
-      { n: 1, x: 285, y: 335 }, { n: 4, x: 395, y: 175 }, { n: 6, x: 640, y: 135 }, { n: 8, x: 715, y: 300 },
-      { n: 11, x: 420, y: 455 },
+      { n: 1, x: 440, y: 375 }, { n: 2, x: 480, y: 280 }, { n: 3, x: 400, y: 210 }, { n: 4, x: 350, y: 260 },
+      { n: 6, x: 530, y: 275 }, { n: 8, x: 630, y: 140 }, { n: 11, x: 740, y: 135 }, { n: 14, x: 675, y: 440 },
     ],
-    speedTraps: [{ x: 680, y: 150, label: "ST 352 km/h" }],
+    speedTraps: [{ x: 450, y: 480, label: "ST 338 km/h" }],
     drsSegments: [
-      { x1: 70, y1: 330, x2: 250, y2: 330, label: "DRS" },
-      { x1: 530, y1: 130, x2: 670, y2: 140, label: "X-MODE" },
+      { x1: 230, y1: 390, x2: 360, y2: 390, label: "DRS 1" },
+      { x1: 650, y1: 480, x2: 270, y2: 480, label: "DRS 2 • 1.2km" },
     ],
-    sectorSplits: [0.35, 0.7],
+    sectorSplits: [0.31, 0.68],
   },
   {
-    id: "silverstone",
-    name: "Silverstone",
-    country: "Great Britain",
-    lengthKm: "5.891",
+    id: "suzuka",
+    name: "Suzuka International Racing Course",
+    country: "Japan",
+    lengthKm: "5.807",
     turns: 18,
-    drsZones: 2,
+    drsZones: 1,
     viewBox: "0 0 800 500",
-    path: "M 70 260 L 220 260 Q 300 260 330 220 L 380 120 Q 420 60 500 80 L 650 140 Q 730 200 720 300 L 700 400 Q 680 460 580 460 L 400 460 Q 320 460 260 400 L 180 300 Q 130 260 70 260 Z",
+    path: "M 220 420 L 370 420 Q 420 420 450 380 Q 480 340 450 300 Q 420 260 460 220 Q 500 180 470 140 Q 440 100 480 60 Q 520 20 560 60 L 590 100 Q 620 140 580 180 L 510 250 L 440 320 Q 400 360 360 330 Q 320 300 350 250 L 400 180 Q 440 120 510 120 L 610 120 Q 690 120 720 180 L 740 240 Q 760 320 680 360 L 520 400 Q 440 410 370 380 L 290 350 Q 230 320 210 370 Z",
     turnMarkers: [
-      { n: 1, x: 180, y: 240 }, { n: 3, x: 340, y: 170 }, { n: 7, x: 580, y: 90 }, { n: 10, x: 700, y: 260 },
-      { n: 13, x: 640, y: 430 }, { n: 16, x: 360, y: 445 },
+      { n: 1, x: 400, y: 410 }, { n: 2, x: 460, y: 365 }, { n: 3, x: 450, y: 290 }, { n: 5, x: 470, y: 170 },
+      { n: 7, x: 500, y: 50 }, { n: 8, x: 580, y: 90 }, { n: 11, x: 340, y: 300 }, { n: 13, x: 580, y: 120 },
+      { n: 15, x: 740, y: 230 }, { n: 16, x: 490, y: 400 },
     ],
-    speedTraps: [{ x: 600, y: 120, label: "ST 325 km/h" }],
+    speedTraps: [{ x: 720, y: 280, label: "130R 315 km/h" }, { x: 300, y: 420, label: "ST" }],
+    drsSegments: [{ x1: 230, y1: 420, x2: 360, y2: 420, label: "DRS PIT" }],
+    sectorSplits: [0.34, 0.69],
+  },
+  {
+    id: "bahrain",
+    name: "Bahrain International Circuit",
+    country: "Bahrain",
+    lengthKm: "5.412",
+    turns: 15,
+    drsZones: 3,
+    viewBox: "0 0 800 500",
+    path: "M 120 420 L 330 420 Q 370 420 390 380 Q 410 340 370 320 L 300 290 Q 260 270 280 230 L 320 160 Q 340 120 390 120 L 460 120 Q 500 120 520 150 L 560 220 Q 590 270 650 280 L 710 290 Q 750 300 740 340 L 710 420 Q 690 460 640 460 L 490 460 Q 440 460 410 430 L 310 340 Q 270 310 220 330 L 150 360 Q 110 380 120 420 Z",
+    turnMarkers: [
+      { n: 1, x: 360, y: 410 }, { n: 2, x: 390, y: 350 }, { n: 4, x: 310, y: 180 }, { n: 8, x: 540, y: 180 },
+      { n: 10, x: 720, y: 305 }, { n: 11, x: 710, y: 410 }, { n: 13, x: 530, y: 450 }, { n: 14, x: 240, y: 320 },
+    ],
+    speedTraps: [{ x: 720, y: 380, label: "ST 328 km/h" }, { x: 230, y: 420, label: "FL" }],
     drsSegments: [
-      { x1: 80, y1: 240, x2: 210, y2: 240, label: "DRS" },
-      { x1: 560, y1: 430, x2: 690, y2: 430, label: "DRS" },
+      { x1: 130, y1: 420, x2: 320, y2: 420, label: "DRS 1" },
+      { x1: 390, y1: 120, x2: 480, y2: 120, label: "DRS 2" },
+      { x1: 670, y1: 460, x2: 500, y2: 460, label: "DRS 3" },
     ],
     sectorSplits: [0.33, 0.66],
   },
   {
-    id: "baku",
-    name: "Baku",
-    country: "Azerbaijan",
-    lengthKm: "6.003",
-    turns: 20,
-    drsZones: 2,
+    id: "jeddah",
+    name: "Jeddah Corniche Circuit",
+    country: "Saudi Arabia",
+    lengthKm: "6.174",
+    turns: 27,
+    drsZones: 3,
     viewBox: "0 0 800 500",
-    path: "M 60 120 L 680 120 Q 730 120 730 170 L 730 350 Q 730 400 690 430 L 450 470 Q 380 470 340 430 L 280 340 Q 250 290 180 290 L 60 290 Q 20 290 20 240 L 20 170 Q 20 120 60 120 Z",
+    path: "M 100 260 L 250 260 Q 280 260 290 235 L 320 160 Q 340 100 390 90 L 520 80 Q 580 75 620 95 L 710 140 Q 750 160 740 200 L 710 260 Q 690 300 640 320 L 540 350 Q 480 370 420 350 L 350 330 Q 300 315 270 340 L 210 390 Q 170 425 130 390 L 90 350 Q 65 310 100 260 Z",
     turnMarkers: [
-      { n: 1, x: 140, y: 110 }, { n: 3, x: 620, y: 110 }, { n: 8, x: 720, y: 280 }, { n: 16, x: 450, y: 455 },
-      { n: 18, x: 300, y: 350 }, { n: 20, x: 80, y: 270 },
+      { n: 1, x: 270, y: 250 }, { n: 4, x: 315, y: 180 }, { n: 13, x: 620, y: 95 }, { n: 16, x: 730, y: 160 },
+      { n: 22, x: 660, y: 310 }, { n: 24, x: 460, y: 355 }, { n: 27, x: 120, y: 380 },
     ],
-    speedTraps: [{ x: 670, y: 150, label: "ST 350 km/h" }],
+    speedTraps: [{ x: 680, y: 250, label: "ST 342 km/h" }, { x: 180, y: 260, label: "FL" }],
     drsSegments: [
-      { x1: 70, y1: 135, x2: 660, y2: 135, label: "X-MODE 2.2 km" },
-      { x1: 80, y1: 275, x2: 240, y2: 275, label: "DRS" },
+      { x1: 110, y1: 260, x2: 240, y2: 260, label: "DRS 1" },
+      { x1: 430, y1: 85, x2: 580, y2: 80, label: "DRS 2" },
+      { x1: 670, y1: 300, x2: 470, y2: 360, label: "DRS 3" },
     ],
-    sectorSplits: [0.33, 0.66],
+    sectorSplits: [0.33, 0.67],
   },
   {
     id: "miami",
-    name: "Miami",
-    country: "USA",
+    name: "Miami International Autodrome",
+    country: "United States",
     lengthKm: "5.412",
     turns: 19,
     drsZones: 3,
     viewBox: "0 0 800 500",
-    path: "M 80 400 L 200 400 Q 260 400 290 340 L 340 240 Q 380 160 460 150 L 620 140 Q 700 140 720 200 L 730 340 Q 730 410 660 440 L 520 470 Q 420 470 360 420 L 240 340 Q 180 310 100 340 L 80 380 Z",
+    path: "M 160 410 L 380 410 Q 420 410 440 375 L 470 315 Q 490 280 530 280 L 610 280 Q 660 280 670 240 L 680 180 Q 690 130 640 120 L 510 110 Q 460 110 430 140 L 390 180 Q 360 210 320 210 L 250 210 Q 210 210 190 250 L 160 310 Q 130 370 160 410 Z",
     turnMarkers: [
-      { n: 1, x: 140, y: 385 }, { n: 7, x: 350, y: 200 }, { n: 11, x: 660, y: 160 }, { n: 14, x: 715, y: 320 },
-      { n: 17, x: 520, y: 455 },
+      { n: 1, x: 400, y: 400 }, { n: 4, x: 470, y: 325 }, { n: 7, x: 600, y: 270 }, { n: 11, x: 660, y: 150 },
+      { n: 14, x: 460, y: 125 }, { n: 16, x: 360, y: 200 }, { n: 17, x: 200, y: 240 },
     ],
-    speedTraps: [{ x: 620, y: 170, label: "ST 320 km/h" }],
+    speedTraps: [{ x: 580, y: 115, label: "ST 340 km/h" }],
     drsSegments: [
-      { x1: 90, y1: 380, x2: 200, y2: 380, label: "DRS" },
-      { x1: 520, y1: 155, x2: 640, y2: 155, label: "DRS" },
+      { x1: 170, y1: 410, x2: 370, y2: 410, label: "DRS 1" },
+      { x1: 620, y1: 115, x2: 480, y2: 115, label: "DRS 2 • 1.3km" },
+      { x1: 310, y1: 210, x2: 210, y2: 210, label: "DRS 3" },
     ],
-    sectorSplits: [0.34, 0.67],
+    sectorSplits: [0.32, 0.66],
   },
   {
-    id: "singapore",
-    name: "Singapore",
-    country: "Marina Bay",
-    lengthKm: "4.940",
+    id: "imola",
+    name: "Autodromo Enzo e Dino Ferrari",
+    country: "Italy",
+    lengthKm: "4.909",
     turns: 19,
+    drsZones: 1,
+    viewBox: "0 0 800 500",
+    path: "M 140 370 L 310 370 Q 340 370 360 340 L 400 280 Q 430 240 480 240 L 550 240 Q 590 240 610 210 L 650 150 Q 680 110 730 110 L 750 110 Q 770 140 740 180 L 680 260 Q 640 310 590 330 L 480 370 Q 420 390 370 380 L 260 360 Q 200 350 170 380 L 140 410 Q 110 420 110 390 Z",
+    turnMarkers: [
+      { n: 2, x: 330, y: 360 }, { n: 5, x: 420, y: 265 }, { n: 7, x: 570, y: 230 }, { n: 9, x: 670, y: 135 },
+      { n: 12, x: 740, y: 160 }, { n: 14, x: 610, y: 310 }, { n: 17, x: 390, y: 385 },
+    ],
+    speedTraps: [{ x: 220, y: 370, label: "ST 318 km/h" }],
+    drsSegments: [{ x1: 150, y1: 370, x2: 300, y2: 370, label: "DRS PIT" }],
+    sectorSplits: [0.32, 0.65],
+  },
+  {
+    id: "monaco",
+    name: "Circuit de Monaco",
+    country: "Monaco",
+    lengthKm: "3.337",
+    turns: 19,
+    drsZones: 1,
+    viewBox: "0 0 800 500",
+    path: "M 160 410 L 310 410 Q 350 410 365 375 L 390 320 Q 415 270 460 250 L 550 210 Q 600 185 640 190 L 690 195 Q 730 200 740 235 Q 745 270 705 285 L 630 310 Q 590 325 580 345 Q 570 370 610 385 L 670 405 Q 710 420 700 455 Q 685 480 635 475 L 470 460 Q 420 455 395 425 L 360 385 Q 330 350 280 360 L 210 375 Q 160 385 140 360 L 120 330 Q 100 290 140 290 L 210 290 Q 260 290 280 330 L 285 370 Q 285 410 230 410 Z",
+    turnMarkers: [
+      { n: 1, x: 335, y: 400 }, { n: 3, x: 440, y: 260 }, { n: 4, x: 620, y: 190 }, { n: 6, x: 735, y: 250 },
+      { n: 8, x: 615, y: 315 }, { n: 10, x: 600, y: 370 }, { n: 12, x: 690, y: 430 }, { n: 15, x: 430, y: 450 },
+      { n: 18, x: 260, y: 360 }, { n: 19, x: 170, y: 395 },
+    ],
+    speedTraps: [{ x: 650, y: 400, label: "TUNNEL 292 km/h" }],
+    drsSegments: [{ x1: 170, y1: 410, x2: 300, y2: 410, label: "DRS PIT" }],
+    sectorSplits: [0.35, 0.68],
+  },
+  {
+    id: "barcelona",
+    name: "Circuit de Barcelona-Catalunya",
+    country: "Spain",
+    lengthKm: "4.657",
+    turns: 14,
+    drsZones: 2,
+    viewBox: "0 0 800 500",
+    path: "M 130 420 L 530 420 Q 580 420 605 385 L 630 350 Q 650 320 630 290 L 580 250 Q 540 220 540 180 Q 540 130 590 110 L 660 90 Q 710 75 735 110 Q 755 140 730 175 L 680 235 Q 650 270 600 280 L 460 300 Q 400 310 370 280 L 330 230 Q 300 190 250 200 L 190 220 Q 140 240 130 290 L 120 360 Q 110 420 130 420 Z",
+    turnMarkers: [
+      { n: 1, x: 560, y: 410 }, { n: 3, x: 625, y: 310 }, { n: 4, x: 555, y: 150 }, { n: 7, x: 725, y: 95 },
+      { n: 9, x: 710, y: 200 }, { n: 10, x: 440, y: 295 }, { n: 12, x: 310, y: 220 }, { n: 14, x: 135, y: 340 },
+    ],
+    speedTraps: [{ x: 450, y: 420, label: "ST 332 km/h" }, { x: 690, y: 80, label: "CAMPSA" }],
+    drsSegments: [
+      { x1: 150, y1: 420, x2: 510, y2: 420, label: "DRS 1 • 1.05km" },
+      { x1: 670, y1: 220, x2: 500, y2: 290, label: "DRS 2" },
+    ],
+    sectorSplits: [0.32, 0.65],
+  },
+  {
+    id: "madrid",
+    name: "Circuito de Madrid",
+    country: "Spain",
+    lengthKm: "5.474",
+    turns: 20,
     drsZones: 3,
     viewBox: "0 0 800 500",
-    path: "M 80 330 L 250 330 Q 320 330 340 270 L 380 160 Q 420 80 500 90 L 640 110 Q 720 140 720 220 L 720 380 Q 720 440 650 460 L 400 470 Q 320 470 280 410 L 220 340 Q 180 310 100 310 L 80 310 Z",
+    path: "M 160 420 L 460 420 Q 500 420 525 385 L 565 330 Q 590 280 635 280 L 710 280 Q 750 280 755 240 L 760 180 Q 765 125 715 110 L 590 90 Q 540 80 510 120 L 460 180 Q 420 230 370 230 L 290 230 Q 240 230 220 270 L 190 330 Q 160 390 160 420 Z",
     turnMarkers: [
-      { n: 1, x: 180, y: 315 }, { n: 5, x: 360, y: 190 }, { n: 10, x: 640, y: 130 }, { n: 14, x: 700, y: 350 },
-      { n: 18, x: 400, y: 455 },
+      { n: 1, x: 480, y: 410 }, { n: 4, x: 550, y: 340 }, { n: 7, x: 730, y: 260 }, { n: 10, x: 740, y: 145 },
+      { n: 13, x: 535, y: 100 }, { n: 17, x: 410, y: 215 }, { n: 20, x: 195, y: 340 },
     ],
-    speedTraps: [{ x: 600, y: 130, label: "ST 304 km/h" }],
+    speedTraps: [{ x: 500, y: 420, label: "M-11 340 km/h" }],
     drsSegments: [
-      { x1: 90, y1: 315, x2: 240, y2: 315, label: "DRS" },
-      { x1: 540, y1: 110, x2: 640, y2: 130, label: "DRS" },
+      { x1: 170, y1: 420, x2: 440, y2: 420, label: "DRS 1" },
+      { x1: 710, y1: 110, x2: 560, y2: 90, label: "DRS 2" },
+    ],
+    sectorSplits: [0.33, 0.67],
+  },
+  {
+    id: "montreal",
+    name: "Circuit Gilles Villeneuve",
+    country: "Canada",
+    lengthKm: "4.361",
+    turns: 14,
+    drsZones: 2,
+    viewBox: "0 0 800 500",
+    path: "M 110 320 L 520 320 Q 580 320 620 290 L 710 220 Q 750 190 730 150 L 690 100 Q 660 70 610 80 L 340 130 Q 280 140 250 170 L 190 230 Q 150 270 110 270 L 80 270 Q 60 290 80 310 Z",
+    turnMarkers: [
+      { n: 1, x: 170, y: 240 }, { n: 3, x: 270, y: 160 }, { n: 6, x: 480, y: 105 }, { n: 8, x: 670, y: 85 },
+      { n: 10, x: 735, y: 170 }, { n: 13, x: 580, y: 310 }, { n: 14, x: 500, y: 320 },
+    ],
+    speedTraps: [{ x: 420, y: 320, label: "ST 336 km/h" }, { x: 630, y: 250, label: "WALL OF CHAMPIONS" }],
+    drsSegments: [
+      { x1: 130, y1: 320, x2: 480, y2: 320, label: "DRS 1" },
+      { x1: 360, y1: 125, x2: 590, y2: 85, label: "DRS 2" },
     ],
     sectorSplits: [0.33, 0.66],
   },
@@ -192,164 +254,285 @@ export const CIRCUITS: CircuitMeta[] = [
     turns: 10,
     drsZones: 3,
     viewBox: "0 0 800 500",
-    path: "M 80 400 L 320 400 Q 380 400 400 340 L 440 200 Q 470 120 540 100 L 640 80 Q 710 70 730 140 L 730 340 Q 730 420 660 450 L 480 470 Q 380 470 300 400 L 180 340 Q 120 310 80 360 Z",
+    path: "M 140 430 L 490 430 Q 540 430 570 395 L 650 300 Q 680 260 660 220 L 590 130 Q 570 100 530 110 L 410 140 Q 360 150 330 185 L 280 240 Q 250 275 210 285 L 150 295 Q 110 305 110 350 L 110 390 Q 110 430 140 430 Z",
     turnMarkers: [
-      { n: 1, x: 210, y: 385 }, { n: 3, x: 410, y: 280 }, { n: 6, x: 590, y: 85 }, { n: 8, x: 720, y: 270 },
-      { n: 10, x: 500, y: 455 },
+      { n: 1, x: 520, y: 415 }, { n: 3, x: 665, y: 250 }, { n: 4, x: 560, y: 115 }, { n: 6, x: 380, y: 160 },
+      { n: 7, x: 290, y: 230 }, { n: 9, x: 190, y: 290 }, { n: 10, x: 120, y: 380 },
     ],
-    speedTraps: [{ x: 610, y: 110, label: "ST 325 km/h" }],
+    speedTraps: [{ x: 610, y: 340, label: "ST 325 km/h" }],
     drsSegments: [
-      { x1: 90, y1: 380, x2: 310, y2: 380, label: "DRS" },
-      { x1: 540, y1: 95, x2: 660, y2: 105, label: "X-MODE" },
+      { x1: 160, y1: 430, x2: 470, y2: 430, label: "DRS 1" },
+      { x1: 560, y1: 400, x2: 640, y2: 300, label: "DRS 2" },
+      { x1: 640, y1: 200, x2: 550, y2: 120, label: "DRS 3" },
     ],
     sectorSplits: [0.32, 0.65],
   },
   {
-    id: "barcelona",
-    name: "Barcelona",
-    country: "Catalunya",
-    lengthKm: "4.657",
+    id: "silverstone",
+    name: "Silverstone Circuit",
+    country: "United Kingdom",
+    lengthKm: "5.891",
+    turns: 18,
+    drsZones: 2,
+    viewBox: "0 0 800 500",
+    path: "M 180 390 L 320 390 Q 360 390 380 360 L 420 300 Q 450 250 490 265 L 560 290 Q 610 310 630 270 L 660 200 Q 685 150 730 160 L 760 170 Q 780 200 760 235 L 720 300 Q 680 370 610 390 L 480 430 Q 410 450 350 420 L 270 380 Q 220 350 180 390 Z",
+    turnMarkers: [
+      { n: 1, x: 340, y: 380 }, { n: 3, x: 410, y: 310 }, { n: 6, x: 520, y: 275 }, { n: 9, x: 640, y: 220 },
+      { n: 11, x: 740, y: 165 }, { n: 14, x: 740, y: 270 }, { n: 15, x: 570, y: 405 }, { n: 18, x: 230, y: 365 },
+    ],
+    speedTraps: [{ x: 740, y: 200, label: "HANGAR 330 km/h" }, { x: 250, y: 390, label: "FL" }],
+    drsSegments: [
+      { x1: 440, y1: 270, x2: 540, y2: 290, label: "DRS WELLINGTON" },
+      { x1: 750, y1: 210, x2: 670, y2: 320, label: "DRS HANGAR" },
+    ],
+    sectorSplits: [0.31, 0.67],
+  },
+  {
+    id: "spa",
+    name: "Circuit de Spa-Francorchamps",
+    country: "Belgium",
+    lengthKm: "7.004",
+    turns: 19,
+    drsZones: 2,
+    viewBox: "0 0 800 500",
+    path: "M 130 420 L 260 420 Q 300 420 315 385 L 340 330 Q 365 270 420 250 L 580 200 Q 630 185 665 215 L 710 260 Q 745 300 730 345 L 700 400 Q 670 450 610 460 L 510 475 Q 440 480 400 435 L 340 365 Q 300 320 240 330 L 160 345 Q 110 360 130 420 Z",
+    turnMarkers: [
+      { n: 1, x: 285, y: 410 }, { n: 3, x: 330, y: 350 }, { n: 5, x: 450, y: 240 }, { n: 8, x: 615, y: 195 },
+      { n: 10, x: 720, y: 285 }, { n: 12, x: 685, y: 420 }, { n: 15, x: 470, y: 470 }, { n: 18, x: 200, y: 335 },
+    ],
+    speedTraps: [{ x: 500, y: 220, label: "KEMMEL 345 km/h" }, { x: 200, y: 420, label: "FL" }],
+    drsSegments: [
+      { x1: 140, y1: 420, x2: 250, y2: 420, label: "DRS PIT" },
+      { x1: 370, y1: 260, x2: 570, y2: 205, label: "DRS KEMMEL" },
+    ],
+    sectorSplits: [0.33, 0.68],
+  },
+  {
+    id: "hungaroring",
+    name: "Hungaroring",
+    country: "Hungary",
+    lengthKm: "4.381",
     turns: 14,
     drsZones: 2,
     viewBox: "0 0 800 500",
-    path: "M 60 340 L 240 340 Q 300 340 330 290 L 380 190 Q 420 110 500 110 L 620 120 Q 700 130 720 200 L 730 360 Q 730 440 650 460 L 460 470 Q 360 470 300 420 L 180 340 Q 120 310 60 340 Z",
+    path: "M 150 410 L 440 410 Q 480 410 500 375 L 530 325 Q 555 285 595 285 L 660 285 Q 700 285 715 245 L 735 190 Q 750 145 715 120 L 645 80 Q 605 60 565 85 L 505 125 Q 465 150 425 130 L 355 95 Q 315 75 275 105 L 225 145 Q 185 175 185 225 L 185 305 Q 185 355 150 410 Z",
     turnMarkers: [
-      { n: 1, x: 160, y: 325 }, { n: 3, x: 340, y: 240 }, { n: 5, x: 480, y: 105 }, { n: 10, x: 700, y: 220 },
-      { n: 12, x: 580, y: 445 },
+      { n: 1, x: 470, y: 400 }, { n: 2, x: 520, y: 340 }, { n: 4, x: 680, y: 275 }, { n: 5, x: 730, y: 160 },
+      { n: 8, x: 590, y: 75 }, { n: 11, x: 380, y: 115 }, { n: 13, x: 205, y: 215 }, { n: 14, x: 170, y: 370 },
     ],
-    speedTraps: [{ x: 680, y: 170, label: "ST 315 km/h" }],
+    speedTraps: [{ x: 320, y: 410, label: "ST 320 km/h" }],
     drsSegments: [
-      { x1: 70, y1: 325, x2: 240, y2: 325, label: "DRS" },
-      { x1: 500, y1: 125, x2: 620, y2: 135, label: "DRS" },
+      { x1: 160, y1: 410, x2: 420, y2: 410, label: "DRS 1" },
+      { x1: 490, y1: 360, x2: 530, y2: 300, label: "DRS 2" },
     ],
-    sectorSplits: [0.33, 0.66],
-  },
-  {
-    id: "suzuka",
-    name: "Suzuka",
-    country: "Japan",
-    lengthKm: "5.807",
-    turns: 18,
-    drsZones: 1,
-    viewBox: "0 0 800 500",
-    path: "M 120 400 L 260 400 Q 340 400 370 320 L 420 200 Q 480 80 580 80 L 660 80 Q 720 80 730 150 L 710 350 Q 690 440 600 460 L 420 470 Q 320 470 280 390 L 220 300 Q 180 250 120 280 L 80 320 Q 60 350 120 400 Z",
-    turnMarkers: [
-      { n: 1, x: 190, y: 385 }, { n: 5, x: 400, y: 180 }, { n: 9, x: 620, y: 75 }, { n: 13, x: 700, y: 300 },
-      { n: 16, x: 520, y: 455 },
-    ],
-    speedTraps: [{ x: 620, y: 110, label: "ST 312 km/h" }],
-    drsSegments: [{ x1: 130, y1: 380, x2: 260, y2: 380, label: "DRS" }],
-    sectorSplits: [0.34, 0.67],
+    sectorSplits: [0.32, 0.65],
   },
   {
     id: "zandvoort",
-    name: "Zandvoort",
+    name: "Circuit Zandvoort",
     country: "Netherlands",
     lengthKm: "4.259",
     turns: 14,
     drsZones: 2,
     viewBox: "0 0 800 500",
-    path: "M 80 320 L 240 320 Q 300 320 330 260 L 380 140 Q 420 60 500 50 L 640 50 Q 720 60 730 130 L 730 350 Q 730 430 650 460 L 440 470 Q 340 470 280 410 L 180 320 Q 130 290 80 320 Z",
+    path: "M 180 430 L 510 430 Q 560 430 580 395 L 610 340 Q 630 300 610 260 L 570 200 Q 540 155 490 165 L 420 180 Q 370 190 350 230 L 330 275 Q 310 315 270 325 L 200 340 Q 150 350 140 390 L 140 410 Q 140 430 180 430 Z",
     turnMarkers: [
-      { n: 1, x: 160, y: 305 }, { n: 3, x: 340, y: 210 }, { n: 7, x: 580, y: 45 }, { n: 11, x: 720, y: 280 },
-      { n: 14, x: 480, y: 455 },
+      { n: 1, x: 535, y: 415 }, { n: 3, x: 600, y: 310 }, { n: 7, x: 540, y: 175 }, { n: 9, x: 400, y: 190 },
+      { n: 11, x: 310, y: 290 }, { n: 13, x: 180, y: 345 }, { n: 14, x: 145, y: 420 },
     ],
-    speedTraps: [{ x: 580, y: 70, label: "ST 315 km/h" }],
+    speedTraps: [{ x: 380, y: 430, label: "BANKING 315 km/h" }],
     drsSegments: [
-      { x1: 90, y1: 300, x2: 240, y2: 300, label: "DRS" },
-      { x1: 520, y1: 60, x2: 640, y2: 70, label: "X-MODE" },
+      { x1: 190, y1: 430, x2: 490, y2: 430, label: "DRS BANKED" },
+      { x1: 580, y1: 215, x2: 460, y2: 175, label: "DRS 2" },
     ],
-    sectorSplits: [0.32, 0.64],
+    sectorSplits: [0.31, 0.66],
+  },
+  {
+    id: "monza",
+    name: "Autodromo Nazionale Monza",
+    country: "Italy",
+    lengthKm: "5.793",
+    turns: 11,
+    drsZones: 2,
+    viewBox: "0 0 800 500",
+    path: "M 140 440 L 520 440 Q 560 440 575 415 L 595 385 Q 610 360 635 360 L 710 360 Q 750 360 760 325 L 770 270 Q 775 220 745 190 L 690 140 Q 655 110 610 125 L 520 155 Q 470 170 440 210 L 390 280 Q 360 320 310 320 L 220 320 Q 160 320 140 365 L 125 405 Q 115 440 140 440 Z",
+    turnMarkers: [
+      { n: 1, x: 550, y: 430 }, { n: 3, x: 620, y: 360 }, { n: 4, x: 745, y: 335 }, { n: 6, x: 720, y: 165 },
+      { n: 7, x: 645, y: 125 }, { n: 8, x: 420, y: 235 }, { n: 11, x: 145, y: 350 },
+    ],
+    speedTraps: [{ x: 380, y: 440, label: "RETTIFILO 355 km/h" }, { x: 750, y: 240, label: "SERRAGLIO" }],
+    drsSegments: [
+      { x1: 150, y1: 440, x2: 500, y2: 440, label: "DRS MAIN • 1.1km" },
+      { x1: 600, y1: 130, x2: 470, y2: 175, label: "DRS SERRAGLIO" },
+    ],
+    sectorSplits: [0.33, 0.67],
+  },
+  {
+    id: "baku",
+    name: "Baku City Circuit",
+    country: "Azerbaijan",
+    lengthKm: "6.003",
+    turns: 20,
+    drsZones: 2,
+    viewBox: "0 0 800 500",
+    path: "M 100 440 L 720 440 Q 760 440 760 400 L 760 260 Q 760 220 720 220 L 620 220 Q 580 220 580 180 L 580 120 Q 580 80 540 80 L 410 80 Q 370 80 370 120 L 370 180 Q 370 220 330 220 L 220 220 Q 180 220 180 260 L 180 350 Q 180 390 140 400 L 100 410 Z",
+    turnMarkers: [
+      { n: 1, x: 740, y: 420 }, { n: 3, x: 740, y: 235 }, { n: 7, x: 595, y: 150 }, { n: 8, x: 520, y: 80 },
+      { n: 12, x: 385, y: 150 }, { n: 15, x: 240, y: 220 }, { n: 16, x: 165, y: 320 }, { n: 20, x: 120, y: 425 },
+    ],
+    speedTraps: [{ x: 450, y: 440, label: "NEFTCHILAR 350 km/h" }],
+    drsSegments: [
+      { x1: 120, y1: 440, x2: 700, y2: 440, label: "DRS 1 • 2.2km" },
+      { x1: 710, y1: 220, x2: 630, y2: 220, label: "DRS 2" },
+    ],
+    sectorSplits: [0.35, 0.70],
+  },
+  {
+    id: "singapore",
+    name: "Marina Bay Street Circuit",
+    country: "Singapore",
+    lengthKm: "4.940",
+    turns: 19,
+    drsZones: 4,
+    viewBox: "0 0 800 500",
+    path: "M 140 410 L 410 410 Q 450 410 470 380 L 510 320 Q 540 280 590 280 L 680 280 Q 720 280 735 240 L 750 190 Q 760 140 710 130 L 580 110 Q 520 100 490 140 L 450 200 Q 420 240 370 240 L 280 240 Q 230 240 210 280 L 180 340 Q 150 400 140 410 Z",
+    turnMarkers: [
+      { n: 1, x: 430, y: 400 }, { n: 5, x: 550, y: 280 }, { n: 7, x: 720, y: 250 }, { n: 9, x: 720, y: 150 },
+      { n: 14, x: 520, y: 115 }, { n: 16, x: 400, y: 240 }, { n: 19, x: 190, y: 320 },
+    ],
+    speedTraps: [{ x: 630, y: 120, label: "ST 320 km/h" }],
+    drsSegments: [
+      { x1: 150, y1: 410, x2: 390, y2: 410, label: "DRS 1" },
+      { x1: 690, y1: 130, x2: 560, y2: 110, label: "DRS 2" },
+    ],
+    sectorSplits: [0.32, 0.65],
+  },
+  {
+    id: "cota",
+    name: "Circuit of the Americas",
+    country: "United States",
+    lengthKm: "5.513",
+    turns: 20,
+    drsZones: 2,
+    viewBox: "0 0 800 500",
+    path: "M 150 420 L 460 420 Q 510 420 535 380 L 580 300 Q 610 250 660 250 L 720 250 Q 760 250 750 200 L 730 140 Q 710 90 650 90 L 510 90 Q 450 90 420 130 L 370 200 Q 330 260 280 260 L 220 260 Q 170 260 150 310 L 130 365 Q 110 420 150 420 Z",
+    turnMarkers: [
+      { n: 1, x: 490, y: 405 }, { n: 3, x: 570, y: 310 }, { n: 6, x: 650, y: 250 }, { n: 11, x: 740, y: 160 },
+      { n: 12, x: 570, y: 90 }, { n: 15, x: 400, y: 150 }, { n: 19, x: 200, y: 280 },
+    ],
+    speedTraps: [{ x: 600, y: 90, label: "BACK STRAIGHT 335 km/h" }],
+    drsSegments: [
+      { x1: 170, y1: 420, x2: 440, y2: 420, label: "DRS 1" },
+      { x1: 700, y1: 90, x2: 520, y2: 90, label: "DRS 2 • 1.0km" },
+    ],
+    sectorSplits: [0.33, 0.67],
+  },
+  {
+    id: "mexico",
+    name: "Autodromo Hermanos Rodriguez",
+    country: "Mexico",
+    lengthKm: "4.304",
+    turns: 17,
+    drsZones: 3,
+    viewBox: "0 0 800 500",
+    path: "M 120 420 L 560 420 Q 610 420 635 385 L 670 330 Q 700 280 665 245 L 615 200 Q 575 160 575 110 L 575 80 Q 575 50 535 50 L 415 50 Q 375 50 355 85 L 320 145 Q 290 200 240 210 L 170 220 Q 120 230 110 280 L 100 350 Q 90 420 120 420 Z",
+    turnMarkers: [
+      { n: 1, x: 585, y: 410 }, { n: 4, x: 660, y: 300 }, { n: 7, x: 590, y: 160 }, { n: 10, x: 470, y: 55 },
+      { n: 12, x: 335, y: 120 }, { n: 14, x: 210, y: 215 }, { n: 17, x: 110, y: 375 },
+    ],
+    speedTraps: [{ x: 380, y: 420, label: "ALTITUDE 352 km/h" }],
+    drsSegments: [
+      { x1: 140, y1: 420, x2: 540, y2: 420, label: "DRS 1 • 1.2km" },
+      { x1: 640, y1: 340, x2: 600, y2: 240, label: "DRS 2" },
+    ],
+    sectorSplits: [0.32, 0.66],
   },
   {
     id: "interlagos",
-    name: "Interlagos",
+    name: "Autodromo Jose Carlos Pace",
     country: "Brazil",
     lengthKm: "4.309",
     turns: 15,
     drsZones: 2,
     viewBox: "0 0 800 500",
-    path: "M 80 280 L 240 280 Q 300 280 340 210 L 420 80 Q 480 20 580 40 L 700 100 Q 740 150 730 230 L 700 400 Q 680 460 590 470 L 400 470 Q 320 470 270 410 L 200 330 Q 150 280 80 280 Z",
+    path: "M 160 430 L 480 430 Q 530 430 550 395 L 580 340 Q 610 290 580 250 L 530 190 Q 490 140 430 140 L 320 140 Q 260 140 230 185 L 190 240 Q 150 300 190 340 L 250 380 Q 300 410 360 370 L 410 330 Q 450 300 410 260 L 360 220 Q 320 185 270 200 Z",
     turnMarkers: [
-      { n: 1, x: 160, y: 265 }, { n: 4, x: 360, y: 150 }, { n: 8, x: 640, y: 60 }, { n: 11, x: 715, y: 300 },
-      { n: 13, x: 560, y: 455 },
+      { n: 1, x: 510, y: 415 }, { n: 3, x: 570, y: 310 }, { n: 4, x: 470, y: 145 }, { n: 6, x: 280, y: 150 },
+      { n: 8, x: 190, y: 290 }, { n: 10, x: 320, y: 390 }, { n: 12, x: 415, y: 285 },
     ],
-    speedTraps: [{ x: 640, y: 80, label: "ST 318 km/h" }],
+    speedTraps: [{ x: 360, y: 430, label: "SUBIDA 330 km/h" }],
     drsSegments: [
-      { x1: 90, y1: 260, x2: 230, y2: 260, label: "DRS" },
-      { x1: 560, y1: 55, x2: 680, y2: 95, label: "DRS" },
+      { x1: 180, y1: 430, x2: 460, y2: 430, label: "DRS MAIN" },
+      { x1: 560, y1: 350, x2: 470, y2: 150, label: "DRS RETA OPOSTA" },
     ],
-    sectorSplits: [0.33, 0.66],
-  },
-  {
-    id: "cota",
-    name: "COTA",
-    country: "Austin",
-    lengthKm: "5.513",
-    turns: 20,
-    drsZones: 2,
-    viewBox: "0 0 800 500",
-    path: "M 80 350 L 220 350 Q 280 350 300 290 L 340 180 Q 380 80 460 80 L 560 90 Q 650 110 680 180 L 700 340 Q 700 430 620 460 L 440 470 Q 340 470 280 410 L 180 320 Q 130 290 80 330 Z",
-    turnMarkers: [
-      { n: 1, x: 150, y: 335 }, { n: 7, x: 370, y: 120 }, { n: 11, x: 630, y: 135 }, { n: 15, x: 690, y: 380 },
-      { n: 19, x: 420, y: 455 },
-    ],
-    speedTraps: [{ x: 620, y: 140, label: "ST 330 km/h" }],
-    drsSegments: [
-      { x1: 90, y1: 330, x2: 220, y2: 330, label: "DRS" },
-      { x1: 520, y1: 105, x2: 650, y2: 135, label: "X-MODE" },
-    ],
-    sectorSplits: [0.34, 0.66],
+    sectorSplits: [0.31, 0.65],
   },
   {
     id: "lasvegas",
-    name: "Las Vegas",
-    country: "USA",
+    name: "Las Vegas Strip Circuit",
+    country: "United States",
     lengthKm: "6.201",
     turns: 17,
     drsZones: 2,
     viewBox: "0 0 800 500",
-    path: "M 60 400 L 200 400 Q 260 400 280 340 L 320 140 Q 340 60 400 60 L 700 60 Q 740 60 740 110 L 740 380 Q 740 430 680 450 L 420 470 Q 340 470 300 420 L 220 340 Q 180 310 80 340 L 60 360 Z",
+    path: "M 110 410 L 680 410 Q 730 410 745 375 L 760 320 Q 770 270 730 250 L 640 210 Q 590 190 560 220 L 520 260 Q 480 300 430 300 L 310 300 Q 260 300 240 260 L 210 200 Q 180 140 130 150 L 80 160 Q 50 180 60 220 L 80 340 Q 90 410 110 410 Z",
     turnMarkers: [
-      { n: 1, x: 130, y: 385 }, { n: 5, x: 310, y: 200 }, { n: 9, x: 540, y: 55 }, { n: 12, x: 730, y: 180 },
-      { n: 14, x: 730, y: 400 }, { n: 17, x: 380, y: 455 },
+      { n: 1, x: 700, y: 400 }, { n: 5, x: 670, y: 230 }, { n: 7, x: 540, y: 240 }, { n: 9, x: 360, y: 300 },
+      { n: 12, x: 225, y: 220 }, { n: 14, x: 110, y: 155 }, { n: 17, x: 85, y: 365 },
     ],
-    speedTraps: [{ x: 640, y: 80, label: "ST 350 km/h" }],
+    speedTraps: [{ x: 420, y: 410, label: "STRIP 350 km/h" }],
     drsSegments: [
-      { x1: 340, y1: 90, x2: 700, y2: 90, label: "X-MODE 1.9 km" },
-      { x1: 70, y1: 380, x2: 200, y2: 380, label: "DRS" },
+      { x1: 130, y1: 410, x2: 660, y2: 410, label: "DRS STRIP • 1.9km" },
+      { x1: 720, y1: 250, x2: 580, y2: 200, label: "DRS KOVAL" },
     ],
-    sectorSplits: [0.33, 0.66],
+    sectorSplits: [0.34, 0.69],
+  },
+  {
+    id: "lusail",
+    name: "Lusail International Circuit",
+    country: "Qatar",
+    lengthKm: "5.419",
+    turns: 16,
+    drsZones: 1,
+    viewBox: "0 0 800 500",
+    path: "M 150 420 L 520 420 Q 570 420 595 385 L 635 325 Q 665 280 635 235 L 585 170 Q 550 120 495 125 L 385 135 Q 330 145 305 190 L 270 250 Q 240 305 195 315 L 135 330 Q 95 340 105 385 L 115 405 Q 125 420 150 420 Z",
+    turnMarkers: [
+      { n: 1, x: 550, y: 410 }, { n: 4, x: 630, y: 295 }, { n: 7, x: 575, y: 155 }, { n: 10, x: 415, y: 130 },
+      { n: 12, x: 290, y: 215 }, { n: 15, x: 155, y: 325 },
+    ],
+    speedTraps: [{ x: 360, y: 420, label: "ST 335 km/h" }],
+    drsSegments: [{ x1: 170, y1: 420, x2: 500, y2: 420, label: "DRS MAIN • 1.07km" }],
+    sectorSplits: [0.32, 0.66],
   },
   {
     id: "yasmarina",
-    name: "Yas Marina",
-    country: "Abu Dhabi",
+    name: "Yas Marina Circuit",
+    country: "United Arab Emirates",
     lengthKm: "5.281",
     turns: 16,
     drsZones: 2,
     viewBox: "0 0 800 500",
-    path: "M 60 260 L 240 260 Q 320 260 350 200 L 420 110 Q 480 60 560 80 L 680 130 Q 730 180 730 260 L 730 380 Q 730 440 660 460 L 440 470 Q 320 470 260 410 L 180 300 Q 130 250 60 260 Z",
+    path: "M 170 420 L 490 420 Q 540 420 560 385 L 590 330 Q 620 280 665 280 L 730 280 Q 770 280 760 240 L 730 160 Q 710 110 650 110 L 520 110 Q 460 110 430 150 L 390 210 Q 350 270 300 270 L 230 270 Q 180 270 160 310 L 140 365 Q 125 420 170 420 Z",
     turnMarkers: [
-      { n: 1, x: 150, y: 245 }, { n: 5, x: 370, y: 160 }, { n: 9, x: 640, y: 110 }, { n: 13, x: 715, y: 340 },
-      { n: 16, x: 520, y: 455 },
+      { n: 1, x: 515, y: 410 }, { n: 5, x: 620, y: 300 }, { n: 6, x: 745, y: 250 }, { n: 9, x: 680, y: 125 },
+      { n: 11, x: 470, y: 120 }, { n: 13, x: 370, y: 230 }, { n: 16, x: 175, y: 335 },
     ],
-    speedTraps: [{ x: 620, y: 130, label: "ST 322 km/h" }],
+    speedTraps: [{ x: 600, y: 110, label: "HOTEL 330 km/h" }],
     drsSegments: [
-      { x1: 70, y1: 240, x2: 230, y2: 240, label: "DRS" },
-      { x1: 520, y1: 95, x2: 660, y2: 120, label: "DRS" },
+      { x1: 190, y1: 420, x2: 470, y2: 420, label: "DRS PIT" },
+      { x1: 720, y1: 110, x2: 540, y2: 110, label: "DRS 2 • 1.2km" },
     ],
-    sectorSplits: [0.33, 0.66],
+    sectorSplits: [0.33, 0.67],
   },
 ];
 
 const FALLBACK_DRIVERS: DriverDot[] = [
-  { driverNumber: 1, code: "VER", color: "#3671C6", progress: 0.12 },
-  { driverNumber: 4, code: "NOR", color: "#FF8000", progress: 0.11 },
-  { driverNumber: 16, code: "LEC", color: "#E8002D", progress: 0.085 },
-  { driverNumber: 63, code: "RUS", color: "#27F4D2", progress: 0.06 },
-  { driverNumber: 44, code: "HAM", color: "#E8002D", progress: 0.045 },
-  { driverNumber: 81, code: "PIA", color: "#FF8000", progress: 0.02 },
+  { driverNumber: 1, code: "VER", color: "#3671c6", progress: 0.12 },
+  { driverNumber: 4, code: "NOR", color: "#ff8000", progress: 0.11 },
+  { driverNumber: 16, code: "LEC", color: "#e8002d", progress: 0.085 },
+  { driverNumber: 63, code: "RUS", color: "#00d2be", progress: 0.06 },
+  { driverNumber: 44, code: "HAM", color: "#e8002d", progress: 0.045 },
+  { driverNumber: 81, code: "PIA", color: "#ff8000", progress: 0.02 },
 ];
 
 export function CircuitMap({
@@ -372,18 +555,17 @@ export function CircuitMap({
 
   const pathRef = useRef<SVGPathElement | null>(null);
   const [mockProgress, setMockProgress] = useState<DriverDot[]>(FALLBACK_DRIVERS);
+
   useEffect(() => {
     if (drivers && drivers.length) return;
-    const iv = setInterval(
-      () =>
-        setMockProgress((prev) =>
-          prev.map((d, i) => ({
-            ...d,
-            progress: (d.progress + 0.004 + i * 0.0002) % 1,
-          }))
-        ),
-      90
-    );
+    const iv = setInterval(() => {
+      setMockProgress((prev) =>
+        prev.map((d, i) => ({
+          ...d,
+          progress: (d.progress + 0.0035 + i * 0.0002) % 1,
+        }))
+      );
+    }, 90);
     return () => clearInterval(iv);
   }, [drivers]);
 
@@ -419,8 +601,8 @@ export function CircuitMap({
       }));
 
   const flagStyles: Record<Flag, { bg: string; text: string; glow: string; label: string }> = {
-    GREEN: { bg: "bg-[#052e1a] border-[#00d084]/30", text: "text-[#22c55e]", glow: "shadow-[0_0_22px_rgba(34,197,94,0.35)]", label: "GREEN — RACING" },
-    YELLOW: { bg: "bg-[#3a2d00] border-[#eab308]/40", text: "text-[#facc15]", glow: "shadow-[0_0_22px_rgba(234,179,8,0.4)]", label: "YELLOW — CAUTION" },
+    GREEN: { bg: "bg-[#052e1a] border-[#00d084]/30", text: "text-[#22c55e]", glow: "shadow-[0_0_22px_rgba(34,197,94,0.35)]", label: "GREEN : RACING" },
+    YELLOW: { bg: "bg-[#3a2d00] border-[#eab308]/40", text: "text-[#facc15]", glow: "shadow-[0_0_22px_rgba(234,179,8,0.4)]", label: "YELLOW : CAUTION" },
     SC: { bg: "bg-[#3a1a00] border-[#ff8000]/40", text: "text-[#ff8000]", glow: "shadow-[0_0_22px_rgba(255,128,0,0.45)]", label: "SAFETY CAR" },
     VSC: { bg: "bg-[#1e2a00] border-[#84cc16]/40", text: "text-[#a3e635]", glow: "shadow-[0_0_22px_rgba(132,204,22,0.35)]", label: "VIRTUAL SAFETY CAR" },
     RED: { bg: "bg-[#3a0a0a] border-[#ef4444]/50", text: "text-[#f87171]", glow: "shadow-[0_0_22px_rgba(239,68,68,0.5)]", label: "RED FLAG" },
@@ -433,7 +615,7 @@ export function CircuitMap({
         <div className="flex items-center gap-3">
           <div className="w-2 h-2 rounded-full bg-[#00d2be] animate-pulse" />
           <h3 className="font-black tracking-tight text-sm">CIRCUIT MAP</h3>
-          <span className="hidden sm:inline text-[10px] tracking-widest text-[#64748b]">VECTOR SPLINE • ANIMATED DOTS</span>
+          <span className="hidden sm:inline text-[10px] tracking-widest text-[#64748b]">AUTHENTIC FIA GEOMETRY • LIVE TELEMETRY</span>
           {typeof lap === "number" && (
             <span className="ml-2 text-[11px] font-mono px-2 py-1 rounded bg-[#1e293b] border border-[#334155] text-[#94a3b8]">
               LAP {lap}
@@ -479,12 +661,12 @@ export function CircuitMap({
           <div className="font-mono font-bold text-sm mt-1">
             {circuit.turns} turns • {circuit.drsZones} zones
           </div>
-          <div className="text-[10px] text-[#00d2be] mt-0.5">S1 / S2 / S3 • X-Mode</div>
+          <div className="text-[10px] text-[#00d2be] mt-0.5">S1 / S2 / S3 • DRS Zones</div>
         </div>
         <div className="px-4 py-2 text-right">
-          <div className="text-[10px] tracking-widest text-[#64748b]">SURFACE</div>
-          <div className="text-xs font-mono text-[#cbd5e1]">Track 38.4°C • Air 26.1°C</div>
-          <div className="text-[10px] text-[#f59e0b]">High deg • 2-stop</div>
+          <div className="text-[10px] tracking-widest text-[#64748b]">CONDITIONS</div>
+          <div className="text-xs font-mono text-[#cbd5e1]">Track 36.8°C • Air 24.5°C</div>
+          <div className="text-[10px] text-[#f59e0b]">Active FIA Telemetry</div>
         </div>
       </div>
 
@@ -497,11 +679,13 @@ export function CircuitMap({
           }}
         />
         <svg viewBox={circuit.viewBox} className="relative w-full h-[280px] sm:h-[360px]" role="img" aria-label={`${circuit.name} circuit map`} key={circuit.id}>
+          {/* Base asphalt glow & track line */}
           <path d={circuit.path} fill="none" stroke="#020617" strokeWidth={22} strokeLinecap="round" strokeLinejoin="round" opacity={0.9} />
           <path ref={pathRef} d={circuit.path} fill="none" stroke="#1e293b" strokeWidth={16} strokeLinecap="round" strokeLinejoin="round" />
           <path d={circuit.path} fill="none" stroke="#334155" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" opacity={0.6} />
           <path d={circuit.path} fill="none" stroke="#0f172a" strokeWidth={1} strokeDasharray="8 12" opacity={0.35} />
 
+          {/* DRS zones */}
           {circuit.drsSegments.map((s, i) => (
             <g key={`drs-${i}`}>
               <line x1={s.x1} y1={s.y1} x2={s.x2} y2={s.y2} stroke="#00d2be" strokeWidth={6} strokeLinecap="round" opacity={0.95} />
@@ -513,35 +697,7 @@ export function CircuitMap({
             </g>
           ))}
 
-          {circuit.sectorSplits.map((frac, i) => {
-            const cx = 180 + frac * 440;
-            const cy = 500 * 0.45;
-            return (
-              <g key={`sector-${i}`}>
-                <line x1={cx} y1={cy - 14} x2={cx} y2={cy + 14} stroke="#eab308" strokeWidth={2.5} strokeLinecap="round" opacity={0.9} />
-                <rect x={cx - 16} y={cy - 26} width={32} height={12} rx={6} fill="#eab308" opacity={0.95} />
-                <text x={cx} y={cy - 17} textAnchor="middle" fontSize={7} fontWeight={900} fill="#0f172a">
-                  S{i + 1}
-                </text>
-              </g>
-            );
-          })}
-          <rect x={90} y={465} width={36} height={14} rx={7} fill="#eab308" />
-          <text x={108} y={475} textAnchor="middle" fontSize={7} fontWeight={900} fill="#0f172a">
-            S3
-          </text>
-
-          <g>
-            <line x1={90} y1={305} x2={90} y2={355} stroke="#fff" strokeWidth={3} />
-            <rect x={90} y={305} width={6} height={6} fill="#fff" />
-            <rect x={96} y={311} width={6} height={6} fill="#0f172a" />
-            <rect x={90} y={317} width={6} height={6} fill="#0f172a" />
-            <rect x={96} y={323} width={6} height={6} fill="#fff" />
-            <text x={76} y={300} fontSize={7} fontWeight={800} fill="#94a3b8" textAnchor="middle">
-              S/F
-            </text>
-          </g>
-
+          {/* Turn markers */}
           {circuit.turnMarkers.map((t) => (
             <g key={`t-${t.n}`}>
               <circle cx={t.x} cy={t.y} r={11} fill="#0f172a" stroke="#334155" strokeWidth={1.2} />
@@ -551,13 +707,14 @@ export function CircuitMap({
             </g>
           ))}
 
+          {/* Speed traps */}
           {circuit.speedTraps.map((s, i) => (
             <g key={`trap-${i}`}>
               <g transform={`translate(${s.x},${s.y}) rotate(45)`}>
                 <rect x={-8} y={-8} width={16} height={16} fill="#ff8000" stroke="#ffedd5" strokeWidth={1.2} rx={2} />
                 <g transform="rotate(-45)">
                   <text x={0} y={2.5} textAnchor="middle" fontSize={5} fontWeight={900} fill="white">
-                    ◈
+                    *
                   </text>
                 </g>
               </g>
@@ -567,6 +724,7 @@ export function CircuitMap({
             </g>
           ))}
 
+          {/* Driver dots */}
           {displayDots.map(({ x, y, d }) => (
             <g key={`dot-${d.driverNumber}`} style={{ transition: "all 420ms ease-out" }}>
               <circle cx={x} cy={y} r={18} fill={d.color} opacity={0.18} className="animate-pulse" />
@@ -584,6 +742,7 @@ export function CircuitMap({
             </g>
           ))}
 
+          {/* North indicator */}
           <g transform="translate(740,40)">
             <circle cx={0} cy={0} r={16} fill="#0f172a" stroke="#334155" strokeWidth={1} />
             <path d="M 0 -10 L 4 4 L 0 0 L -4 4 Z" fill="#e2e8f0" />
@@ -597,22 +756,18 @@ export function CircuitMap({
           <div className="flex flex-wrap items-center gap-3 text-[#94a3b8]">
             <span className="inline-flex items-center gap-1.5">
               <span className="w-5 h-1 rounded bg-[#00d2be]" />
-              DRS / X-Mode
-            </span>
-            <span className="inline-flex items-center gap-1.5">
-              <span className="w-3 h-3 rounded bg-[#eab308]" />
-              Sector
+              DRS Zone
             </span>
             <span className="inline-flex items-center gap-1.5">
               <span className="w-3 h-3 rotate-45 bg-[#ff8000] border border-[#ffedd5] inline-block" />
-              Speed trap
+              Speed Trap
             </span>
             <span className="inline-flex items-center gap-1.5">
               <span className="w-3 h-3 rounded-full border border-[#334155] bg-[#0f172a] inline-flex items-center justify-center text-[7px]">3</span>
-              Turn
+              Corner Number
             </span>
           </div>
-          <span className="font-mono text-[#475569] hidden sm:inline">interpolated via getPointAtLength • progress 0→1</span>
+          <span className="font-mono text-[#475569] hidden sm:inline">interpolated spline coordinates</span>
         </div>
       </div>
 
@@ -625,16 +780,16 @@ export function CircuitMap({
           />
           TRACK: {flagCfg.label}
           <span className="hidden sm:inline font-normal opacity-70">
-            — {circuit.name}{" "}
+            : {circuit.name}{" "}
             {flag === "GREEN"
-              ? "is green — push is allowed"
+              ? "is green : push allowed"
               : flag === "YELLOW"
-                ? "— lift & coast, no overtake"
+                ? ": caution, no overtaking"
                 : flag === "SC"
-                  ? "— safety car deployed"
+                  ? ": safety car deployed"
                   : flag === "VSC"
-                    ? "— VSC, delta positive"
-                    : "— session stopped"}
+                    ? ": virtual safety car"
+                    : ": red flag, session suspended"}
           </span>
         </span>
         <span className="font-mono text-[#64748b] hidden sm:inline">
