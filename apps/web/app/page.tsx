@@ -454,7 +454,7 @@ export default function RacePage() {
       <div className="grid grid-cols-12 gap-4">
         <div className="col-span-12 lg:col-span-4"><TrackDominance rows={dominanceRows} leaderCode={leaderRow?.code ?? "VER"} /></div>
         <div className="col-span-12 lg:col-span-4"><StrategyBattle driverA={battlePair.a} driverB={battlePair.b} pitWindowDelta={battlePair.delta} overtakeProb={battlePair.prob} /></div>
-        <div className="col-span-12 lg:col-span-4"><EventFeed events={feedEvents} maxItems={12} /></div>
+        <div className="col-span-12 lg:col-span-4"><EventFeed events={feedEvents} maxItems={12} isOffTrack={mode === "OFF_TRACK"} /></div>
       </div>
 
       <div className="rounded-xl bg-[#0f172a] border border-[#1e293b] p-4">

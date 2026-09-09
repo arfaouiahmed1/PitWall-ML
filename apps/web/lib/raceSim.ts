@@ -9,7 +9,7 @@ import { DRIVER_FALLBACK } from "./drivers";
  * The GitHub Pages deployment has no backend to stream from, so this hook
  * advances a lightweight race model entirely in the browser: per-driver base
  * pace, tyre degradation, stochastic lap noise, occasional slow laps and pit
- * stops inside the classic 12–40 window. It keeps the dashboard alive without
+ * stops inside the classic 12 to 40 window. It keeps the dashboard alive without
  * touching the real WebSocket path : when a live replay connects, the page
  * simply passes `enabled=false` and the sim freezes.
  */
@@ -75,7 +75,7 @@ type SimWorld = {
 /**
  * Seed grid mirrors the static DRIVERS rows in app/page.tsx (lap-31 snapshot),
  * extended to all 8 DRIVER_FALLBACK entries. Base pace spans ~0.6 s so the
- * rendered laps land in the same 1:19–1:20 window every other surface on the
+ * rendered laps land in the same 1:19 to 1:20 window every other surface on the
  * dashboard already displays.
  */
 const SEED: Array<{

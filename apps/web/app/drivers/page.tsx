@@ -143,9 +143,29 @@ export default function DriversPage() {
           <div className="rounded-xl bg-[#0f172a] border border-[#1e293b] p-4">
             <div className="text-[11px] tracking-widest text-[#8b9bb4] font-bold">CORNER DELTA ANALYSIS</div>
             <div className="mt-3 grid grid-cols-3 gap-3 text-xs">
-              <div className="bg-[#080c14] border border-[#1e293b] rounded-lg p-3"><div className="text-[#8b9bb4] text-[10px]">SPEED AT APEX</div><div className="font-mono font-bold mt-1">{infoA?.code} 142 km/h vs {infoB?.code} 138 km/h • Δ +4</div><div className="text-[10px] text-[#22c55e]">A carries more apex speed</div></div>
-              <div className="bg-[#080c14] border border-[#1e293b] rounded-lg p-3"><div className="text-[#8b9bb4] text-[10px]">BRAKING POINT</div><div className="font-mono font-bold mt-1">{infoB?.code} 6m later</div><div className="text-[10px] text-[#ef4444]">later braking, higher entry risk</div></div>
-              <div className="bg-[#080c14] border border-[#1e293b] rounded-lg p-3"><div className="text-[#8b9bb4] text-[10px]">EXIT ACCELERATION</div><div className="font-mono font-bold mt-1">{infoA?.code} +0.12s advantage</div><div className="text-[10px] text-[#8b9bb4]">traction + X-Mode deployment</div></div>
+              <div className="bg-[#080c14] border border-[#1e293b] rounded-lg p-3">
+                <div className="text-[#8b9bb4] text-[10px]">SPEED AT APEX</div>
+                <div className="font-mono font-bold mt-1">
+                  {infoA?.code} {138 + Math.round((radarA.lowSpeed - radarB.lowSpeed) * 0.5)} km/h vs {infoB?.code} 138 km/h • Δ {radarA.lowSpeed >= radarB.lowSpeed ? "+" : ""}{Math.round((radarA.lowSpeed - radarB.lowSpeed) * 0.5)}
+                </div>
+                <div className="text-[10px] text-[#22c55e]">
+                  {radarA.lowSpeed >= radarB.lowSpeed ? `${infoA?.code} carries more apex speed` : `${infoB?.code} carries more apex speed`}
+                </div>
+              </div>
+              <div className="bg-[#080c14] border border-[#1e293b] rounded-lg p-3">
+                <div className="text-[#8b9bb4] text-[10px]">BRAKING POINT</div>
+                <div className="font-mono font-bold mt-1">
+                  {radarB.traction >= radarA.traction ? infoB?.code : infoA?.code} {Math.max(2, Math.abs(Math.round((radarB.traction - radarA.traction) * 0.4)))}m later
+                </div>
+                <div className="text-[10px] text-[#ef4444]">later braking, higher entry risk</div>
+              </div>
+              <div className="bg-[#080c14] border border-[#1e293b] rounded-lg p-3">
+                <div className="text-[#8b9bb4] text-[10px]">EXIT ACCELERATION</div>
+                <div className="font-mono font-bold mt-1">
+                  {radarA.traction >= radarB.traction ? infoA?.code : infoB?.code} +{Math.max(0.04, Math.abs((radarA.traction - radarB.traction) * 0.015)).toFixed(2)}s advantage
+                </div>
+                <div className="text-[10px] text-[#8b9bb4]">traction + X-Mode deployment</div>
+              </div>
             </div>
           </div>
         </div>

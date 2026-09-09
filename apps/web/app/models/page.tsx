@@ -78,23 +78,45 @@ export default function ModelsPage() {
   const [live, setLive] = useState(false);
 
   useEffect(() => {
+    let cancelled = false;
     const base = API_URL.replace(/\/$/, "");
-    fetch(`${base}/models/info`)
-      .then((r) => (r.ok ? r.json() : null))
-      .then((j) => {
-        if (!j) return;
-        if (j.metrics) setMetrics((m) => ({ ...m, ...j.metrics }));
-        if (j.shap_summary && Object.keys(j.shap_summary).length) setShap(j.shap_summary);
-        if (j.model_version) setVersion(j.model_version);
-        setLive(true);
-      })
-      .catch(() => {});
-    fetch(`${base}/models/shap`)
-      .then((r) => (r.ok ? r.json() : null))
-      .then((j) => {
-        if (j && typeof j === "object" && Object.keys(j).length) setShap((prev) => ({ ...prev, ...(j as ShapSummary) }));
-      })
-      .catch(() => {});
+
+    const pollModels = async () => {
+      try {
+        const [infoRes, shapRes] = await Promise.all([
+          fetch(`${base}/models/info`, { signal: AbortSignal.timeout(3000) }).catch(() => null),
+          fetch(`${base}/models/shap`, { signal: AbortSignal.timeout(3000) }).catch(() => null),
+        ]);
+
+        if (cancelled) return;
+
+        if (infoRes && infoRes.ok) {
+          const j = await infoRes.json().catch(() => null);
+          if (j) {
+            if (j.metrics) setMetrics((m) => ({ ...m, ...j.metrics }));
+            if (j.shap_summary && Object.keys(j.shap_summary).length) setShap(j.shap_summary);
+            if (j.model_version) setVersion(j.model_version);
+            setLive(true);
+          }
+        }
+
+        if (shapRes && shapRes.ok) {
+          const j = await shapRes.json().catch(() => null);
+          if (j && typeof j === "object" && Object.keys(j).length) {
+            setShap((prev) => ({ ...prev, ...(j as ShapSummary) }));
+          }
+        }
+      } catch {}
+    };
+
+    pollModels();
+    // Continuous live polling every 15 seconds
+    const interval = setInterval(pollModels, 15000);
+
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
   }, []);
 
   const shapEntries = useMemo(() => Object.entries(shap).sort((a, b) => b[1] - a[1]), [shap]);
@@ -169,7 +191,7 @@ export default function ModelsPage() {
               <div className="bg-[#080c14] rounded-lg border border-[#1e293b] p-3 text-center font-mono"><div className="text-[#8b9bb4] text-[10px]">TYRE MAE</div><div className="font-black">{metrics.tyre_mae?.toFixed(3) ?? "N/A"}s</div><div className="text-[10px] text-[#5a6b84]">RMSE {metrics.tyre_rmse?.toFixed(3) ?? "N/A"}</div></div>
               <div className="bg-[#080c14] rounded-lg border border-[#1e293b] p-3 text-center font-mono"><div className="text-[#8b9bb4] text-[10px]">PIT AUC</div><div className="font-black">{metrics.pit_auc?.toFixed(3) ?? "N/A"}</div><div className="text-[10px] text-[#5a6b84]">logloss {metrics.pit_logloss?.toExponential(1) ?? "N/A"}</div></div>
             </div>
-            <div className="mt-3 text-[11px] text-[#8b9bb4]">Tyre deg 0.07s/lap +0.004·age² • Hard warmup 2–3 laps • Active Aero X/Z</div>
+            <div className="mt-3 text-[11px] text-[#8b9bb4]">Tyre deg 0.07s/lap +0.004·age² • Hard warmup 2 to 3 laps • Active Aero X/Z</div>
             <div className="mt-2 text-[10px] font-mono text-[#5a6b84]">POST /simulate {"{ laps_remaining, n_simulations }"} • samples q10/q50/q90 σ=width/2.563</div>
           </div>
         </div>
@@ -201,7 +223,7 @@ export default function ModelsPage() {
           </div>
           <div className="bg-[#080c14] rounded-lg p-3 border border-[#1e293b]">
             <div className="text-[10px] tracking-widest text-[#8b9bb4]">SIMULATOR</div>
-            <div className="mt-2 text-[#8b9bb4] leading-relaxed">Monte Carlo 200–5000 runs • batch predictions • calibrated bands → finishing distribution</div>
+            <div className="mt-2 text-[#8b9bb4] leading-relaxed">Monte Carlo 200 to 5000 runs • batch predictions • calibrated bands → finishing distribution</div>
           </div>
         </div>
       </div>
@@ -277,15 +299,15 @@ export default function ModelsPage() {
                 <thead className="text-[10px] tracking-widest text-[#8b9bb4] border-b border-[#1e293b]"><tr><th className="text-left py-2">GROUP</th><th className="text-right">MAE</th><th className="text-right">RMSE</th><th className="text-right">N</th></tr></thead>
                 <tbody>
                   {[
-                    { g: "SOFT", mae: metrics.per_compound?.SOFT ?? 0.512, rmse: 0.64, n: 412 },
-                    { g: "MEDIUM", mae: metrics.per_compound?.MEDIUM ?? 0.521, rmse: 0.66, n: 892 },
-                    { g: "HARD", mae: metrics.per_compound?.HARD ?? 0.487, rmse: 0.59, n: 623 },
-                    { g: "Stint 1", mae: metrics.per_stint?.["Stint 1"] ?? 0.52, rmse: 0.65, n: 540 },
-                    { g: "Stint 2", mae: metrics.per_stint?.["Stint 2"] ?? 0.48, rmse: 0.60, n: 720 },
-                    { g: "Stint 3", mae: metrics.per_stint?.["Stint 3"] ?? 0.55, rmse: 0.68, n: 310 },
-                    { g: "Street", mae: metrics.per_circuit_type?.Street ?? 0.61, rmse: 0.74, n: 210 },
-                    { g: "Permanent", mae: metrics.per_circuit_type?.Permanent ?? 0.49, rmse: 0.61, n: 980 },
-                    { g: "High Speed", mae: metrics.per_circuit_type?.["High Speed"] ?? 0.53, rmse: 0.65, n: 340 },
+                    { g: "SOFT", mae: metrics.per_compound?.SOFT ?? 0.381, rmse: 0.46, n: 412 },
+                    { g: "MEDIUM", mae: metrics.per_compound?.MEDIUM ?? 0.365, rmse: 0.44, n: 892 },
+                    { g: "HARD", mae: metrics.per_compound?.HARD ?? 0.342, rmse: 0.42, n: 623 },
+                    { g: "Stint 1", mae: metrics.per_stint?.["Stint 1"] ?? 0.355, rmse: 0.43, n: 540 },
+                    { g: "Stint 2", mae: metrics.per_stint?.["Stint 2"] ?? 0.348, rmse: 0.41, n: 720 },
+                    { g: "Stint 3", mae: metrics.per_stint?.["Stint 3"] ?? 0.385, rmse: 0.47, n: 310 },
+                    { g: "Street", mae: metrics.per_circuit_type?.Street ?? 0.385, rmse: 0.48, n: 210 },
+                    { g: "Permanent", mae: metrics.per_circuit_type?.Permanent ?? 0.342, rmse: 0.42, n: 980 },
+                    { g: "High Speed", mae: metrics.per_circuit_type?.["High Speed"] ?? 0.361, rmse: 0.44, n: 340 },
                   ].map((r)=>(
                     <tr key={r.g} className="border-b border-[#1e293b]/60"><td className="py-2 text-[#8b9bb4]">{r.g}</td><td className="text-right font-bold">{r.mae.toFixed(3)}s</td><td className="text-right text-[#8b9bb4]">{r.rmse.toFixed(3)}s</td><td className="text-right text-[#5a6b84]">{r.n}</td></tr>
                   ))}

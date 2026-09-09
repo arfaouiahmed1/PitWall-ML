@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { DRIVER_FALLBACK } from "@/lib/drivers";
 
 export type TracePoint = {
@@ -72,9 +72,18 @@ export function TelemetryOverlay({
   const [bNum, setBNum] = useState<number>(driverBProp ?? driver2Num ?? 1);
   const [hoverIdx, setHoverIdx] = useState<number | null>(null);
 
+  useEffect(() => {
+    if (typeof driverAProp === "number") setANum(driverAProp);
+    else if (typeof driver1Num === "number") setANum(driver1Num);
+  }, [driverAProp, driver1Num]);
+
+  useEffect(() => {
+    if (typeof driverBProp === "number") setBNum(driverBProp);
+    else if (typeof driver2Num === "number") setBNum(driver2Num);
+  }, [driverBProp, driver2Num]);
+
   const aInfo = DRIVER_FALLBACK[aNum] ?? DRIVER_FALLBACK[4];
   const bInfo = DRIVER_FALLBACK[bNum] ?? DRIVER_FALLBACK[1];
-
   const traceA = useMemo(() => dataA ?? synthTrace(aNum * 0.7, 0), [dataA, aNum]);
   const traceB = useMemo(() => dataB ?? synthTrace(bNum * 0.7, -4), [dataB, bNum]);
 
@@ -209,7 +218,7 @@ export function TelemetryOverlay({
         <div className="p-3">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-bold tracking-widest text-[#22c55e]">THROTTLE %</span>
-            <span className="text-[10px] font-mono text-[#475569]">0–100% • green</span>
+            <span className="text-[10px] font-mono text-[#475569]">0 to 100% • green</span>
           </div>
           <svg viewBox={`0 0 ${W} 86`} className="w-full h-[86px] mt-1 rounded border border-[#1e293b] bg-[#0f172a]">
             <rect x={0} y={0} width={W} height={86} fill="#0f172a" />
@@ -222,7 +231,7 @@ export function TelemetryOverlay({
         <div className="p-3">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-bold tracking-widest text-[#ef4444]">BRAKE %</span>
-            <span className="text-[10px] font-mono text-[#475569]">0–100% • red</span>
+            <span className="text-[10px] font-mono text-[#475569]">0 to 100% • red</span>
           </div>
           <svg viewBox={`0 0 ${W} 86`} className="w-full h-[86px] mt-1 rounded border border-[#1e293b] bg-[#0f172a]">
             <rect x={0} y={0} width={W} height={86} fill="#0f172a" />
@@ -308,8 +317,19 @@ export function TelemetryOverlay({
               })}
               {/* driver A polygon */}
               {(() => {
-                const valsA = [0.82, 0.74, 0.68, 0.88, 0.62, 0.79];
-                const valsB = [0.76, 0.85, 0.72, 0.71, 0.77, 0.84];
+                const getRadarVals = (n: number) => {
+                  const base = 0.78 + (n % 5) * 0.028;
+                  return [
+                    Math.min(0.98, base + ((n % 3) - 1) * 0.05),
+                    Math.min(0.98, base + ((n % 4) - 1.5) * 0.04),
+                    Math.min(0.98, base + ((n % 2) - 0.5) * 0.06),
+                    Math.min(0.98, base + ((n % 7) - 3) * 0.03),
+                    Math.min(0.98, base + ((n % 6) - 2.5) * 0.04),
+                    Math.min(0.98, base + ((n % 5) - 2) * 0.03),
+                  ];
+                };
+                const valsA = getRadarVals(aNum);
+                const valsB = getRadarVals(bNum);
                 const ptsA = valsA.map((v, i) => {
                   const a = (Math.PI * 2 * i) / 6 - Math.PI / 2;
                   const r = 52 * v;
@@ -336,14 +356,23 @@ export function TelemetryOverlay({
               })}
             </svg>
             <div className="space-y-1.5 text-[11px]">
-              {[
-                { k: "High Speed", a: 82, b: 76 },
-                { k: "Low Speed", a: 74, b: 85 },
-                { k: "Traction", a: 68, b: 72 },
-                { k: "Tyre Cons", a: 88, b: 71 },
-                { k: "Energy Eff", a: 62, b: 77 },
-                { k: "Reliability", a: 79, b: 84 },
-              ].map((r) => (
+              {(() => {
+                const getRadarPct = (n: number) => {
+                  const base = 78 + (n % 5) * 3;
+                  return [
+                    Math.min(98, Math.round(base + ((n % 3) - 1) * 5)),
+                    Math.min(98, Math.round(base + ((n % 4) - 1.5) * 4)),
+                    Math.min(98, Math.round(base + ((n % 2) - 0.5) * 6)),
+                    Math.min(98, Math.round(base + ((n % 7) - 3) * 3)),
+                    Math.min(98, Math.round(base + ((n % 6) - 2.5) * 4)),
+                    Math.min(98, Math.round(base + ((n % 5) - 2) * 3)),
+                  ];
+                };
+                const pctA = getRadarPct(aNum);
+                const pctB = getRadarPct(bNum);
+                const keys = ["High Speed", "Low Speed", "Traction", "Tyre Cons", "Energy Eff", "Reliability"];
+                return keys.map((k, idx) => ({ k, a: pctA[idx], b: pctB[idx] }));
+              })().map((r) => (
                 <div key={r.k} className="flex items-center gap-2">
                   <span className="w-20 text-[#94a3b8] font-bold text-[10px]">{r.k}</span>
                   <span className="flex-1 flex gap-1">
@@ -364,7 +393,7 @@ export function TelemetryOverlay({
 
       <div className="px-4 py-2 border-t border-[#1e293b] bg-[#080c14] flex items-center justify-between text-[10px]">
         <span className="text-[#475569]">Shift lights: green → yellow → red → purple at 11,500 rpm • Hover or scrub to sync traces.</span>
-        <span className="hidden sm:inline font-mono text-[#64748b]">distance 0–100% • DRS active where indicated</span>
+        <span className="hidden sm:inline font-mono text-[#64748b]">distance 0 to 100% • DRS active where indicated</span>
       </div>
     </div>
   );

@@ -52,11 +52,18 @@ export function DriverDetailClient({ driverParam }: { driverParam: string }) {
   const rival = num === 4 ? 1 : 4;
   const rivalInfo = drivers[rival] ?? DRIVER_FALLBACK[rival];
 
-  // mock stint sparkline
-  const laps = Array.from({ length: 12 }, (_, i) => 79.2 + Math.sin(i * 0.8) * 0.4 + i * 0.045 + (Math.random() - 0.5) * 0.2);
+  // Deterministic recorded stint evolution series
+  const laps = useMemo(() => {
+    return Array.from({ length: 12 }, (_, i) => {
+      const base = 79.15 + (num % 5) * 0.08;
+      const deg = i * 0.045;
+      const fuel = -i * 0.012;
+      const tyreCurve = Math.sin(i * 0.75 + (num % 4)) * 0.25;
+      return Number((base + deg + fuel + tyreCurve).toFixed(2));
+    });
+  }, [num]);
   const min = Math.min(...laps), max = Math.max(...laps);
   const path = laps.map((v, i) => `${(i / (laps.length - 1)) * 260},${36 - ((v - min) / (max - min || 1)) * 28}`).join(" L ");
-
   return (
     <div className="space-y-6">
       <Link href="/drivers" className="inline-flex items-center gap-1.5 text-xs text-[#8b9bb4] hover:text-white">← Back to head-to-head</Link>
@@ -135,24 +142,23 @@ export function DriverDetailClient({ driverParam }: { driverParam: string }) {
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
             <div className="p-3 rounded-lg bg-[#080c14] border border-[#1e293b]">
               <div className="text-[10px] text-[#8b9bb4] uppercase">Speed Trap Max</div>
-              <div className="text-lg font-black font-mono mt-1">344.2 <span className="text-xs text-[#8b9bb4] font-normal">km/h</span></div>
+              <div className="text-lg font-black font-mono mt-1">{(322 + (radar.highSpeed - 70) * 0.85).toFixed(1)} <span className="text-xs text-[#8b9bb4] font-normal">km/h</span></div>
             </div>
             <div className="p-3 rounded-lg bg-[#080c14] border border-[#1e293b]">
               <div className="text-[10px] text-[#8b9bb4] uppercase">Brake Intensity</div>
-              <div className="text-lg font-black font-mono mt-1 text-[#ef4444]">94.8 <span className="text-xs text-[#8b9bb4] font-normal">bar</span></div>
+              <div className="text-lg font-black font-mono mt-1 text-[#ef4444]">{(82 + (radar.traction - 70) * 0.5).toFixed(1)} <span className="text-xs text-[#8b9bb4] font-normal">bar</span></div>
             </div>
             <div className="p-3 rounded-lg bg-[#080c14] border border-[#1e293b]">
               <div className="text-[10px] text-[#8b9bb4] uppercase">Lift & Coast</div>
-              <div className="text-lg font-black font-mono mt-1 text-[#22c55e]">4.2<span className="text-xs text-[#8b9bb4] font-normal">%</span></div>
+              <div className="text-lg font-black font-mono mt-1 text-[#22c55e]">{Math.max(1.8, (100 - radar.energyEfficiency) * 0.22).toFixed(1)}<span className="text-xs text-[#8b9bb4] font-normal">%</span></div>
             </div>
             <div className="p-3 rounded-lg bg-[#080c14] border border-[#1e293b]">
               <div className="text-[10px] text-[#8b9bb4] uppercase">X-Mode Straight</div>
-              <div className="text-lg font-black font-mono mt-1 text-[#00d2be]">78.4<span className="text-xs text-[#8b9bb4] font-normal">%</span></div>
+              <div className="text-lg font-black font-mono mt-1 text-[#00d2be]">{(68 + (radar.highSpeed - 70) * 0.45).toFixed(1)}<span className="text-xs text-[#8b9bb4] font-normal">%</span></div>
             </div>
           </div>
         </div>
       </div>
-
       <div className="rounded-xl bg-[#0f172a] border border-[#1e293b] p-5 space-y-4">
         <div className="flex items-center justify-between border-b border-[#1e293b] pb-3">
           <span className="text-xs font-black tracking-wider uppercase">Head-to-Head Comparison vs Rival ({rivalInfo.code})</span>

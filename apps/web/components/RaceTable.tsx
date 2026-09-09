@@ -177,7 +177,7 @@ export function RaceTable({ rows }: { rows: RaceRow[] | any[] }) {
         <div className="flex items-center gap-2">
           <span className="w-2 h-2 rounded-full bg-[#ff1801] shadow-[0_0_8px_rgba(255,24,1,0.6)] animate-pulse" />
           <h2 className="font-black tracking-tight text-sm">RACE LEADERBOARD : LIVE PREDICTIONS</h2>
-          <span className="hidden lg:inline text-[10px] tracking-widest px-2 py-1 rounded-full bg-[#1e293b] border border-[#334155] text-[#64748b]">q10–q50–q90 • Monte Carlo 1k</span>
+          <span className="hidden lg:inline text-[10px] tracking-widest px-2 py-1 rounded-full bg-[#1e293b] border border-[#334155] text-[#64748b]">q10-q50-q90 • Monte Carlo 1k</span>
         </div>
         <span className="hidden sm:inline text-[11px] text-[#64748b]">hover row → SHAP + sparkline</span>
       </div>

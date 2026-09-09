@@ -46,12 +46,14 @@ export function EventFeed({
   events,
   maxItems = 12,
   title = "LIVE EVENT FEED",
+  isOffTrack = false,
 }: {
   events?: FeedEvent[];
   maxItems?: number;
   title?: string;
+  isOffTrack?: boolean;
 }) {
-  const feed = events && events.length ? events : MOCK_EVENTS;
+  const feed = isOffTrack ? [] : events && events.length ? events : MOCK_EVENTS;
   const visible = feed.slice(0, maxItems);
   const [liveIdx, setLiveIdx] = useState(0);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -84,7 +86,10 @@ export function EventFeed({
 
       <div ref={scrollRef} className="flex-1 overflow-auto max-h-[380px] divide-y divide-[#1e293b]/60 bg-[#080c14] scroll-smooth">
         {visible.length === 0 ? (
-          <div className="p-6 text-center text-sm text-[#64748b]">No events : waiting for race control…</div>
+          <div className="p-8 text-center space-y-2">
+            <div className="text-xs font-mono font-bold text-[#8b9bb4]">NO ACTIVE RACE CONTROL EVENTS</div>
+            <div className="text-[11px] text-[#5a6b84]">Event stream and safety car flags arm automatically upon session green light.</div>
+          </div>
         ) : (
           visible.map((e, idx) => {
             const meta = typeMeta(e.type);

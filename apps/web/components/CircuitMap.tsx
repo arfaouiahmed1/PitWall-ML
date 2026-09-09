@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useLiveWeather } from "@/lib/liveWeather";
 
 export type DriverDot = {
   driverNumber: number;
@@ -552,7 +553,7 @@ export function CircuitMap({
     () => CIRCUITS.find((c) => c.id === activeId) ?? CIRCUITS.find((c) => c.id === "barcelona")!,
     [activeId]
   );
-
+  const { weather } = useLiveWeather(circuit.id);
   const pathRef = useRef<SVGPathElement | null>(null);
   const [mockProgress, setMockProgress] = useState<DriverDot[]>(FALLBACK_DRIVERS);
 
@@ -665,8 +666,11 @@ export function CircuitMap({
         </div>
         <div className="px-4 py-2 text-right">
           <div className="text-[10px] tracking-widest text-[#64748b]">CONDITIONS</div>
-          <div className="text-xs font-mono text-[#cbd5e1]">Track 36.8°C • Air 24.5°C</div>
-          <div className="text-[10px] text-[#f59e0b]">Active FIA Telemetry</div>
+          <div className="text-xs font-mono text-[#cbd5e1]">Track {weather.trackTempC.toFixed(1)}°C • Air {weather.airTempC.toFixed(1)}°C</div>
+          <div className="text-[10px] text-[#00d2be] font-mono flex items-center justify-end gap-1">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#00d2be] animate-pulse" />
+            {weather.condition}
+          </div>
         </div>
       </div>
 
