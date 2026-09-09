@@ -90,7 +90,7 @@ export default function RacePage() {
             if (msg.race_state?.flag) setFlag(msg.race_state.flag as FlagStatus);
             if (msg.race_state?.latency_ms) setLatencyMs(msg.race_state.latency_ms);
             const ev: FeedEvent = {
-              id: `ws-${Date.now()}-${Math.random()}`,
+              id: `ws-${Date.now()}-${msg.race_state?.lap ?? 0}-${msg.event?.driver_number ?? 0}`,
               lap: msg.race_state?.lap ?? lap,
               type: msg.event?.event_type ?? "ANOMALY",
               text: `${msg.event?.driver_number ?? ""} ${msg.event?.event_type ?? "update"} ${msg.prediction ? `${msg.prediction.q50}s` : ""}`.trim() || JSON.stringify(msg).slice(0, 80),

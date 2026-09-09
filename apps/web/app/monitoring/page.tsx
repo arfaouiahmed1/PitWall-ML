@@ -72,7 +72,7 @@ export default function MonitoringPage() {
               wasserstein: j.wasserstein ?? j.overall_wasserstein ?? prev.wasserstein,
               psi: j.psi ?? j.overall_psi ?? prev.psi,
               js: j.js ?? j.overall_js ?? prev.js,
-              health: j.health ? { ...j.health, freshness_s: Number((Math.random() * 0.4 + 0.8).toFixed(1)) } : prev.health,
+              health: j.health ? { ...j.health, freshness_s: Number(j.health.freshness_s ?? 1.2) } : prev.health,
             }));
             if (j.drift_features && Array.isArray(j.drift_features)) {
               setDriftRows(j.drift_features);

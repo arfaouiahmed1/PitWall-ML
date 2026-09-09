@@ -27,8 +27,8 @@ function synthTrace(seed: number, offset: number): TracePoint[] {
     const corner = Math.sin((d / 100) * Math.PI * 6 + seed) * 0.5 + 0.5;
     const straightBoost = d > 12 && d < 28 ? 0.9 : d > 58 && d < 78 ? 0.85 : 0;
     const speed = 88 + corner * -42 + straightBoost * 62 + Math.sin(d * 0.3 + seed) * 4 + offset;
-    const throttle = d > 15 && d < 30 ? 100 : corner < 0.3 ? 28 : 78 + Math.random() * 18;
-    const brake = corner < 0.22 && d % 18 < 7 ? 88 - corner * 60 : Math.random() * 8;
+    const throttle = d > 15 && d < 30 ? 100 : corner < 0.3 ? 28 : Math.round(82 + Math.sin(d * 0.45 + seed) * 14);
+    const brake = corner < 0.22 && d % 18 < 7 ? Math.round(88 - corner * 60) : Math.round(Math.max(0, Math.sin(d * 0.3 + seed) * 4));
     const gear = speed > 285 ? 8 : speed > 255 ? 7 : speed > 210 ? 6 : speed > 165 ? 5 : speed > 125 ? 4 : 3;
     const drs = (d > 14 && d < 28) || (d > 60 && d < 77);
     pts.push({
