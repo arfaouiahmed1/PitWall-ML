@@ -1,0 +1,20 @@
+{
+  "feature_cols": [
+    "tyre_age",
+    "tyre_age_sq",
+    "stint_no",
+    "lap_number",
+    "race_progress",
+    "position",
+    "rolling_median_5",
+    "rolling_std_5",
+    "compound"
+  ],
+  "params": {
+    "n_estimators": 150,
+    "learning_rate": 0.08,
+    "num_leaves": 12
+  },
+  "version": "v2-pit",
+  "horizon": 3
+}

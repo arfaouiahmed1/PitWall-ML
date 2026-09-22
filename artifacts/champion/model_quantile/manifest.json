@@ -1,0 +1,26 @@
+{
+  "feature_cols": [
+    "tyre_age",
+    "stint_no",
+    "lap_number",
+    "position",
+    "rolling_median_3",
+    "rolling_median_5",
+    "rolling_std_5",
+    "compound",
+    "team_id",
+    "driver_id",
+    "race_progress"
+  ],
+  "alphas": [
+    0.1,
+    0.5,
+    0.9
+  ],
+  "base_params": {
+    "n_estimators": 100,
+    "learning_rate": 0.1,
+    "num_leaves": 15
+  },
+  "version": "v2-quantile"
+}

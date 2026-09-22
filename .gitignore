@@ -10,10 +10,9 @@ dist/
 build/
 artifacts/*
 !artifacts/.gitkeep
-# Champion registry state is committed (lightweight JSON only — never binaries).
+# Champion model artifacts are bundled in git
 !artifacts/champion/
-artifacts/champion/**
-!artifacts/champion/*.json
+!artifacts/champion/**
 artifacts/smoke/
 artifacts/candidate/
 
