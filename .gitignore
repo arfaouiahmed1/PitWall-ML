@@ -28,6 +28,9 @@ mlartifacts/
 mlruns/
 *.parquet
 *.db
+# Curated bronze replay data is tracked in git
+!data/bronze/
+!data/bronze/**
 
 # Node
 node_modules/
