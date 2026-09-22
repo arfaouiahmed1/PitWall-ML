@@ -660,6 +660,7 @@ def _add_hard_compound_features(df: pl.DataFrame) -> pl.DataFrame:
 
     return df
 
+
 def _add_sector_momentum_features(df: pl.DataFrame, group_cols: list[str]) -> pl.DataFrame:
     """Corner exit momentum propagation & sector split features."""
     # 1. Normalize sector duration to float seconds if not already present
@@ -695,9 +696,7 @@ def _add_sector_momentum_features(df: pl.DataFrame, group_cols: list[str]) -> pl
         ("SpeedST", "speed_st_delta"),
     ]:
         if sp in df.columns and group_cols:
-            df = df.with_columns(
-                pl.col(sp).cast(pl.Float64, strict=False).alias(sp)
-            )
+            df = df.with_columns(pl.col(sp).cast(pl.Float64, strict=False).alias(sp))
             df = df.with_columns(
                 (pl.col(sp) - pl.col(sp).median().over(group_cols)).fill_null(0.0).alias(sp_delta)
             )
@@ -707,7 +706,9 @@ def _add_sector_momentum_features(df: pl.DataFrame, group_cols: list[str]) -> pl
     # 4. Pace offsets vs rolling medians
     if "lap_time_s" in df.columns and "rolling_median_3" in df.columns:
         df = df.with_columns(
-            (pl.col("lap_time_s") - pl.col("rolling_median_3")).fill_null(0.0).alias("pace_offset_r3")
+            (pl.col("lap_time_s") - pl.col("rolling_median_3"))
+            .fill_null(0.0)
+            .alias("pace_offset_r3")
         )
     else:
         df = df.with_columns(pl.lit(0.0).alias("pace_offset_r3"))
@@ -751,17 +752,20 @@ def build_pace_features(
         from pitwall.features.race_decomposition import traffic_loss_factor_expr
 
         if "rolling_median_5" in df.columns:
-            _resid = pl.when(pl.col("rolling_median_5").is_null()).then(0.0).otherwise(
-                (pl.col("lap_time_s") - pl.col("rolling_median_5")).clip(0.0)
+            _resid = (
+                pl.when(pl.col("rolling_median_5").is_null())
+                .then(0.0)
+                .otherwise((pl.col("lap_time_s") - pl.col("rolling_median_5")).clip(0.0))
             )
         else:
             _resid = pl.lit(0.0)
         df = df.with_columns(
-            (_resid * traffic_loss_factor_expr(pl.col("gap_ahead_s"))).fill_null(0.0).alias("traffic_loss_s")
+            (_resid * traffic_loss_factor_expr(pl.col("gap_ahead_s")))
+            .fill_null(0.0)
+            .alias("traffic_loss_s")
         )
     else:
         df = df.with_columns(pl.lit(0.0).alias("traffic_loss_s"))
-
 
     # Target: next lap time per driver/session
     # Shift -1 within group so row t predicts lap t+1
@@ -786,9 +790,8 @@ def build_pace_features(
         # safety-car / red-flag crossovers that the median can't see.
         med = pl.col("rolling_median_5")
         sci = pl.col("next_clean_lap_s")
-        outlier_next = (
-            (med.is_not_null() & (sci > _TARGET_OUTLIER_FACTOR * med))
-            | (med.is_null() & (sci > 1.25 * pl.col("lap_time_s") + 10.0))
+        outlier_next = (med.is_not_null() & (sci > _TARGET_OUTLIER_FACTOR * med)) | (
+            med.is_null() & (sci > 1.25 * pl.col("lap_time_s") + 10.0)
         )
         keep_target = green_now & green_next & ~outlier_next
         df = df.with_columns(

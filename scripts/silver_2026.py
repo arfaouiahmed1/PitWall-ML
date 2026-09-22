@@ -3,6 +3,7 @@
 Practices, quals, sprints, and races all become silver laps with the FastF1
 schema so the feature builder and trained models work unchanged.
 """
+
 from __future__ import annotations
 
 import pathlib

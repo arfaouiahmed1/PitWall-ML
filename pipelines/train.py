@@ -896,18 +896,23 @@ def main() -> None:
             cal_window = cfg.get("training", {}).get("cqr_window_races", 3)
             if "session_id" in train_df.columns:
                 train_sessions = (
-                    train_df.select("session_id").unique()
-                    .sort("session_id")["session_id"].to_list()
+                    train_df.select("session_id")
+                    .unique()
+                    .sort("session_id")["session_id"]
+                    .to_list()
                 )
-                recent_train = train_sessions[-(cal_window - 1):]
+                recent_train = train_sessions[-(cal_window - 1) :]
                 _rolling_cal_sessions = recent_train + (
                     valid_df.select("session_id").unique()["session_id"].to_list()
-                    if "session_id" in valid_df.columns else []
+                    if "session_id" in valid_df.columns
+                    else []
                 )
-                rolling_cal_df = pl.concat([
-                    train_df.filter(pl.col("session_id").is_in(recent_train)),
-                    valid_df,
-                ])
+                rolling_cal_df = pl.concat(
+                    [
+                        train_df.filter(pl.col("session_id").is_in(recent_train)),
+                        valid_df,
+                    ]
+                )
             else:
                 rolling_cal_df = valid_df
         except Exception:
@@ -942,17 +947,22 @@ def main() -> None:
     try:
         if "compound" in test_df.columns and len(y_true) == len(test_df):
             from pitwall.evaluation.metrics import mae as mae_fn
+
             hard_mask = (test_df["compound"] == "HARD").to_numpy()[: len(y_true)]
             if hard_mask.sum() >= 5:
                 y_hard = y_true[hard_mask]
                 q_hard = q50[hard_mask]
                 hard_bias = float(np.mean(y_hard - q_hard))
-                print(f"Hard compound bias (mean residual): {hard_bias:+.4f}s (n={hard_mask.sum()})")
+                print(
+                    f"Hard compound bias (mean residual): {hard_bias:+.4f}s (n={hard_mask.sum()})"
+                )
                 # Corrected Hard MAE after additive bias shift
                 corrected_hard_mae = float(mae_fn(y_hard, q_hard + hard_bias))
                 metrics["hard_bias_correction_s"] = hard_bias
                 metrics["hard_mae_bias_corrected"] = corrected_hard_mae
-                print(f"Hard MAE: raw={metrics.get('per_compound', {}).get('HARD', 'n/a')} -> bias-corrected={corrected_hard_mae:.3f}s")
+                print(
+                    f"Hard MAE: raw={metrics.get('per_compound', {}).get('HARD', 'n/a')} -> bias-corrected={corrected_hard_mae:.3f}s"
+                )
     except Exception as _hb_err:
         print(f"Hard bias correction skipped: {_hb_err}")
 
@@ -997,14 +1007,20 @@ def main() -> None:
     _hybrid_model_to_save: HybridPaceModel | None = None
     try:
         print("Training HybridPaceModel (Stage 1 Physics + Stage 2 Quantile Residual)...")
-        _target_delta = "target_delta_s" if "target_delta_s" in train_df.columns else "next_clean_lap_s"
+        _target_delta = (
+            "target_delta_s" if "target_delta_s" in train_df.columns else "next_clean_lap_s"
+        )
         _tr_clean = (
-            train_df.filter(pl.col("target_delta_s").is_not_null() & (pl.col("target_delta_s").abs() < 2.5))
+            train_df.filter(
+                pl.col("target_delta_s").is_not_null() & (pl.col("target_delta_s").abs() < 2.5)
+            )
             if "target_delta_s" in train_df.columns
             else train_df
         )
         _val_clean = (
-            valid_df.filter(pl.col("target_delta_s").is_not_null() & (pl.col("target_delta_s").abs() < 2.5))
+            valid_df.filter(
+                pl.col("target_delta_s").is_not_null() & (pl.col("target_delta_s").abs() < 2.5)
+            )
             if valid_df is not None and "target_delta_s" in valid_df.columns
             else valid_df
         )
@@ -1017,7 +1033,9 @@ def main() -> None:
 
         # Evaluate on test
         _te_clean = (
-            test_df.filter(pl.col("target_delta_s").is_not_null() & (pl.col("target_delta_s").abs() < 2.5))
+            test_df.filter(
+                pl.col("target_delta_s").is_not_null() & (pl.col("target_delta_s").abs() < 2.5)
+            )
             if "target_delta_s" in test_df.columns
             else test_df
         )
@@ -1034,7 +1052,9 @@ def main() -> None:
             metrics["hybrid_coverage_80"] = float(
                 np.mean((_y_hyb_true >= _hyb_q[0.1]) & (_y_hyb_true <= _hyb_q[0.9]))
             )
-            print(f"HybridPaceModel: MAE = {_hyb_mae:.4f}s ({_hyb_mae*1000:.1f}ms) | RMSE = {_hyb_rmse:.4f}s | Cov = {metrics['hybrid_coverage_80']*100:.1f}%")
+            print(
+                f"HybridPaceModel: MAE = {_hyb_mae:.4f}s ({_hyb_mae * 1000:.1f}ms) | RMSE = {_hyb_rmse:.4f}s | Cov = {metrics['hybrid_coverage_80'] * 100:.1f}%"
+            )
             _hybrid_model_to_save = _hyb
     except Exception as _e_hyb:
         print(f"HybridPaceModel training skipped: {_e_hyb}")
@@ -1045,14 +1065,20 @@ def main() -> None:
         from pitwall.models.pace.challengers import CircuitAdaptivePaceRouter
 
         print("Training CircuitAdaptivePaceRouter (Tree + Spline regimes)...")
-        _r_target_delta = "target_delta_s" if "target_delta_s" in train_df.columns else "next_clean_lap_s"
+        _r_target_delta = (
+            "target_delta_s" if "target_delta_s" in train_df.columns else "next_clean_lap_s"
+        )
         _r_tr = (
-            train_df.filter(pl.col("target_delta_s").is_not_null() & (pl.col("target_delta_s").abs() < 2.5))
+            train_df.filter(
+                pl.col("target_delta_s").is_not_null() & (pl.col("target_delta_s").abs() < 2.5)
+            )
             if "target_delta_s" in train_df.columns
             else train_df
         )
         _r_val = (
-            valid_df.filter(pl.col("target_delta_s").is_not_null() & (pl.col("target_delta_s").abs() < 2.5))
+            valid_df.filter(
+                pl.col("target_delta_s").is_not_null() & (pl.col("target_delta_s").abs() < 2.5)
+            )
             if valid_df is not None and "target_delta_s" in valid_df.columns
             else valid_df
         )
@@ -1065,7 +1091,9 @@ def main() -> None:
             target_col=_r_target_delta,
         )
         _r_te = (
-            test_df.filter(pl.col("target_delta_s").is_not_null() & (pl.col("target_delta_s").abs() < 2.5))
+            test_df.filter(
+                pl.col("target_delta_s").is_not_null() & (pl.col("target_delta_s").abs() < 2.5)
+            )
             if "target_delta_s" in test_df.columns
             else test_df
         )
@@ -1082,7 +1110,9 @@ def main() -> None:
             metrics["router_coverage_80"] = float(
                 np.mean((_y_router_true >= _router_q[0.1]) & (_y_router_true <= _router_q[0.9]))
             )
-            print(f"CircuitAdaptivePaceRouter: MAE = {_router_mae:.4f}s ({_router_mae*1000:.1f}ms) | RMSE = {_router_rmse:.4f}s | Cov = {metrics['router_coverage_80']*100:.1f}%")
+            print(
+                f"CircuitAdaptivePaceRouter: MAE = {_router_mae:.4f}s ({_router_mae * 1000:.1f}ms) | RMSE = {_router_rmse:.4f}s | Cov = {metrics['router_coverage_80'] * 100:.1f}%"
+            )
             _router_model_to_save = _router
     except Exception as _e_router:
         print(f"CircuitAdaptivePaceRouter training skipped: {_e_router}")
@@ -1102,11 +1132,10 @@ def main() -> None:
             _sec_lap_mae = float(mae(y_true, _p_sec_lap))
             metrics["sector_chain_mae"] = _sec_lap_mae
             metrics["sector_chain_mae_ms"] = round(_sec_lap_mae * 1000, 1)
-            print(f"SectorChainModel: MAE = {_sec_lap_mae:.4f}s ({_sec_lap_mae*1000:.1f}ms)")
+            print(f"SectorChainModel: MAE = {_sec_lap_mae:.4f}s ({_sec_lap_mae * 1000:.1f}ms)")
             _sector_model_to_save = _chain
     except Exception as _e_sec:
         print(f"SectorChainModel training skipped: {_e_sec}")
-
 
     # --- V2.2 Tyre degradation model ---
     _tyre_model_to_save = None

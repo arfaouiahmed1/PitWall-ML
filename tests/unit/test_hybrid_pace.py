@@ -17,10 +17,12 @@ from pitwall.models.pace.sector_chain import SectorChainModel
 def test_physics_fuel_burn_off() -> None:
     """Verify fuel mass loss reduces lap time (negative delta contribution)."""
     phys = DeterministicPhysicsBaseline(fuel_burn_s_per_lap=0.033)
-    df = pl.DataFrame({
-        "compound": ["MEDIUM", "MEDIUM"],
-        "tyre_age": [0.0, 0.0],
-    })
+    df = pl.DataFrame(
+        {
+            "compound": ["MEDIUM", "MEDIUM"],
+            "tyre_age": [0.0, 0.0],
+        }
+    )
     deltas = phys.compute_delta(df)
     # Tyre age 0: delta = -fuel_burn + base_deg * 1.0
     # Medium: -0.033 + 0.028 = -0.005
@@ -31,10 +33,12 @@ def test_physics_fuel_burn_off() -> None:
 def test_physics_compound_degradation_ordering() -> None:
     """Soft tyres must have higher degradation slope than Hard tyres."""
     phys = DeterministicPhysicsBaseline()
-    df = pl.DataFrame({
-        "compound": ["SOFT", "HARD"],
-        "tyre_age": [10.0, 10.0],
-    })
+    df = pl.DataFrame(
+        {
+            "compound": ["SOFT", "HARD"],
+            "tyre_age": [10.0, 10.0],
+        }
+    )
     deltas = phys.compute_delta(df)
     assert deltas[0] > deltas[1], "Soft tyre degradation must exceed Hard tyre degradation"
 
@@ -103,7 +107,7 @@ def test_hybrid_pace_sub_350ms_reconstruction(sample_gold_data: pl.DataFrame) ->
 
     error_s = mae(y_true_abs, preds_abs)
     # Assert reconstructed lap MAE is under 350 ms (0.35s)
-    assert error_s <= 0.350, f"Reconstructed lap MAE {error_s*1000:.1f}ms exceeds 350ms threshold"
+    assert error_s <= 0.350, f"Reconstructed lap MAE {error_s * 1000:.1f}ms exceeds 350ms threshold"
 
     # Predict quantiles
     q_preds = model.predict_quantiles(test_df)

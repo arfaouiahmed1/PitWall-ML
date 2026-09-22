@@ -29,7 +29,9 @@ def test_replay_catalog_and_socket_use_bundled_events():
         catalog_response = running_client.get("/race/sessions")
         assert catalog_response.status_code == 200
         replay = catalog_response.json()[0]
-        with running_client.websocket_connect(f"/ws/race?replay_id={replay['id']}&speed=MAX") as socket:
+        with running_client.websocket_connect(
+            f"/ws/race?replay_id={replay['id']}&speed=MAX"
+        ) as socket:
             assert socket.receive_json()["type"] == "connected"
             update = socket.receive_json()
 

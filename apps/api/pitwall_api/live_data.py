@@ -43,7 +43,9 @@ def _latest_by_driver(rows: list[dict[str, Any]], timestamp_key: str) -> dict[in
         if driver_number is None:
             continue
         current = latest.get(driver_number)
-        if current is None or str(row.get(timestamp_key, "")) >= str(current.get(timestamp_key, "")):
+        if current is None or str(row.get(timestamp_key, "")) >= str(
+            current.get(timestamp_key, "")
+        ):
             latest[driver_number] = row
     return latest
 
@@ -154,7 +156,8 @@ class OpenF1SnapshotProvider:
             }
             rows: list[dict[str, Any]] = []
             for driver_number, position in sorted(
-                positions_by_driver.items(), key=lambda item: _as_int(item[1].get("position")) or 999
+                positions_by_driver.items(),
+                key=lambda item: _as_int(item[1].get("position")) or 999,
             ):
                 interval = intervals_by_driver.get(driver_number, {})
                 lap = laps_by_driver.get(driver_number, {})
@@ -176,7 +179,10 @@ class OpenF1SnapshotProvider:
                     }
                 )
             max_lap = max((row["lap_number"] or 0 for row in rows), default=0)
-            observed_at = max((str(row.get("date", "")) for row in positions), default=None) or now.isoformat()
+            observed_at = (
+                max((str(row.get("date", "")) for row in positions), default=None)
+                or now.isoformat()
+            )
             snapshot = OpenF1Snapshot(
                 provenance="LIVE",
                 reason=None,

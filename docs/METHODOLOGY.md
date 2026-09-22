@@ -110,9 +110,8 @@ Raw F1 lap times have $3.5\times$ the variance of clean racing laps. The `is_val
 ### Stint-Start Outlier Fallback Guard
 When `rolling_median_5` is null (Laps 1–4 of a stint), the standard $1.07\times$ rolling outlier trim cannot fire. A fallback guard was implemented in `src/pitwall/features/pace.py`:
 ```python
-outlier_next = (
-    (med.is_not_null() & (sci > _TARGET_OUTLIER_FACTOR * med))
-    | (med.is_null() & (sci > 1.25 * pl.col("lap_time_s") + 10.0))
+outlier_next = (med.is_not_null() & (sci > _TARGET_OUTLIER_FACTOR * med)) | (
+    med.is_null() & (sci > 1.25 * pl.col("lap_time_s") + 10.0)
 )
 ```
 This prevents safety-car crossover laps ($145\text{s}$–$163\text{s}$) from contaminating early stint targets, resolving the $8\text{s}$ Soft MAE anomaly at Monza.

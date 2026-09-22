@@ -5,6 +5,7 @@ Sprint, Race) uniformly. Stints carry compound + tyre age; laps carry timing +
 sector + speed. The output schema mirrors the FastF1 silver so the feature
 builder and the trained models consume it unchanged.
 """
+
 from __future__ import annotations
 
 import contextlib
@@ -71,16 +72,25 @@ def build_silver_from_openf1(
                     pit_laps.add((int(r["driver_number"]), int(r["lap_number"])))
 
     # Driver map
-    driver_map = {
-        int(r["driver_number"]): r for r in drivers.iter_rows(named=True)
-        if r.get("driver_number") is not None
-    } if not drivers.is_empty() else {}
+    driver_map = (
+        {
+            int(r["driver_number"]): r
+            for r in drivers.iter_rows(named=True)
+            if r.get("driver_number") is not None
+        }
+        if not drivers.is_empty()
+        else {}
+    )
 
     # Stint map: (driver_number) -> list[(start, end, compound, age_at_start, stint_no)]
     stint_map: dict[int, list[tuple[int, int, str, int, int]]] = {}
     if not stints.is_empty():
         for r in stints.iter_rows(named=True):
-            if r.get("driver_number") is None or r.get("lap_start") is None or r.get("lap_end") is None:
+            if (
+                r.get("driver_number") is None
+                or r.get("lap_start") is None
+                or r.get("lap_end") is None
+            ):
                 continue
             dn = int(r["driver_number"])
             stint_map.setdefault(dn, []).append(
@@ -135,7 +145,9 @@ def build_silver_from_openf1(
         lap_start_dt = None
         if ds:
             try:
-                lap_start_dt = datetime.fromisoformat(str(ds).replace("Z", "+00:00")).replace(tzinfo=None)
+                lap_start_dt = datetime.fromisoformat(str(ds).replace("Z", "+00:00")).replace(
+                    tzinfo=None
+                )
             except (ValueError, TypeError):
                 lap_start_dt = None
 
@@ -193,18 +205,12 @@ def write_silver_session(
     session: str,
 ) -> Path:
     """Write one session's silver laps file with FastF1-compatible naming."""
-    out = (
-        Path(silver_root)
-        / "laps"
-        / f"{season}_{event} {session}.parquet"
-    )
+    out = Path(silver_root) / "laps" / f"{season}_{event} {session}.parquet"
     out.parent.mkdir(parents=True, exist_ok=True)
 
     # Match the FastF1 2024_Bahrain schema exactly for interop
     reference = None
-    ref_hit = next(
-        Path(silver_root).glob("laps/2024_*.parquet"), None
-    ) or next(
+    ref_hit = next(Path(silver_root).glob("laps/2024_*.parquet"), None) or next(
         Path(silver_root).glob("laps/2025_*.parquet"), None
     )
     if ref_hit is not None:

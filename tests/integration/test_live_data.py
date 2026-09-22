@@ -17,10 +17,33 @@ async def test_live_snapshot_normalizes_active_openf1_rows(monkeypatch: pytest.M
             }
         ],
         "position": [{"driver_number": 4, "position": 1, "date": now.isoformat()}],
-        "intervals": [{"driver_number": 4, "gap_to_leader": 0.0, "interval": 0.0, "date": now.isoformat()}],
-        "laps": [{"driver_number": 4, "lap_number": 12, "lap_duration": 81.234, "date_start": now.isoformat()}],
-        "stints": [{"driver_number": 4, "compound": "MEDIUM", "tyre_age_at_start": 6, "date_start": now.isoformat()}],
-        "drivers": [{"driver_number": 4, "full_name": "Lando Norris", "name_acronym": "NOR", "team_name": "McLaren"}],
+        "intervals": [
+            {"driver_number": 4, "gap_to_leader": 0.0, "interval": 0.0, "date": now.isoformat()}
+        ],
+        "laps": [
+            {
+                "driver_number": 4,
+                "lap_number": 12,
+                "lap_duration": 81.234,
+                "date_start": now.isoformat(),
+            }
+        ],
+        "stints": [
+            {
+                "driver_number": 4,
+                "compound": "MEDIUM",
+                "tyre_age_at_start": 6,
+                "date_start": now.isoformat(),
+            }
+        ],
+        "drivers": [
+            {
+                "driver_number": 4,
+                "full_name": "Lando Norris",
+                "name_acronym": "NOR",
+                "team_name": "McLaren",
+            }
+        ],
     }
 
     async def fake_get(_client: httpx.AsyncClient, endpoint: str):
@@ -33,7 +56,12 @@ async def test_live_snapshot_normalizes_active_openf1_rows(monkeypatch: pytest.M
 
     assert snapshot.provenance == "LIVE"
     assert snapshot.source_id == "99"
-    assert snapshot.race_state == {"session_id": "99", "lap": 12, "track_status": "UNKNOWN", "event_count": 1}
+    assert snapshot.race_state == {
+        "session_id": "99",
+        "lap": 12,
+        "track_status": "UNKNOWN",
+        "event_count": 1,
+    }
     assert snapshot.rows[0]["last_lap_s"] == 81.234
     assert snapshot.rows[0]["code"] == "NOR"
 

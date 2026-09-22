@@ -22,11 +22,31 @@ OUT_FILE = pathlib.Path("artifacts/benchmark_generality.json")
 CIRCUIT_TARGETS = [
     {"name": "Monza", "pattern": "Italian", "type": "Low-Downforce High-Speed"},
     {"name": "Suzuka", "pattern": "Suzuka", "type": "High-Speed Flowing S-Curves"},
-    {"name": "Shanghai", "pattern": "Chinese", "alt_pattern": "Shanghai", "type": "Technical Long-Straight"},
-    {"name": "Melbourne", "pattern": "Australian", "alt_pattern": "Melbourne", "type": "Semi-Street High-Speed"},
+    {
+        "name": "Shanghai",
+        "pattern": "Chinese",
+        "alt_pattern": "Shanghai",
+        "type": "Technical Long-Straight",
+    },
+    {
+        "name": "Melbourne",
+        "pattern": "Australian",
+        "alt_pattern": "Melbourne",
+        "type": "Semi-Street High-Speed",
+    },
     {"name": "Miami", "pattern": "Miami", "type": "Street High-Speed Straights"},
-    {"name": "Silverstone", "pattern": "British", "alt_pattern": "Silverstone", "type": "Extreme Lateral G-Force"},
-    {"name": "Spa", "pattern": "Belgian", "alt_pattern": "Spa", "type": "Elevation Changes & High Speed"},
+    {
+        "name": "Silverstone",
+        "pattern": "British",
+        "alt_pattern": "Silverstone",
+        "type": "Extreme Lateral G-Force",
+    },
+    {
+        "name": "Spa",
+        "pattern": "Belgian",
+        "alt_pattern": "Spa",
+        "type": "Elevation Changes & High Speed",
+    },
     {"name": "Monaco", "pattern": "Monaco", "type": "Tight Low-Speed Street"},
 ]
 
@@ -35,7 +55,8 @@ def load_all_silver() -> pl.DataFrame:
     files = sorted(SILVER_DIR.glob("*.parquet"))
     # Filter to race sessions
     race_files = [
-        f for f in files
+        f
+        for f in files
         if any(k in f.stem for k in ["Race", "Grand Prix", "_R"])
         and "Qualifying" not in f.stem
         and "Practice" not in f.stem
@@ -58,7 +79,8 @@ def get_circuit_test_files(target: dict[str, str]) -> list[pathlib.Path]:
     p2 = target.get("alt_pattern", p1)
     files = sorted(SILVER_DIR.glob("*.parquet"))
     return [
-        f for f in files
+        f
+        for f in files
         if (p1 in f.stem or p2 in f.stem)
         and any(k in f.stem for k in ["Race", "Grand Prix", "_R"])
         and "Qualifying" not in f.stem
@@ -122,7 +144,9 @@ def run_benchmark() -> None:
             continue
 
         print(f"\n>>> Benchmarking {circuit_name} ({circuit_type})")
-        print(f"    Train: {len(train_df):,} laps (all OTHER circuits) | Test: {len(test_df):,} laps ({circuit_name})")
+        print(
+            f"    Train: {len(train_df):,} laps (all OTHER circuits) | Test: {len(test_df):,} laps ({circuit_name})"
+        )
 
         y_test_abs = test_df["next_clean_lap_s"].to_numpy()
         base_lap_test = test_df["lap_time_s"].to_numpy()
@@ -178,24 +202,37 @@ def run_benchmark() -> None:
             "type": circuit_type,
             "test_laps": len(test_df),
             "models": {
-                "LastLapBaseline": {"mae_ms": round(m_last * 1000, 1), "rmse_ms": round(r_last * 1000, 1)},
-                "AbsoluteLightGBM": {"mae_ms": round(m_abs * 1000, 1), "rmse_ms": round(r_abs * 1000, 1)},
-                "SectorChainModel": {"mae_ms": round(m_chain * 1000, 1), "rmse_ms": round(r_chain * 1000, 1)},
+                "LastLapBaseline": {
+                    "mae_ms": round(m_last * 1000, 1),
+                    "rmse_ms": round(r_last * 1000, 1),
+                },
+                "AbsoluteLightGBM": {
+                    "mae_ms": round(m_abs * 1000, 1),
+                    "rmse_ms": round(r_abs * 1000, 1),
+                },
+                "SectorChainModel": {
+                    "mae_ms": round(m_chain * 1000, 1),
+                    "rmse_ms": round(r_chain * 1000, 1),
+                },
                 "HybridPaceModel": {
                     "mae_ms": round(m_hyb * 1000, 1),
                     "rmse_ms": round(r_hyb * 1000, 1),
                     "coverage_80": round(cov_hyb * 100, 1),
                 },
             },
-            "winner": "HybridPaceModel" if m_hyb <= min(m_last, m_abs, m_chain) else "LastLapBaseline",
+            "winner": "HybridPaceModel"
+            if m_hyb <= min(m_last, m_abs, m_chain)
+            else "LastLapBaseline",
             "delta_reduction_vs_abs_pct": round((m_abs - m_hyb) / m_abs * 100, 1),
         }
         results.append(circuit_result)
 
-        print(f"    LastLap:    {m_last*1000:>6.1f} ms")
-        print(f"    Absolute:   {m_abs*1000:>6.1f} ms  (fails cross-circuit)")
-        print(f"    SectorChain:{m_chain*1000:>6.1f} ms")
-        print(f"    Hybrid:     {m_hyb*1000:>6.1f} ms  | 80% Cov = {cov_hyb*100:.1f}%  | Winner: {circuit_result['winner']}")
+        print(f"    LastLap:    {m_last * 1000:>6.1f} ms")
+        print(f"    Absolute:   {m_abs * 1000:>6.1f} ms  (fails cross-circuit)")
+        print(f"    SectorChain:{m_chain * 1000:>6.1f} ms")
+        print(
+            f"    Hybrid:     {m_hyb * 1000:>6.1f} ms  | 80% Cov = {cov_hyb * 100:.1f}%  | Winner: {circuit_result['winner']}"
+        )
 
     OUT_FILE.parent.mkdir(parents=True, exist_ok=True)
     summary = {
@@ -205,11 +242,21 @@ def run_benchmark() -> None:
         "elapsed_seconds": round(time.perf_counter() - t0, 1),
         "circuit_results": results,
         "macro_averages": {
-            "LastLap_mae_ms": round(np.mean([r["models"]["LastLapBaseline"]["mae_ms"] for r in results]), 1),
-            "Absolute_mae_ms": round(np.mean([r["models"]["AbsoluteLightGBM"]["mae_ms"] for r in results]), 1),
-            "SectorChain_mae_ms": round(np.mean([r["models"]["SectorChainModel"]["mae_ms"] for r in results]), 1),
-            "Hybrid_mae_ms": round(np.mean([r["models"]["HybridPaceModel"]["mae_ms"] for r in results]), 1),
-            "Hybrid_coverage_80_pct": round(np.mean([r["models"]["HybridPaceModel"]["coverage_80"] for r in results]), 1),
+            "LastLap_mae_ms": round(
+                np.mean([r["models"]["LastLapBaseline"]["mae_ms"] for r in results]), 1
+            ),
+            "Absolute_mae_ms": round(
+                np.mean([r["models"]["AbsoluteLightGBM"]["mae_ms"] for r in results]), 1
+            ),
+            "SectorChain_mae_ms": round(
+                np.mean([r["models"]["SectorChainModel"]["mae_ms"] for r in results]), 1
+            ),
+            "Hybrid_mae_ms": round(
+                np.mean([r["models"]["HybridPaceModel"]["mae_ms"] for r in results]), 1
+            ),
+            "Hybrid_coverage_80_pct": round(
+                np.mean([r["models"]["HybridPaceModel"]["coverage_80"] for r in results]), 1
+            ),
         },
     }
     with open(OUT_FILE, "w") as f:
@@ -219,7 +266,9 @@ def run_benchmark() -> None:
     print("MACRO GENERALIZATION SUMMARY ACROSS ALL CIRCUITS")
     print("=" * 80)
     print(f"Macro LastLap MAE:     {summary['macro_averages']['LastLap_mae_ms']} ms")
-    print(f"Macro Absolute MAE:    {summary['macro_averages']['Absolute_mae_ms']} ms  (High error from track shift)")
+    print(
+        f"Macro Absolute MAE:    {summary['macro_averages']['Absolute_mae_ms']} ms  (High error from track shift)"
+    )
     print(f"Macro SectorChain MAE: {summary['macro_averages']['SectorChain_mae_ms']} ms")
     print(f"Macro Hybrid MAE:      {summary['macro_averages']['Hybrid_mae_ms']} ms  <-- CHAMPION")
     print(f"Macro 80% Coverage:    {summary['macro_averages']['Hybrid_coverage_80_pct']}%")

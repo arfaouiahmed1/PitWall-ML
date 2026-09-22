@@ -200,7 +200,10 @@ class ParquetReplaySource:
         rows: list[tuple[Path, dict[str, Any]]] = []
         for file in files:
             for row in pl.read_parquet(file).to_dicts():
-                if self._int(row.get("driver_number")) is not None and self._int(row.get("lap_number")) is not None:
+                if (
+                    self._int(row.get("driver_number")) is not None
+                    and self._int(row.get("lap_number")) is not None
+                ):
                     rows.append((file, row))
 
         def event_key(item: tuple[Path, dict[str, Any]]) -> tuple[datetime, int, int]:

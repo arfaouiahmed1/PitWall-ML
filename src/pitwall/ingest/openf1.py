@@ -64,7 +64,9 @@ class OpenF1Client:
         """Make a request to the OpenF1 API."""
         url = f"{self.base_url}/{endpoint}"
         # Filter out client-side pagination keys that OpenF1 treats as invalid column filters
-        clean_params = {k: v for k, v in params.items() if k not in ("limit", "offset") and v is not None}
+        clean_params = {
+            k: v for k, v in params.items() if k not in ("limit", "offset") and v is not None
+        }
         qs = urlencode(clean_params)
         full_url = f"{url}?{qs}" if qs else url
 
@@ -249,7 +251,9 @@ def ingest_session_bronze(
     # Car telemetry (per driver, optional)
     if include_car_data:
         all_car_data = []
-        sample_drivers = drivers["driver_number"].to_list()[:5] if not drivers.is_empty() else [1, 4, 16]
+        sample_drivers = (
+            drivers["driver_number"].to_list()[:5] if not drivers.is_empty() else [1, 4, 16]
+        )
         for dn in sample_drivers:
             cd = client.get_car_data(session_key=session_key, driver_number=dn)
             if not cd.is_empty():

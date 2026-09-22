@@ -50,9 +50,7 @@ class SplitConformalPredictor:
         self.q_hat_ = float(np.quantile(residuals, level))
         return self
 
-    def predict_intervals(
-        self, y_pred: np.ndarray
-    ) -> tuple[np.ndarray, np.ndarray]:
+    def predict_intervals(self, y_pred: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
         """Return calibrated lower and upper bounds: [y_pred - q_hat, y_pred + q_hat]."""
         if self.q_hat_ is None:
             raise ValueError("Calibrator must be fitted on validation residuals first")
@@ -69,14 +67,17 @@ class SplineBayesianRidgeModel:
     """Continuous smooth polynomial spline manifold with analytical Bayesian precision."""
 
     def __init__(self, n_knots: int = 5, degree: int = 3) -> None:
-        self.pipeline: Pipeline = Pipeline([
-            ("imputer", SimpleImputer(strategy="median")),
-            ("scaler", StandardScaler()),
-            ("spline", SplineTransformer(n_knots=n_knots, degree=degree)),
-            ("regressor", BayesianRidge()),
-        ])
+        self.pipeline: Pipeline = Pipeline(
+            [
+                ("imputer", SimpleImputer(strategy="median")),
+                ("scaler", StandardScaler()),
+                ("spline", SplineTransformer(n_knots=n_knots, degree=degree)),
+                ("regressor", BayesianRidge()),
+            ]
+        )
         self.feature_cols: list[str] = []
         self.calibrator: SplitConformalPredictor = SplitConformalPredictor(target_coverage=0.80)
+
     def fit(
         self,
         train_df: pl.DataFrame,
@@ -121,10 +122,14 @@ class SplineBayesianRidgeModel:
         path.mkdir(parents=True, exist_ok=True)
         joblib.dump(self.pipeline, path / "pipeline.joblib")
         with open(path / "manifest.json", "w") as f:
-            json.dump({
-                "feature_cols": self.feature_cols,
-                "calibrator": self.calibrator.params(),
-            }, f, indent=2)
+            json.dump(
+                {
+                    "feature_cols": self.feature_cols,
+                    "calibrator": self.calibrator.params(),
+                },
+                f,
+                indent=2,
+            )
         return path
 
     @classmethod
@@ -217,14 +222,16 @@ class NormalizedConformalCalibrator:
 #: continuous B-spline manifold beats the tree. GP-name aliases included
 #: because session_id values carry GP names ("British Grand Prix") rather than
 #: circuit names ("Silverstone").
-SPLINE_CIRCUIT_PATTERNS: frozenset[str] = frozenset({
-    "silverstone",
-    "british",
-    "suzuka",
-    "japanese",
-    "zandvoort",
-    "dutch",
-})
+SPLINE_CIRCUIT_PATTERNS: frozenset[str] = frozenset(
+    {
+        "silverstone",
+        "british",
+        "suzuka",
+        "japanese",
+        "zandvoort",
+        "dutch",
+    }
+)
 
 _UNKNOWN_KEYS: frozenset[str] = frozenset({"", "unknown", "demo", "none"})
 
@@ -264,7 +271,9 @@ class CircuitAdaptivePaceRouter:
         target_coverage: float = 0.80,
         min_sigma: float = 0.05,
     ) -> None:
-        self.spline_patterns = frozenset(spline_patterns) if spline_patterns else SPLINE_CIRCUIT_PATTERNS
+        self.spline_patterns = (
+            frozenset(spline_patterns) if spline_patterns else SPLINE_CIRCUIT_PATTERNS
+        )
         self.default_tree_weight = default_tree_weight
         self.default_spline_weight = default_spline_weight
         self.target_coverage = target_coverage
@@ -322,11 +331,16 @@ class CircuitAdaptivePaceRouter:
         if valid_df is not None and not valid_df.is_empty():
             self._calibrate(valid_df, base_lap_col=base_lap_col, circuit_col=circuit_col)
         else:
-            print("CircuitAdaptivePaceRouter: no validation rows; intervals fall back to tree quantiles")
+            print(
+                "CircuitAdaptivePaceRouter: no validation rows; intervals fall back to tree quantiles"
+            )
         return self
 
     def _calibrate(
-        self, valid_df: pl.DataFrame, base_lap_col: str = "lap_time_s", circuit_col: str = "session_id"
+        self,
+        valid_df: pl.DataFrame,
+        base_lap_col: str = "lap_time_s",
+        circuit_col: str = "session_id",
     ) -> None:
         y_val = valid_df["next_clean_lap_s"].to_numpy().astype(float)
         p_val = self.predict(valid_df, base_lap_col=base_lap_col, circuit_col=circuit_col)
@@ -372,7 +386,9 @@ class CircuitAdaptivePaceRouter:
         out = np.empty(len(df), dtype=float)
         for i, key in enumerate(keys):
             if key in _UNKNOWN_KEYS:
-                out[i] = self.default_tree_weight * p_tree[i] + self.default_spline_weight * p_spline[i]  # type: ignore[index]
+                out[i] = (
+                    self.default_tree_weight * p_tree[i] + self.default_spline_weight * p_spline[i]
+                )  # type: ignore[index]
             elif self._uses_spline(key):
                 out[i] = p_spline[i]  # type: ignore[index]
             else:
@@ -407,16 +423,20 @@ class CircuitAdaptivePaceRouter:
         self.tree_model.save(path / "tree")
         self.spline_model.save(path / "spline")
         with open(path / "router_manifest.json", "w") as f:
-            json.dump({
-                "feature_cols": self.feature_cols,
-                "spline_patterns": sorted(self.spline_patterns),
-                "default_tree_weight": self.default_tree_weight,
-                "default_spline_weight": self.default_spline_weight,
-                "target_coverage": self.target_coverage,
-                "min_sigma": self.min_sigma,
-                "calibrator": self.calibrator.params(),
-                "circuit_sigmas": self.circuit_sigmas_,
-            }, f, indent=2)
+            json.dump(
+                {
+                    "feature_cols": self.feature_cols,
+                    "spline_patterns": sorted(self.spline_patterns),
+                    "default_tree_weight": self.default_tree_weight,
+                    "default_spline_weight": self.default_spline_weight,
+                    "target_coverage": self.target_coverage,
+                    "min_sigma": self.min_sigma,
+                    "calibrator": self.calibrator.params(),
+                    "circuit_sigmas": self.circuit_sigmas_,
+                },
+                f,
+                indent=2,
+            )
         return path
 
     @classmethod

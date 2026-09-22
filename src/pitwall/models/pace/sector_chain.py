@@ -76,11 +76,19 @@ class SectorChainModel:
         tr = self._extract_sector_seconds(train_df).sort([*groups, "lap_number"])
 
         # Compute next sector targets: Delta S1, Delta S2, Delta S3
-        tr = tr.with_columns([
-            (pl.col("sector1time_s").shift(-1).over(groups) - pl.col("sector1time_s")).alias("_delta_s1"),
-            (pl.col("sector2time_s").shift(-1).over(groups) - pl.col("sector2time_s")).alias("_delta_s2"),
-            (pl.col("sector3time_s").shift(-1).over(groups) - pl.col("sector3time_s")).alias("_delta_s3"),
-        ])
+        tr = tr.with_columns(
+            [
+                (pl.col("sector1time_s").shift(-1).over(groups) - pl.col("sector1time_s")).alias(
+                    "_delta_s1"
+                ),
+                (pl.col("sector2time_s").shift(-1).over(groups) - pl.col("sector2time_s")).alias(
+                    "_delta_s2"
+                ),
+                (pl.col("sector3time_s").shift(-1).over(groups) - pl.col("sector3time_s")).alias(
+                    "_delta_s3"
+                ),
+            ]
+        )
 
         # Filter valid clean training rows
         clean_tr = tr.filter(
@@ -95,11 +103,19 @@ class SectorChainModel:
         val_clean = None
         if valid_df is not None and not valid_df.is_empty():
             vl = self._extract_sector_seconds(valid_df).sort([*groups, "lap_number"])
-            vl = vl.with_columns([
-                (pl.col("sector1time_s").shift(-1).over(groups) - pl.col("sector1time_s")).alias("_delta_s1"),
-                (pl.col("sector2time_s").shift(-1).over(groups) - pl.col("sector2time_s")).alias("_delta_s2"),
-                (pl.col("sector3time_s").shift(-1).over(groups) - pl.col("sector3time_s")).alias("_delta_s3"),
-            ])
+            vl = vl.with_columns(
+                [
+                    (
+                        pl.col("sector1time_s").shift(-1).over(groups) - pl.col("sector1time_s")
+                    ).alias("_delta_s1"),
+                    (
+                        pl.col("sector2time_s").shift(-1).over(groups) - pl.col("sector2time_s")
+                    ).alias("_delta_s2"),
+                    (
+                        pl.col("sector3time_s").shift(-1).over(groups) - pl.col("sector3time_s")
+                    ).alias("_delta_s3"),
+                ]
+            )
             val_clean = vl.filter(
                 pl.col("_delta_s1").is_not_null()
                 & pl.col("_delta_s2").is_not_null()
@@ -121,7 +137,9 @@ class SectorChainModel:
         )
         s2_cands = ["speed_i1_delta", "pred_delta_s1", "s1_delta", *base_features]
         self.features_s2 = [c for c in dict.fromkeys(s2_cands) if c in clean_tr_s2.columns]
-        self.m_s2.fit(clean_tr_s2, val_clean_s2, feature_cols=self.features_s2, target_col="_delta_s2")
+        self.m_s2.fit(
+            clean_tr_s2, val_clean_s2, feature_cols=self.features_s2, target_col="_delta_s2"
+        )
 
         # 3. Sector 3 Model: uses speed_i2_delta (S2 exit speed) + predicted Delta S2
         clean_tr_s3 = clean_tr_s2.with_columns(pl.col("_delta_s2").alias("pred_delta_s2"))
@@ -132,7 +150,9 @@ class SectorChainModel:
         )
         s3_cands = ["speed_i2_delta", "pred_delta_s2", "s2_delta", *base_features]
         self.features_s3 = [c for c in dict.fromkeys(s3_cands) if c in clean_tr_s3.columns]
-        self.m_s3.fit(clean_tr_s3, val_clean_s3, feature_cols=self.features_s3, target_col="_delta_s3")
+        self.m_s3.fit(
+            clean_tr_s3, val_clean_s3, feature_cols=self.features_s3, target_col="_delta_s3"
+        )
 
         return self
 

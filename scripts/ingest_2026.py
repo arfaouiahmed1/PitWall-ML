@@ -3,6 +3,7 @@
 Resumable: completed sessions are detected by existing bronze filesystem paths,
 so interruptions (rate limits, timeout) do not re-ingest.
 """
+
 from __future__ import annotations
 
 import pathlib
@@ -33,6 +34,7 @@ def already_ingested(sk: int, event: str, stype: str) -> bool:
     p = OUT / "year=2026" / f"event={event}" / f"session_type={stype}"
     return (p / "laps.parquet").exists() and (p / "stints.parquet").exists()
 
+
 def main() -> None:
     sessions = passed_sessions()
     print(f"2026 sessions passed: {len(sessions)}")
@@ -44,7 +46,11 @@ def main() -> None:
     for row in sessions.iter_rows(named=True):
         sk = row["session_key"]
         sname = row.get("session_name") or row.get("session_type") or "Race"
-        stype = sname if sname == "Day_1" or sname == "Day_2" or sname == "Day_3" else sname.replace(" ", "_")
+        stype = (
+            sname
+            if sname == "Day_1" or sname == "Day_2" or sname == "Day_3"
+            else sname.replace(" ", "_")
+        )
         event = event_name(row.get("location", "Unknown"))
 
         if already_ingested(sk, event, stype):
@@ -77,7 +83,9 @@ def main() -> None:
                 failed_sk.append(sk)
                 break
         else:
-            print(f"  DROPPED {event}/{stype} ({sk}) after {RATE_LIMIT_ATTEMPTS} rate-limit retries")
+            print(
+                f"  DROPPED {event}/{stype} ({sk}) after {RATE_LIMIT_ATTEMPTS} rate-limit retries"
+            )
             failed_sk.append(sk)
 
         time.sleep(1.0)

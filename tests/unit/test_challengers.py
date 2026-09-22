@@ -24,8 +24,10 @@ from pitwall.models.pace.hybrid_model import HybridPaceModel
 @pytest.fixture
 def sample_clean_laps() -> pl.DataFrame:
     df = pl.read_parquet("data/silver/laps/2026_Italian Grand Prix_R.parquet")
-    gold = build_pace_features(df).filter(pl.col("is_valid_training_lap_target")).filter(
-        pl.col("next_clean_lap_s").is_not_null()
+    gold = (
+        build_pace_features(df)
+        .filter(pl.col("is_valid_training_lap_target"))
+        .filter(pl.col("next_clean_lap_s").is_not_null())
     )
     return gold.filter((pl.col("next_clean_lap_s") - pl.col("lap_time_s")).abs() < 2.0)
 
@@ -47,7 +49,7 @@ def test_split_conformal_predictor() -> None:
 
     cov = interval_coverage(y_test, q10, q90)
     # Conformal guarantee under exchangeability: coverage >= 1 - alpha - epsilon
-    assert 0.75 <= cov <= 0.85, f"Coverage {cov*100:.1f}% outside 80% tolerance"
+    assert 0.75 <= cov <= 0.85, f"Coverage {cov * 100:.1f}% outside 80% tolerance"
 
 
 def test_normalized_conformal_scales_with_local_difficulty() -> None:
@@ -58,9 +60,12 @@ def test_normalized_conformal_scales_with_local_difficulty() -> None:
     y_lo = rng.normal(85.0, 0.15, n_lo)
     y_hi = rng.normal(85.0, 0.60, n_hi)
     y_val = np.concatenate([y_lo, y_hi])
-    pred_val = y_val + np.concatenate([
-        rng.normal(0.0, 0.15, n_lo), rng.normal(0.0, 0.60, n_hi),
-    ])
+    pred_val = y_val + np.concatenate(
+        [
+            rng.normal(0.0, 0.15, n_lo),
+            rng.normal(0.0, 0.60, n_hi),
+        ]
+    )
     sigma_val = np.concatenate([np.full(n_lo, 0.15), np.full(n_hi, 0.60)])
 
     cal = NormalizedConformalCalibrator(target_coverage=0.80)
@@ -68,13 +73,16 @@ def test_normalized_conformal_scales_with_local_difficulty() -> None:
     assert cal.q_norm_ is not None and cal.q_norm_ > 0.0
 
     y_test = np.concatenate([rng.normal(85.0, 0.15, 300), rng.normal(85.0, 0.60, 300)])
-    pred_test = y_test + np.concatenate([
-        rng.normal(0.0, 0.15, 300), rng.normal(0.0, 0.60, 300),
-    ])
+    pred_test = y_test + np.concatenate(
+        [
+            rng.normal(0.0, 0.15, 300),
+            rng.normal(0.0, 0.60, 300),
+        ]
+    )
     sigma_test = np.concatenate([np.full(300, 0.15), np.full(300, 0.60)])
     q10, q90 = cal.predict_intervals(pred_test, sigma_test)
     cov = interval_coverage(y_test, q10, q90)
-    assert 0.75 <= cov <= 0.85, f"Normalized coverage {cov*100:.1f}% outside [75%, 85%]"
+    assert 0.75 <= cov <= 0.85, f"Normalized coverage {cov * 100:.1f}% outside [75%, 85%]"
 
     widths = q90 - q10
     assert widths[300:].mean() > 2.0 * widths[:300].mean(), "High-sigma band must be wider"
@@ -89,7 +97,10 @@ def test_circuit_regime_predicates() -> None:
     assert not is_spline_circuit("2026_Italian Grand Prix_R")
     assert not is_spline_circuit(None)
 
-def test_router_uncalibrated_falls_back_to_tree_quantiles(sample_clean_laps: pl.DataFrame, tmp_path) -> None:
+
+def test_router_uncalibrated_falls_back_to_tree_quantiles(
+    sample_clean_laps: pl.DataFrame, tmp_path
+) -> None:
     """No-validation fits (smoke splits) must serve tree-leg intervals, not raise."""
     train_df = sample_clean_laps.filter(pl.col("lap_number") <= 35)
     test_df = sample_clean_laps.filter(pl.col("lap_number") > 35).head(30)
@@ -113,6 +124,7 @@ def test_router_uncalibrated_falls_back_to_tree_quantiles(sample_clean_laps: pl.
     q_loaded = loaded.predict_quantiles(test_df)
     np.testing.assert_allclose(q_loaded[0.5], q_router[0.5], rtol=1e-5)
 
+
 def test_spline_bayesian_ridge(sample_clean_laps: pl.DataFrame, tmp_path) -> None:
     """Verify B-Spline + BayesianRidge fits, predicts, and serializes."""
     train_df = sample_clean_laps.filter(pl.col("lap_number") <= 35)
@@ -125,7 +137,7 @@ def test_spline_bayesian_ridge(sample_clean_laps: pl.DataFrame, tmp_path) -> Non
     preds = model.predict(test_df)
     y_true = test_df["next_clean_lap_s"].to_numpy()
     err_s = mae(y_true, preds)
-    assert err_s < 0.400, f"Spline MAE {err_s*1000:.1f}ms exceeds 400ms"
+    assert err_s < 0.400, f"Spline MAE {err_s * 1000:.1f}ms exceeds 400ms"
 
     # Save & Load round-trip
     save_dir = tmp_path / "spline_model"
@@ -187,7 +199,7 @@ def test_router_coverage_latency_and_persistence(sample_clean_laps: pl.DataFrame
 
     q_all = router.predict_quantiles(test_df)
     cov = interval_coverage(y_true, q_all[0.1], q_all[0.9])
-    assert 0.75 <= cov <= 0.85, f"Normalized coverage {cov*100:.1f}% outside [75%, 85%] gate"
+    assert 0.75 <= cov <= 0.85, f"Normalized coverage {cov * 100:.1f}% outside [75%, 85%] gate"
 
     save_dir = tmp_path / "adaptive_router"
     router.save(save_dir)

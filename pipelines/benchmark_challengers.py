@@ -37,7 +37,8 @@ CIRCUITS = [
 def load_data() -> pl.DataFrame:
     files = sorted(SILVER_DIR.glob("*.parquet"))
     race_files = [
-        f for f in files
+        f
+        for f in files
         if any(k in f.stem for k in ["Race", "Grand Prix", "_R"])
         and "Qualifying" not in f.stem
         and "Practice" not in f.stem
@@ -45,9 +46,11 @@ def load_data() -> pl.DataFrame:
     dfs = [pl.read_parquet(f) for f in race_files[:30] if not pl.read_parquet(f).is_empty()]
     full = pl.concat(dfs, how="diagonal")
     gold = build_pace_features(full)
-    return gold.filter(pl.col("is_valid_training_lap_target")).filter(
-        pl.col("next_clean_lap_s").is_not_null()
-    ).filter((pl.col("next_clean_lap_s") - pl.col("lap_time_s")).abs() < 2.0)
+    return (
+        gold.filter(pl.col("is_valid_training_lap_target"))
+        .filter(pl.col("next_clean_lap_s").is_not_null())
+        .filter((pl.col("next_clean_lap_s") - pl.col("lap_time_s")).abs() < 2.0)
+    )
 
 
 def measure_p95_latency(model, sample_row) -> float:
@@ -80,19 +83,27 @@ def run_seen_circuit_check(clean_gold: pl.DataFrame, feat_cols: list[str]) -> di
     q = m_router.predict_quantiles(te)
     per_circuit = []
     for c_info in CIRCUITS:
-        sub = te.filter(pl.col("session_id").str.contains(f"{c_info['pattern']}|{c_info.get('alt', c_info['pattern'])}"))
+        sub = te.filter(
+            pl.col("session_id").str.contains(
+                f"{c_info['pattern']}|{c_info.get('alt', c_info['pattern'])}"
+            )
+        )
         if len(sub) < 30:
             continue
         ys = sub["next_clean_lap_s"].to_numpy()
         qs = m_router.predict_quantiles(sub)
         cov = float(interval_coverage(ys, qs[0.1], qs[0.9]))
-        per_circuit.append({
-            "circuit": c_info["name"],
-            "test_laps": len(sub),
-            "router_mae_ms": round(float(mae(ys, qs[0.5])) * 1000, 1),
-            "router_cov80_pct": round(cov * 100, 1),
-            "verdict": "PASS" if 75.0 <= cov * 100 <= 85.0 else ("OVER" if cov * 100 > 85.0 else "UNDER"),
-        })
+        per_circuit.append(
+            {
+                "circuit": c_info["name"],
+                "test_laps": len(sub),
+                "router_mae_ms": round(float(mae(ys, qs[0.5])) * 1000, 1),
+                "router_cov80_pct": round(cov * 100, 1),
+                "verdict": "PASS"
+                if 75.0 <= cov * 100 <= 85.0
+                else ("OVER" if cov * 100 > 85.0 else "UNDER"),
+            }
+        )
     macro_cov = float(interval_coverage(y, q[0.1], q[0.9])) * 100
     return {
         "split": "temporal lap<=30 / 31-40 / >40, all circuits seen",
@@ -153,7 +164,9 @@ def run_benchmark() -> None:
         sample_row = test_df.head(1)
 
         # 1. Tree: Hybrid LightGBM (physics + quantile residual)
-        m_tree = HybridPaceModel(params={"n_estimators": 200, "verbose": -1}, alphas=[0.1, 0.5, 0.9])
+        m_tree = HybridPaceModel(
+            params={"n_estimators": 200, "verbose": -1}, alphas=[0.1, 0.5, 0.9]
+        )
         m_tree.fit(tr_sub, val_sub, feature_cols=feat_cols)
         p_tree = m_tree.predict(test_df)
         mae_tree = float(mae(y_test, p_tree))
@@ -177,7 +190,6 @@ def run_benchmark() -> None:
         # Locally adaptive (circuit-normalized) conformal coverage
         q_router = m_router.predict_quantiles(test_df)
         cov_router = float(interval_coverage(y_test, q_router[0.1], q_router[0.9]))
-
 
         # Fixed-width baseline on identical routed point predictions (isolates
         # the calibration effect: same p50, constant +/- q_hat from validation).
@@ -205,7 +217,9 @@ def run_benchmark() -> None:
             "winner": winner,
         }
         results.append(res)
-        print(f"{c_name:<12} | Tree: {mae_tree*1000:>5.1f}ms | Spline: {mae_spline*1000:>5.1f}ms | Router({routed_to}): {mae_router*1000:>5.1f}ms | Cov: {cov_router*100:.1f}% (fixed {cov_fixed*100:.1f}%) | p95: {lat_router:.1f}ms")
+        print(
+            f"{c_name:<12} | Tree: {mae_tree * 1000:>5.1f}ms | Spline: {mae_spline * 1000:>5.1f}ms | Router({routed_to}): {mae_router * 1000:>5.1f}ms | Cov: {cov_router * 100:.1f}% (fixed {cov_fixed * 100:.1f}%) | p95: {lat_router:.1f}ms"
+        )
 
     macro = {
         "tree_mae_ms": round(np.mean([r["tree_mae_ms"] for r in results]), 1),
@@ -225,9 +239,7 @@ def run_benchmark() -> None:
             "PASS" if 75.0 <= c <= 85.0 else ("OVER" if c > 85.0 else "UNDER")
         )
     regressions = [
-        r["circuit"]
-        for r in results
-        if r["router_cov80_pct"] < r["router_cov80_fixed_pct"] - 2.0
+        r["circuit"] for r in results if r["router_cov80_pct"] < r["router_cov80_fixed_pct"] - 2.0
     ]
 
     print("\n" + "=" * 80)
@@ -235,8 +247,12 @@ def run_benchmark() -> None:
     print("=" * 80)
     seen = run_seen_circuit_check(clean_gold, feat_cols)
     for r in seen["per_circuit"]:
-        print(f"{r['circuit']:<12} | MAE: {r['router_mae_ms']:>6.1f}ms | Cov: {r['router_cov80_pct']:>5.1f}% | {r['verdict']}")
-    print(f"Seen-circuit macro: MAE {seen['macro_mae_ms']}ms | Cov {seen['macro_cov80_pct']}% [{seen['macro_verdict']}]")
+        print(
+            f"{r['circuit']:<12} | MAE: {r['router_mae_ms']:>6.1f}ms | Cov: {r['router_cov80_pct']:>5.1f}% | {r['verdict']}"
+        )
+    print(
+        f"Seen-circuit macro: MAE {seen['macro_mae_ms']}ms | Cov {seen['macro_cov80_pct']}% [{seen['macro_verdict']}]"
+    )
 
     OUT_FILE.parent.mkdir(parents=True, exist_ok=True)
     summary = {

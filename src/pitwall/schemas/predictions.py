@@ -111,6 +111,7 @@ class WhatIfRequest(BaseModel):
             return "WET"
         return up
 
+
 class GapTrajectoryPoint(BaseModel):
     lap: int
     baseline: float

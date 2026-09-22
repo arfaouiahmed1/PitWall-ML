@@ -62,9 +62,13 @@ async def lifespan(app: FastAPI):  # type: ignore[no-untyped-def]
 
     artifact_dir = settings.artifact_dir
     if not (artifact_dir / "model" / "model.pkl").is_file():
-        raise RuntimeError(f"Configured pace artifact is missing: {artifact_dir / 'model' / 'model.pkl'}")
+        raise RuntimeError(
+            f"Configured pace artifact is missing: {artifact_dir / 'model' / 'model.pkl'}"
+        )
     if not (artifact_dir / "metrics.json").is_file():
-        raise RuntimeError(f"Configured metrics artifact is missing: {artifact_dir / 'metrics.json'}")
+        raise RuntimeError(
+            f"Configured metrics artifact is missing: {artifact_dir / 'metrics.json'}"
+        )
     replay_sessions = discover_replay_sessions(settings.replay_root)
     if not replay_sessions:
         raise RuntimeError(f"No replay sessions found beneath {settings.replay_root}")
@@ -175,6 +179,7 @@ async def get_race_state() -> dict[str, Any]:
         "event_count": race_state.event_count,
     }
 
+
 @app.get("/race/sessions")
 async def get_replay_sessions() -> list[dict[str, Any]]:
     return [
@@ -231,7 +236,11 @@ async def get_pace_predictions() -> list[dict[str, Any]]:
             if use_circuit_routing:
                 qd = active_quantile.predict_quantiles(batch, circuit=race_state.session_id)
             else:
-                qd = active_quantile.predict_quantiles(batch) if hasattr(active_quantile, "predict_quantiles") else active_quantile.predict(batch)
+                qd = (
+                    active_quantile.predict_quantiles(batch)
+                    if hasattr(active_quantile, "predict_quantiles")
+                    else active_quantile.predict(batch)
+                )
             q10a, q50a, q90a = qd[0.1], qd[0.5], qd[0.9]
             preds: list[dict[str, Any]] = []
             for i, (dn, ds) in enumerate(race_state.drivers.items()):
@@ -385,7 +394,8 @@ def _snapshot_rows(
     pit_by_driver = {prediction["driver_number"]: prediction for prediction in pit_predictions}
     rows: list[dict[str, Any]] = []
     for driver_number, driver in sorted(
-        race_state.drivers.items(), key=lambda item: item[1].position if item[1].position is not None else 999
+        race_state.drivers.items(),
+        key=lambda item: item[1].position if item[1].position is not None else 999,
     ):
         rows.append(
             {
@@ -438,7 +448,10 @@ def _apply_live_snapshot(snapshot: OpenF1Snapshot) -> None:
                 session_key=snapshot.source_id,
                 driver_number=driver_number,
                 event_ts=event_time,
-                payload={"gap_to_leader": row.get("gap_to_leader_s"), "interval": row.get("gap_ahead_s")},
+                payload={
+                    "gap_to_leader": row.get("gap_to_leader_s"),
+                    "interval": row.get("gap_ahead_s"),
+                },
             )
         )
     live_state.track_status = str(snapshot.race_state.get("track_status", "UNKNOWN"))
@@ -759,7 +772,9 @@ async def whatif(req: WhatIfRequest) -> WhatIfResponse:
         t = step / 14.0
         base_gap = round((1 - t) * 1.2 + np.sin(t * 3) * 0.4, 3)
         whatif_gap = round(base_gap + time_delta * (t * 0.5), 3)
-        trajectory.append({"lap": lap_num, "baseline": float(base_gap), "whatif": float(whatif_gap)})
+        trajectory.append(
+            {"lap": lap_num, "baseline": float(base_gap), "whatif": float(whatif_gap)}
+        )
 
     return WhatIfResponse(
         driver_number=d_num,
@@ -779,6 +794,7 @@ async def whatif(req: WhatIfRequest) -> WhatIfResponse:
         n_simulations=n_sims,
         model_version=model_version,
     )
+
 
 @app.get("/replay/status")
 async def replay_status() -> dict[str, Any]:
@@ -929,7 +945,11 @@ async def ws_race(websocket: WebSocket) -> None:
             recent_events.appendleft(
                 {
                     "source": event.source,
-                    "event_type": str(event.event_type.value if hasattr(event.event_type, "value") else event.event_type),
+                    "event_type": str(
+                        event.event_type.value
+                        if hasattr(event.event_type, "value")
+                        else event.event_type
+                    ),
                     "driver_number": event.driver_number,
                     "event_ts": event.event_ts.isoformat(),
                     "payload": event.payload,

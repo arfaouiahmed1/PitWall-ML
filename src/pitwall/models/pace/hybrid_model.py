@@ -47,15 +47,9 @@ class DeterministicPhysicsBaseline:
 
         # 2. Tyre degradation based on compound and age
         compounds = (
-            df["compound"].cast(pl.Utf8).to_list()
-            if "compound" in df.columns
-            else ["MEDIUM"] * n
+            df["compound"].cast(pl.Utf8).to_list() if "compound" in df.columns else ["MEDIUM"] * n
         )
-        ages = (
-            df["tyre_age"].fill_null(1.0).to_numpy()
-            if "tyre_age" in df.columns
-            else np.ones(n)
-        )
+        ages = df["tyre_age"].fill_null(1.0).to_numpy() if "tyre_age" in df.columns else np.ones(n)
 
         for i, (comp, age) in enumerate(zip(compounds, ages, strict=False)):
             comp_norm = str(comp).upper()
@@ -124,15 +118,15 @@ class HybridPaceModel:
                 train_df["next_clean_lap_s"].to_numpy() - train_df[base_lap_col].to_numpy()
             )
         else:
-            raise ValueError(f"Neither {target_col} nor (next_clean_lap_s - {base_lap_col}) found in train_df")
+            raise ValueError(
+                f"Neither {target_col} nor (next_clean_lap_s - {base_lap_col}) found in train_df"
+            )
 
         # 3. Compute residual: actual delta - physical delta
         train_residual = y_train_delta - phys_train
 
         # Attach residual target to training frame
-        train_with_res = train_df.with_columns(
-            pl.Series("_residual_target", train_residual)
-        )
+        train_with_res = train_df.with_columns(pl.Series("_residual_target", train_residual))
 
         # Handle validation frame if present
         valid_with_res = None
@@ -147,9 +141,7 @@ class HybridPaceModel:
             else:
                 y_val_delta = np.zeros(len(valid_df))
             val_residual = y_val_delta - phys_val
-            valid_with_res = valid_df.with_columns(
-                pl.Series("_residual_target", val_residual)
-            )
+            valid_with_res = valid_df.with_columns(pl.Series("_residual_target", val_residual))
 
         # 4. Train quantile residual model
         self.residual_model.fit(
@@ -164,10 +156,7 @@ class HybridPaceModel:
         """Predict total pace delta (physics + residual) across quantiles."""
         phys_delta = self.physics.compute_delta(df)
         residual_preds = self.residual_model.predict(df)
-        return {
-            alpha: phys_delta + residual_preds[alpha]
-            for alpha in self.alphas
-        }
+        return {alpha: phys_delta + residual_preds[alpha] for alpha in self.alphas}
 
     def predict(self, df: pl.DataFrame, base_lap_col: str = "lap_time_s") -> np.ndarray:
         """Predict median absolute lap time (p50)."""
@@ -189,10 +178,7 @@ class HybridPaceModel:
             else np.full(len(df), 85.0)
         )
         deltas = self.predict_delta(df)
-        return {
-            alpha: base + deltas[alpha]
-            for alpha in self.alphas
-        }
+        return {alpha: base + deltas[alpha] for alpha in self.alphas}
 
     def save(self, path: Path | str) -> Path:
         """Save hybrid model artifacts."""
