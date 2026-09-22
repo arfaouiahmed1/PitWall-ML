@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+from datetime import timedelta
+from pathlib import Path
+
 import numpy as np
 import polars as pl
 import pytest
@@ -59,10 +62,66 @@ def test_physics_hard_warmup_penalty() -> None:
 # ── 2. HybridPaceModel Tests ─────────────────────────────────────────────────
 
 
+SILVER_FILE = Path("data/silver/laps/2026_Italian Grand Prix_R.parquet")
+
+
+def _synthetic_silver() -> pl.DataFrame:
+    rng = np.random.default_rng(42)
+    rows = []
+    drivers = [1, 2, 3, 4, 10, 11, 14, 16, 18, 20, 22, 23, 24, 27, 31, 44, 55, 63, 77, 81]
+    for idx, d in enumerate(drivers):
+        pit_lap = 18 + (idx % 15)
+        d_pace = (idx - 10) * 0.05
+        curr_time = 83.5 + d_pace
+        for lap in range(1, 54):
+            is_stint_2 = lap > pit_lap
+            stint_no = 2.0 if is_stint_2 else 1.0
+            compound = "HARD" if is_stint_2 else "MEDIUM"
+            tyre_age = float(lap - pit_lap - 1 if is_stint_2 else lap - 1)
+
+            base_deg = 0.014 if compound == "HARD" else 0.028
+            deg_pen = base_deg * (1.0 + 0.015 * min(tyre_age, 35.0))
+            if compound == "HARD" and tyre_age <= 3:
+                deg_pen += 0.12 * (4.0 - tyre_age) / 3.0
+            expected_delta = -0.033 + deg_pen
+
+            noise = rng.normal(0, 0.08)
+            lap_time = curr_time
+            curr_time = lap_time + expected_delta + noise
+
+            s1 = lap_time * 0.33 + rng.normal(0, 0.02)
+            s2 = lap_time * 0.35 + rng.normal(0, 0.02)
+            s3 = lap_time - s1 - s2
+
+            rows.append(
+                {
+                    "session_id": "2026_Italian Grand Prix_R",
+                    "driver_id": f"D{d}",
+                    "driver_number": str(d),
+                    "lap_number": float(lap),
+                    "lap_time_s": lap_time,
+                    "compound": compound,
+                    "tyre_age": tyre_age,
+                    "stint_no": stint_no,
+                    "position": float(idx + 1),
+                    "track_status": "1",
+                    "is_valid_training_lap": True,
+                    "Sector1Time": timedelta(seconds=s1),
+                    "Sector2Time": timedelta(seconds=s2),
+                    "Sector3Time": timedelta(seconds=s3),
+                    "SpeedFL": 290.0 + rng.normal(0, 2.0),
+                    "SpeedI1": 310.0 + rng.normal(0, 2.0),
+                    "SpeedI2": 280.0 + rng.normal(0, 2.0),
+                    "SpeedST": 320.0 + rng.normal(0, 2.0),
+                }
+            )
+    return pl.DataFrame(rows)
+
+
 @pytest.fixture
 def sample_gold_data() -> pl.DataFrame:
-    """Load real clean laps from 2026 Italian GP for testing."""
-    df = pl.read_parquet("data/silver/laps/2026_Italian Grand Prix_R.parquet")
+    """Load real clean laps from 2026 Italian GP for testing, or synthetic fallback."""
+    df = pl.read_parquet(SILVER_FILE) if SILVER_FILE.exists() else _synthetic_silver()
     gold = build_pace_features(df)
     return gold.filter(pl.col("is_valid_training_lap_target")).filter(
         pl.col("next_clean_lap_s").is_not_null()
