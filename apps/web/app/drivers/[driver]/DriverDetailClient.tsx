@@ -66,9 +66,9 @@ export function DriverDetailClient({ driverParam }: { driverParam: string }) {
   const path = laps.map((v, i) => `${(i / (laps.length - 1)) * 260},${36 - ((v - min) / (max - min || 1)) * 28}`).join(" L ");
   return (
     <div className="space-y-6">
-      <Link href="/drivers" className="inline-flex items-center gap-1.5 text-xs text-[#8b9bb4] hover:text-white">← Back to head-to-head</Link>
+      <Link href="/drivers" className="inline-flex items-center gap-1.5 text-xs text-pitwall-muted hover:text-white">← Back to head-to-head</Link>
 
-      <div className="rounded-xl bg-[#0f172a] border border-[#1e293b] overflow-hidden">
+      <div className="rounded-xl bg-pitwall-card border border-pitwall-border overflow-hidden">
         <div className="h-1 w-full" style={{ background: info.color }} />
         <div className="p-6 flex flex-wrap gap-6 items-center justify-between">
           <div className="flex items-center gap-4">
@@ -83,11 +83,11 @@ export function DriverDetailClient({ driverParam }: { driverParam: string }) {
               className="rounded-2xl"
             />
             <div>
-              <div className="text-[11px] tracking-widest text-[#8b9bb4] font-bold">{info.team.toUpperCase()} • #{num}</div>
-              <h1 className="text-2xl font-black tracking-tight">{lastName(info.name).toUpperCase()} <span className="text-[#8b9bb4] font-bold text-lg">• {info.code}</span></h1>
+              <div className="text-[11px] tracking-widest text-pitwall-muted font-bold">{info.team.toUpperCase()} • #{num}</div>
+              <h1 className="text-2xl font-black tracking-tight">{lastName(info.name).toUpperCase()} <span className="text-pitwall-muted font-bold text-lg">• {info.code}</span></h1>
               <div className="mt-1 flex items-center gap-2 text-[11px]">
-                <span className="px-2 py-0.5 rounded bg-[#080c14] border border-[#1e293b] font-mono text-[#22c55e]">P1 Contender</span>
-                <span className="text-[#8b9bb4] font-mono">Pace: 1:19.28 ± 0.29s</span>
+                <span className="px-2 py-0.5 rounded bg-pitwall-bg border border-pitwall-border font-mono text-pitwall-green">P1 Contender</span>
+                <span className="text-pitwall-muted font-mono">Pace: 1:19.28 ± 0.29s</span>
               </div>
             </div>
           </div>
@@ -98,71 +98,71 @@ export function DriverDetailClient({ driverParam }: { driverParam: string }) {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="rounded-xl bg-[#0f172a] border border-[#1e293b] p-5 space-y-4">
-          <div className="flex items-center justify-between border-b border-[#1e293b] pb-3">
+        <div className="rounded-xl bg-pitwall-card border border-pitwall-border p-5 space-y-4">
+          <div className="flex items-center justify-between border-b border-pitwall-border pb-3">
             <span className="text-xs font-black tracking-wider uppercase">Performance Latent Dimensions</span>
-            <span className="text-[10px] font-mono text-[#8b9bb4]">INDEX 0-100</span>
+            <span className="text-[10px] font-mono text-pitwall-muted">INDEX 0-100</span>
           </div>
           <RadarChart radar={radar} color={info.color} />
           <div className="grid grid-cols-3 gap-2 pt-2 text-center text-xs font-mono">
-            <div className="p-2 rounded bg-[#080c14] border border-[#1e293b]">
-              <div className="text-[10px] text-[#8b9bb4]">High Spd</div>
-              <div className="font-bold text-[#22c55e]">{radar.highSpeed}</div>
+            <div className="p-2 rounded bg-pitwall-bg border border-pitwall-border">
+              <div className="text-[10px] text-pitwall-muted">High Spd</div>
+              <div className="font-bold text-pitwall-green">{radar.highSpeed}</div>
             </div>
-            <div className="p-2 rounded bg-[#080c14] border border-[#1e293b]">
-              <div className="text-[10px] text-[#8b9bb4]">Tyre Mgmt</div>
-              <div className="font-bold text-[#eab308]">{radar.tyreConservation}</div>
+            <div className="p-2 rounded bg-pitwall-bg border border-pitwall-border">
+              <div className="text-[10px] text-pitwall-muted">Tyre Mgmt</div>
+              <div className="font-bold text-pitwall-yellow">{radar.tyreConservation}</div>
             </div>
-            <div className="p-2 rounded bg-[#080c14] border border-[#1e293b]">
-              <div className="text-[10px] text-[#8b9bb4]">Energy</div>
-              <div className="font-bold text-[#00d2be]">{radar.energyEfficiency}</div>
+            <div className="p-2 rounded bg-pitwall-bg border border-pitwall-border">
+              <div className="text-[10px] text-pitwall-muted">Energy</div>
+              <div className="font-bold text-pitwall-cyan">{radar.energyEfficiency}</div>
             </div>
           </div>
         </div>
 
-        <div className="lg:col-span-2 rounded-xl bg-[#0f172a] border border-[#1e293b] p-5 space-y-4">
-          <div className="flex items-center justify-between border-b border-[#1e293b] pb-3">
+        <div className="lg:col-span-2 rounded-xl bg-pitwall-card border border-pitwall-border p-5 space-y-4">
+          <div className="flex items-center justify-between border-b border-pitwall-border pb-3">
             <span className="text-xs font-black tracking-wider uppercase">Recent Stint Lap Evolution (S2 / Medium)</span>
-            <span className="text-[10px] font-mono text-[#22c55e]">Avg Deg: +0.045s/lap</span>
+            <span className="text-[10px] font-mono text-pitwall-green">Avg Deg: +0.045s/lap</span>
           </div>
-          <div className="h-32 bg-[#080c14] rounded-lg border border-[#1e293b] p-3 flex flex-col justify-between">
-            <div className="flex justify-between text-[10px] font-mono text-[#8b9bb4]">
+          <div className="h-32 bg-pitwall-bg rounded-lg border border-pitwall-border p-3 flex flex-col justify-between">
+            <div className="flex justify-between text-[10px] font-mono text-pitwall-muted">
               <span>Lap 18 (Fresh)</span>
               <span>Lap 30 (Current)</span>
             </div>
             <svg viewBox="0 0 260 40" className="w-full h-16">
               <path d={`M ${path}`} fill="none" stroke={info.color} strokeWidth={2} />
             </svg>
-            <div className="flex justify-between text-[10px] font-mono text-[#8b9bb4]">
+            <div className="flex justify-between text-[10px] font-mono text-pitwall-muted">
               <span>Best: {min.toFixed(2)}s</span>
               <span>Delta: +{(max - min).toFixed(2)}s</span>
             </div>
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
-            <div className="p-3 rounded-lg bg-[#080c14] border border-[#1e293b]">
-              <div className="text-[10px] text-[#8b9bb4] uppercase">Speed Trap Max</div>
-              <div className="text-lg font-black font-mono mt-1">{(322 + (radar.highSpeed - 70) * 0.85).toFixed(1)} <span className="text-xs text-[#8b9bb4] font-normal">km/h</span></div>
+            <div className="p-3 rounded-lg bg-pitwall-bg border border-pitwall-border">
+              <div className="text-[10px] text-pitwall-muted uppercase">Speed Trap Max</div>
+              <div className="text-lg font-black font-mono mt-1">{(322 + (radar.highSpeed - 70) * 0.85).toFixed(1)} <span className="text-xs text-pitwall-muted font-normal">km/h</span></div>
             </div>
-            <div className="p-3 rounded-lg bg-[#080c14] border border-[#1e293b]">
-              <div className="text-[10px] text-[#8b9bb4] uppercase">Brake Intensity</div>
-              <div className="text-lg font-black font-mono mt-1 text-[#ef4444]">{(82 + (radar.traction - 70) * 0.5).toFixed(1)} <span className="text-xs text-[#8b9bb4] font-normal">bar</span></div>
+            <div className="p-3 rounded-lg bg-pitwall-bg border border-pitwall-border">
+              <div className="text-[10px] text-pitwall-muted uppercase">Brake Intensity</div>
+              <div className="text-lg font-black font-mono mt-1 text-pitwall-danger">{(82 + (radar.traction - 70) * 0.5).toFixed(1)} <span className="text-xs text-pitwall-muted font-normal">bar</span></div>
             </div>
-            <div className="p-3 rounded-lg bg-[#080c14] border border-[#1e293b]">
-              <div className="text-[10px] text-[#8b9bb4] uppercase">Lift & Coast</div>
-              <div className="text-lg font-black font-mono mt-1 text-[#22c55e]">{Math.max(1.8, (100 - radar.energyEfficiency) * 0.22).toFixed(1)}<span className="text-xs text-[#8b9bb4] font-normal">%</span></div>
+            <div className="p-3 rounded-lg bg-pitwall-bg border border-pitwall-border">
+              <div className="text-[10px] text-pitwall-muted uppercase">Lift & Coast</div>
+              <div className="text-lg font-black font-mono mt-1 text-pitwall-green">{Math.max(1.8, (100 - radar.energyEfficiency) * 0.22).toFixed(1)}<span className="text-xs text-pitwall-muted font-normal">%</span></div>
             </div>
-            <div className="p-3 rounded-lg bg-[#080c14] border border-[#1e293b]">
-              <div className="text-[10px] text-[#8b9bb4] uppercase">X-Mode Straight</div>
-              <div className="text-lg font-black font-mono mt-1 text-[#00d2be]">{(68 + (radar.highSpeed - 70) * 0.45).toFixed(1)}<span className="text-xs text-[#8b9bb4] font-normal">%</span></div>
+            <div className="p-3 rounded-lg bg-pitwall-bg border border-pitwall-border">
+              <div className="text-[10px] text-pitwall-muted uppercase">X-Mode Straight</div>
+              <div className="text-lg font-black font-mono mt-1 text-pitwall-cyan">{(68 + (radar.highSpeed - 70) * 0.45).toFixed(1)}<span className="text-xs text-pitwall-muted font-normal">%</span></div>
             </div>
           </div>
         </div>
       </div>
-      <div className="rounded-xl bg-[#0f172a] border border-[#1e293b] p-5 space-y-4">
-        <div className="flex items-center justify-between border-b border-[#1e293b] pb-3">
+      <div className="rounded-xl bg-pitwall-card border border-pitwall-border p-5 space-y-4">
+        <div className="flex items-center justify-between border-b border-pitwall-border pb-3">
           <span className="text-xs font-black tracking-wider uppercase">Head-to-Head Comparison vs Rival ({rivalInfo.code})</span>
-          <span className="text-[10px] font-mono text-[#8b9bb4]">Synchronized 100 Hz Telemetry</span>
+          <span className="text-[10px] font-mono text-pitwall-muted">Synchronized 100 Hz Telemetry</span>
         </div>
         <TelemetryOverlay driver1Num={num} driver2Num={rival} />
       </div>

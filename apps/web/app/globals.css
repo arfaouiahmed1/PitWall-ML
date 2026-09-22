@@ -1,3 +1,4 @@
+/* Shape lock: outer cards rounded-xl, inner stat cells rounded-lg, pills/badges/bars rounded-full. */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -43,13 +44,17 @@ html {
 body {
   background: var(--pit-bg);
   color: #e2e8f0;
-  font-family: Inter, system-ui, -apple-system, sans-serif;
+  font-family: var(--font-geist-sans), Inter, system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
 .mono {
-  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-family: var(--font-geist-mono), "JetBrains Mono", ui-monospace, monospace;
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
 }
 
 .card {
@@ -127,4 +132,11 @@ body {
 }
 .latency-dot {
   animation: latency-pulse 1.6s ease-in-out infinite;
+}
+
+/* Keyboard focus visibility (a11y) */
+:focus-visible {
+  outline: 2px solid #00d2be;
+  outline-offset: 2px;
+  border-radius: 4px;
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { fetchJson } from "@/lib/fetcher";
 
 export type DriverInfo = {
   /** Full name, e.g. "Max Verstappen" */
@@ -62,7 +63,7 @@ function headshotUrl(code: string, num: number): string {
   if (slug) {
     return `https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/${slug}`;
   }
-  return `https://cdn.openf1.org/drivers/${num}/headshot.png`;
+  return "https://media.formula1.com/d_driver_fallback_image.png";
 }
 
 /** Complete 2025/2026 grid : 20 drivers as specified in plan 1.2 */
@@ -316,9 +317,9 @@ export function useDrivers(): Record<number, DriverInfo> {
 
   useEffect(() => {
     let cancelled = false;
-    fetch(OPENF1_DRIVERS_URL)
-      .then((res) => (res.ok ? res.json() : Promise.reject(new Error(`OpenF1 HTTP ${res.status}`))))
-      .then((rows: unknown) => {
+    const controller = new AbortController();
+    fetchJson<unknown>(OPENF1_DRIVERS_URL, { signal: controller.signal }, { timeoutMs: 3000, onFailure: (reason) => console.warn(`OpenF1 drivers fetch failed: ${reason}`) })
+      .then((rows) => {
         if (cancelled || !Array.isArray(rows)) return;
         const merged: Record<number, DriverInfo> = { ...DRIVER_FALLBACK };
         const seenCodes = new Set<string>();
@@ -359,12 +360,10 @@ export function useDrivers(): Record<number, DriverInfo> {
           }
         }
         setDrivers(merged);
-      })
-      .catch(() => {
-        // offline or blocked: keep canonical fallback identities
       });
     return () => {
       cancelled = true;
+      controller.abort();
     };
   }, []);
 

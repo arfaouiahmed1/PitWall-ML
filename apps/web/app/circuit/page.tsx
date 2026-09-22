@@ -63,49 +63,49 @@ export default function CircuitPage() {
 
   return (
     <div className="space-y-6">
-      <div className="rounded-xl bg-[#0f172a] border border-[#1e293b] p-6">
+      <div className="rounded-xl bg-pitwall-card border border-pitwall-border p-6">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <h1 className="text-xl font-black tracking-tight">CIRCUIT & SCHEDULE • TRACK INTELLIGENCE</h1>
-            <p className="text-xs text-[#8b9bb4] mt-1">Vector layouts • sectors • speed traps • DRS / Active Aero X-Mode straights • live driver dots • weekend timetable • track weather</p>
+            <p className="text-xs text-pitwall-muted mt-1">Vector layouts • sectors • speed traps • DRS / Active Aero X-Mode straights • live driver dots • weekend timetable • track weather</p>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-[11px] tracking-widest text-[#8b9bb4] font-bold">SELECT CIRCUIT</span>
-            <select value={circuitId} onChange={(e) => setCircuitId(e.target.value)} className="bg-[#080c14] border border-[#1e293b] rounded-lg px-3 py-2 text-sm font-mono">
+            <span className="text-[11px] tracking-widest text-pitwall-muted font-bold">SELECT CIRCUIT</span>
+            <select value={circuitId} onChange={(e) => setCircuitId(e.target.value)} className="bg-pitwall-bg border border-pitwall-border rounded-lg px-3 py-2 text-sm font-mono">
               {CIRCUITS.map((c) => <option key={c.id} value={c.id}>{c.name} • {c.country}</option>)}
             </select>
           </div>
         </div>
         <div className="mt-4 grid grid-cols-2 lg:grid-cols-5 gap-3 text-xs">
-          <div className="bg-[#080c14] rounded-lg border border-[#1e293b] p-3 text-center"><div className="text-[10px] tracking-widest text-[#8b9bb4]">LENGTH</div><div className="font-mono font-black mt-1">{meta.len}</div></div>
-          <div className="bg-[#080c14] rounded-lg border border-[#1e293b] p-3 text-center"><div className="text-[10px] tracking-widest text-[#8b9bb4]">TURNS</div><div className="font-mono font-black mt-1">{meta.turns}</div></div>
-          <div className="bg-[#080c14] rounded-lg border border-[#1e293b] p-3 text-center"><div className="text-[10px] tracking-widest text-[#8b9bb4]">DRS / X-MODE</div><div className="font-mono font-bold mt-1 text-[#00d2be]">{meta.drs}</div></div>
-          <div className="bg-[#080c14] rounded-lg border border-[#1e293b] p-3 text-center"><div className="text-[10px] tracking-widest text-[#8b9bb4]">LAP RECORD</div><div className="font-mono font-bold mt-1">{meta.record}</div></div>
-          <div className="bg-[#080c14] rounded-lg border border-[#1e293b] p-3 text-center"><div className="text-[10px] tracking-widest text-[#8b9bb4]">ENERGY</div><div className="font-mono font-bold mt-1">{meta.energy}</div></div>
+          <div className="bg-pitwall-bg rounded-lg border border-pitwall-border p-3 text-center"><div className="text-[10px] tracking-widest text-pitwall-muted">LENGTH</div><div className="font-mono font-black mt-1">{meta.len}</div></div>
+          <div className="bg-pitwall-bg rounded-lg border border-pitwall-border p-3 text-center"><div className="text-[10px] tracking-widest text-pitwall-muted">TURNS</div><div className="font-mono font-black mt-1">{meta.turns}</div></div>
+          <div className="bg-pitwall-bg rounded-lg border border-pitwall-border p-3 text-center"><div className="text-[10px] tracking-widest text-pitwall-muted">DRS / X-MODE</div><div className="font-mono font-bold mt-1 text-pitwall-cyan">{meta.drs}</div></div>
+          <div className="bg-pitwall-bg rounded-lg border border-pitwall-border p-3 text-center"><div className="text-[10px] tracking-widest text-pitwall-muted">LAP RECORD</div><div className="font-mono font-bold mt-1">{meta.record}</div></div>
+          <div className="bg-pitwall-bg rounded-lg border border-pitwall-border p-3 text-center"><div className="text-[10px] tracking-widest text-pitwall-muted">ENERGY</div><div className="font-mono font-bold mt-1">{meta.energy}</div></div>
         </div>
-        <div className="mt-2 text-[11px] text-[#5a6b84]">Sectors: {meta.sectors} • Speed traps • DRS detection • Active Aero high-speed straights</div>
+        <div className="mt-2 text-[11px] text-pitwall-muted">Sectors: {meta.sectors} • Speed traps • DRS detection • Active Aero high-speed straights</div>
       </div>
 
       <div className="grid grid-cols-12 gap-4">
         <div className="col-span-12 lg:col-span-7">
           <CircuitMap circuitId={circuitId} drivers={dots} lap={sim.lap} flag="GREEN" />
-          <div className="mt-4 rounded-xl bg-[#0f172a] border border-[#1e293b] p-4">
-            <div className="text-[11px] tracking-widest text-[#8b9bb4] font-bold">CIRCUIT DNA • TELEMETRY FEATURES</div>
+          <div className="mt-4 rounded-xl bg-pitwall-card border border-pitwall-border p-4">
+            <div className="text-[11px] tracking-widest text-pitwall-muted font-bold">CIRCUIT DNA • TELEMETRY FEATURES</div>
             <div className="mt-3 grid grid-cols-3 gap-3 text-xs">
-              <div className="bg-[#080c14] border border-[#1e293b] rounded-lg p-3">
-                <div className="text-[#8b9bb4] text-[10px]">SPEED TRAP MAX</div>
+              <div className="bg-pitwall-bg border border-pitwall-border rounded-lg p-3">
+                <div className="text-pitwall-muted text-[10px]">SPEED TRAP MAX</div>
                 <div className="font-mono font-black mt-1">{info.speedTraps[0]?.label ?? "330 km/h"}</div>
-                <div className="text-[10px] text-[#00d2be]">DRS {info.drsZones} zones active</div>
+                <div className="text-[10px] text-pitwall-cyan">DRS {info.drsZones} zones active</div>
               </div>
-              <div className="bg-[#080c14] border border-[#1e293b] rounded-lg p-3">
-                <div className="text-[#8b9bb4] text-[10px]">BRAKE INTENSITY</div>
+              <div className="bg-pitwall-bg border border-pitwall-border rounded-lg p-3">
+                <div className="text-pitwall-muted text-[10px]">BRAKE INTENSITY</div>
                 <div className="font-mono font-black mt-1">{info.turns > 16 ? "Mean 74% • Heavy" : info.turns > 12 ? "Mean 64% • Medium" : "Mean 52% • Flowing"}</div>
-                <div className="text-[10px] text-[#ef4444]">{info.turns} corners total</div>
+                <div className="text-[10px] text-pitwall-danger">{info.turns} corners total</div>
               </div>
-              <div className="bg-[#080c14] border border-[#1e293b] rounded-lg p-3">
-                <div className="text-[#8b9bb4] text-[10px]">ENERGY DIFFICULTY</div>
+              <div className="bg-pitwall-bg border border-pitwall-border rounded-lg p-3">
+                <div className="text-pitwall-muted text-[10px]">ENERGY DIFFICULTY</div>
                 <div className="font-mono font-black mt-1">{meta.energy}</div>
-                <div className="text-[10px] text-[#eab308]">Lap record: {meta.record}</div>
+                <div className="text-[10px] text-pitwall-yellow">Lap record: {meta.record}</div>
               </div>
             </div>
           </div>

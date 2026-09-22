@@ -5,7 +5,8 @@
 // to stream authentic live driver track positions, interval gaps, and lap deltas.
 
 import { useEffect, useState } from "react";
-import { DRIVER_FALLBACK, type DriverInfo } from "@/lib/drivers";
+import { DRIVER_FALLBACK } from "@/lib/drivers";
+import { fetchJson, startPoller } from "@/lib/fetcher";
 import type { RaceRow } from "@/components/RaceTable";
 import type { DriverDot } from "@/components/CircuitMap";
 
@@ -15,6 +16,8 @@ export type LiveTelemetryState = {
   isLive: boolean;
   lap: number;
   flag: "GREEN" | "YELLOW" | "SC" | "VSC" | "RED";
+  error: string | null;
+  loading: boolean;
   lastUpdated: string;
 };
 
@@ -48,30 +51,43 @@ export function useLiveTelemetry(enabled = true) {
     isLive: false,
     lap: 1,
     flag: "GREEN",
+    error: null,
+    loading: true,
     lastUpdated: new Date().toISOString(),
   });
 
   useEffect(() => {
     if (!enabled) return;
     let cancelled = false;
+    const controller = new AbortController();
 
+    // OpenF1 live timing via the shared fetcher (3s timeout, no per-tick retries).
     const pollLive = async () => {
-      try {
-        const [posRes, intRes, lapRes] = await Promise.all([
-          fetch("https://api.openf1.org/v1/position?session_key=latest", { signal: AbortSignal.timeout(3000) }).catch(() => null),
-          fetch("https://api.openf1.org/v1/intervals?session_key=latest", { signal: AbortSignal.timeout(3000) }).catch(() => null),
-          fetch("https://api.openf1.org/v1/laps?session_key=latest", { signal: AbortSignal.timeout(3000) }).catch(() => null),
-        ]);
+      const [posRes, intRes, lapRes] = await Promise.all([
+        fetchJson<OpenF1Position[]>("https://api.openf1.org/v1/position?session_key=latest", { signal: controller.signal }),
+        fetchJson<OpenF1Interval[]>("https://api.openf1.org/v1/intervals?session_key=latest", { signal: controller.signal }),
+        fetchJson<OpenF1Lap[]>("https://api.openf1.org/v1/laps?session_key=latest", { signal: controller.signal }),
+      ]);
 
-        if (cancelled) return;
+      if (cancelled) return;
 
-        const positions: OpenF1Position[] = posRes && posRes.ok ? await posRes.json().catch(() => []) : [];
-        const intervals: OpenF1Interval[] = intRes && intRes.ok ? await intRes.json().catch(() => []) : [];
-        const laps: OpenF1Lap[] = lapRes && lapRes.ok ? await lapRes.json().catch(() => []) : [];
+      const positions: OpenF1Position[] = Array.isArray(posRes) ? posRes : [];
+      const intervals: OpenF1Interval[] = Array.isArray(intRes) ? intRes : [];
+      const laps: OpenF1Lap[] = Array.isArray(lapRes) ? lapRes : [];
 
-        if (!Array.isArray(positions) || positions.length === 0) {
-          return;
-        }
+      if (posRes === null && intRes === null && lapRes === null) {
+        setState((previous) =>
+          previous.error === "Live telemetry unavailable." && !previous.loading
+            ? previous
+            : { ...previous, error: "Live telemetry unavailable.", loading: false }
+        );
+        return;
+      }
+
+      if (positions.length === 0) {
+        setState((previous) => (previous.loading ? { ...previous, loading: false } : previous));
+        return;
+      }
 
         // Get latest position for each driver
         const latestPosByDriver = new Map<number, OpenF1Position>();
@@ -141,25 +157,37 @@ export function useLiveTelemetry(enabled = true) {
         }
 
         if (mappedRows.length > 0 && !cancelled) {
-          setState({
-            rows: mappedRows,
-            dots: mappedDots,
-            isLive: true,
-            lap: maxLap,
-            flag: "GREEN",
-            lastUpdated: new Date().toISOString(),
+          const leaderGap = mappedRows[0]?.gap ?? "";
+          setState((previous) => {
+            const unchanged =
+              previous.isLive &&
+              previous.lap === maxLap &&
+              previous.rows.length === mappedRows.length &&
+              (previous.rows[0]?.gap ?? "") === leaderGap &&
+              previous.error === null &&
+              !previous.loading;
+            if (unchanged) return previous;
+            return {
+              rows: mappedRows,
+              dots: mappedDots,
+              isLive: true,
+              lap: maxLap,
+              flag: "GREEN",
+              error: null,
+              loading: false,
+              lastUpdated: new Date().toISOString(),
+            };
           });
         }
-      } catch {}
     };
 
     pollLive();
-    // Refresh live telemetry every 4 seconds
-    const interval = setInterval(pollLive, 4000);
-
+    // Refresh live telemetry every 4 seconds, paused while the tab is hidden.
+    const stop = startPoller(pollLive, 4000);
     return () => {
       cancelled = true;
-      clearInterval(interval);
+      controller.abort();
+      stop();
     };
   }, [enabled]);
 

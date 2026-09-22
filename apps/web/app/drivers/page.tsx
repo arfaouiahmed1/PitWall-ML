@@ -69,14 +69,14 @@ export default function DriversPage() {
 
   return (
     <div className="space-y-6">
-      <div className="rounded-xl bg-[#0f172a] border border-[#1e293b] p-6">
+      <div className="rounded-xl bg-pitwall-card border border-pitwall-border p-6">
         <h1 className="text-xl font-black tracking-tight">DRIVER TELEMETRY • HEAD-TO-HEAD</h1>
-        <p className="text-xs text-[#8b9bb4] mt-1">Dual-driver speed • throttle • brake • gear • DRS / X-Mode overlay + PerformanceVector radar. Click a driver card to open detail.</p>
+        <p className="text-xs text-pitwall-muted mt-1">Dual-driver speed • throttle • brake • gear • DRS / X-Mode overlay + PerformanceVector radar. Click a driver card to open detail.</p>
       </div>
 
       <div className="grid grid-cols-12 gap-4">
         <div className="col-span-12 lg:col-span-3 space-y-3">
-          <div className="text-[11px] tracking-widest text-[#8b9bb4] font-bold">SELECT DRIVERS</div>
+          <div className="text-[11px] tracking-widest text-pitwall-muted font-bold">SELECT DRIVERS</div>
           <div className="space-y-2 max-h-[560px] overflow-auto pr-1">
             {all.map((d) => (
               <button
@@ -87,27 +87,27 @@ export default function DriversPage() {
                   if (Math.abs(d.num - a) < Math.abs(d.num - b)) setB(d.num);
                   else setA(d.num);
                 }}
-                className={`w-full text-left rounded-xl border p-3 flex items-center gap-3 transition ${d.num === a || d.num === b ? "bg-[#080c14] border-[#ff1801]/40 shadow-[0_0_10px_rgba(255,24,1,0.15)]" : "bg-[#0f172a] border-[#1e293b] hover:border-[#243447]"}`}
+                className={`w-full text-left rounded-xl border p-3 flex items-center gap-3 transition ${d.num === a || d.num === b ? "bg-pitwall-bg border-pitwall-accent/40 shadow-[0_0_10px_rgba(255,24,1,0.15)]" : "bg-pitwall-card border-pitwall-border hover:border-pitwall-edge"}`}
               >
                 <DriverAvatar src={d.info.image} name={d.info.name} code={d.info.code} number={d.num} color={d.info.color} team={d.info.team} size={32} />
                 <div className="flex-1 min-w-0">
-                  <div className="text-xs font-black font-mono">{d.info.code} <span className="text-[#8b9bb4] font-normal">#{d.num}</span> {(d.num === a || d.num === b) && <span className="ml-1 text-[10px] px-1 py-0.5 rounded bg-[#ff1801] text-white">{d.num === a ? "A" : "B"}</span>}</div>
-                  <div className="text-[11px] text-[#8b9bb4] truncate">{d.info.name} • {d.info.team}</div>
+                  <div className="text-xs font-black font-mono">{d.info.code} <span className="text-pitwall-muted font-normal">#{d.num}</span> {(d.num === a || d.num === b) && <span className="ml-1 text-[10px] px-1 py-0.5 rounded bg-pitwall-accent text-white">{d.num === a ? "A" : "B"}</span>}</div>
+                  <div className="text-[11px] text-pitwall-muted truncate">{d.info.name} • {d.info.team}</div>
                 </div>
                 <CarTopView team={d.info.team} size={36} />
               </button>
             ))}
           </div>
           <div className="flex gap-2">
-            <select value={a} onChange={(e) => setA(Number(e.target.value))} className="flex-1 bg-[#080c14] border border-[#1e293b] rounded-lg px-2 py-2 text-xs font-mono">
+            <select value={a} onChange={(e) => setA(Number(e.target.value))} className="flex-1 bg-pitwall-bg border border-pitwall-border rounded-lg px-2 py-2 text-xs font-mono">
               {all.map((d) => <option key={d.num} value={d.num}>{d.info.code} #{d.num}</option>)}
             </select>
-            <span className="self-center text-[#5a6b84] text-xs">vs</span>
-            <select value={b} onChange={(e) => setB(Number(e.target.value))} className="flex-1 bg-[#080c14] border border-[#1e293b] rounded-lg px-2 py-2 text-xs font-mono">
+            <span className="self-center text-pitwall-muted text-xs">vs</span>
+            <select value={b} onChange={(e) => setB(Number(e.target.value))} className="flex-1 bg-pitwall-bg border border-pitwall-border rounded-lg px-2 py-2 text-xs font-mono">
               {all.map((d) => <option key={d.num} value={d.num}>{d.info.code} #{d.num}</option>)}
             </select>
           </div>
-          <Link href={`/drivers/${a}`} className="block text-center text-xs font-bold py-2 rounded-lg bg-[#1e293b] text-[#8b9bb4] border border-[#243447] hover:text-white">Open {infoA?.code ?? a} detail →</Link>
+          <Link href={`/drivers/${a}`} className="block text-center text-xs font-bold py-2 rounded-lg bg-pitwall-border text-pitwall-muted border border-pitwall-edge hover:text-white">Open {infoA?.code ?? a} detail →</Link>
         </div>
 
         <div className="col-span-12 lg:col-span-9 space-y-4">
@@ -118,53 +118,53 @@ export default function DriversPage() {
               { info: infoA, radar: radarA, label: "A" },
               { info: infoB, radar: radarB, label: "B" },
             ].map((x) => (
-              <div key={x.label} className="rounded-xl bg-[#0f172a] border border-[#1e293b] p-4">
+              <div key={x.label} className="rounded-xl bg-pitwall-card border border-pitwall-border p-4">
                 <div className="flex items-center gap-3">
                   <DriverAvatar src={x.info?.image} name={x.info?.name ?? `Driver ${x.label}`} code={x.info?.code ?? x.label} number={x.label === "A" ? a : b} color={x.info?.color} team={x.info?.team} size={36} />
                   <div>
-                    <div className="text-sm font-black">{x.info?.name ?? `Driver ${x.label}`} <span className="text-[#8b9bb4] font-normal text-xs">#{x.label === "A" ? a : b}</span></div>
-                    <div className="text-[11px] text-[#8b9bb4]">{x.info?.team}</div>
+                    <div className="text-sm font-black">{x.info?.name ?? `Driver ${x.label}`} <span className="text-pitwall-muted font-normal text-xs">#{x.label === "A" ? a : b}</span></div>
+                    <div className="text-[11px] text-pitwall-muted">{x.info?.team}</div>
                   </div>
-                  <span className="ml-auto text-[10px] px-2 py-1 rounded-full bg-[#080c14] border border-[#1e293b] font-mono">{x.label}</span>
+                  <span className="ml-auto text-[10px] px-2 py-1 rounded-full bg-pitwall-bg border border-pitwall-border font-mono">{x.label}</span>
                 </div>
-                <div className="mt-3 bg-[#080c14] rounded-lg border border-[#1e293b] p-2">
+                <div className="mt-3 bg-pitwall-bg rounded-lg border border-pitwall-border p-2">
                   <RadarChart radar={x.radar} color={x.info?.color ?? "#ff8000"} />
                 </div>
                 <div className="mt-2 grid grid-cols-3 gap-2 text-[10px] font-mono">
-                  <div className="bg-[#080c14] border border-[#1e293b] rounded px-2 py-1 text-center"><div className="text-[#8b9bb4]">High Spd</div><div className="font-bold">{x.radar.highSpeed}</div></div>
-                  <div className="bg-[#080c14] border border-[#1e293b] rounded px-2 py-1 text-center"><div className="text-[#8b9bb4]">Tyre</div><div className="font-bold">{x.radar.tyreConservation}</div></div>
-                  <div className="bg-[#080c14] border border-[#1e293b] rounded px-2 py-1 text-center"><div className="text-[#8b9bb4]">Energy</div><div className="font-bold">{x.radar.energyEfficiency}</div></div>
+                  <div className="bg-pitwall-bg border border-pitwall-border rounded px-2 py-1 text-center"><div className="text-pitwall-muted">High Spd</div><div className="font-bold">{x.radar.highSpeed}</div></div>
+                  <div className="bg-pitwall-bg border border-pitwall-border rounded px-2 py-1 text-center"><div className="text-pitwall-muted">Tyre</div><div className="font-bold">{x.radar.tyreConservation}</div></div>
+                  <div className="bg-pitwall-bg border border-pitwall-border rounded px-2 py-1 text-center"><div className="text-pitwall-muted">Energy</div><div className="font-bold">{x.radar.energyEfficiency}</div></div>
                 </div>
-                <Link href={`/drivers/${x.label === "A" ? a : b}`} className="mt-3 block text-center text-xs py-2 rounded-lg bg-[#1e293b] text-[#8b9bb4] border border-[#243447] hover:text-white">View detail →</Link>
+                <Link href={`/drivers/${x.label === "A" ? a : b}`} className="mt-3 block text-center text-xs py-2 rounded-lg bg-pitwall-border text-pitwall-muted border border-pitwall-edge hover:text-white">View detail →</Link>
               </div>
             ))}
           </div>
 
-          <div className="rounded-xl bg-[#0f172a] border border-[#1e293b] p-4">
-            <div className="text-[11px] tracking-widest text-[#8b9bb4] font-bold">CORNER DELTA ANALYSIS</div>
+          <div className="rounded-xl bg-pitwall-card border border-pitwall-border p-4">
+            <div className="text-[11px] tracking-widest text-pitwall-muted font-bold">CORNER DELTA ANALYSIS</div>
             <div className="mt-3 grid grid-cols-3 gap-3 text-xs">
-              <div className="bg-[#080c14] border border-[#1e293b] rounded-lg p-3">
-                <div className="text-[#8b9bb4] text-[10px]">SPEED AT APEX</div>
+              <div className="bg-pitwall-bg border border-pitwall-border rounded-lg p-3">
+                <div className="text-pitwall-muted text-[10px]">SPEED AT APEX</div>
                 <div className="font-mono font-bold mt-1">
                   {infoA?.code} {138 + Math.round((radarA.lowSpeed - radarB.lowSpeed) * 0.5)} km/h vs {infoB?.code} 138 km/h • Δ {radarA.lowSpeed >= radarB.lowSpeed ? "+" : ""}{Math.round((radarA.lowSpeed - radarB.lowSpeed) * 0.5)}
                 </div>
-                <div className="text-[10px] text-[#22c55e]">
+                <div className="text-[10px] text-pitwall-green">
                   {radarA.lowSpeed >= radarB.lowSpeed ? `${infoA?.code} carries more apex speed` : `${infoB?.code} carries more apex speed`}
                 </div>
               </div>
-              <div className="bg-[#080c14] border border-[#1e293b] rounded-lg p-3">
-                <div className="text-[#8b9bb4] text-[10px]">BRAKING POINT</div>
+              <div className="bg-pitwall-bg border border-pitwall-border rounded-lg p-3">
+                <div className="text-pitwall-muted text-[10px]">BRAKING POINT</div>
                 <div className="font-mono font-bold mt-1">
                   {radarB.traction >= radarA.traction ? infoB?.code : infoA?.code} {Math.max(2, Math.abs(Math.round((radarB.traction - radarA.traction) * 0.4)))}m later
                 </div>
-                <div className="text-[10px] text-[#ef4444]">later braking, higher entry risk</div>
+                <div className="text-[10px] text-pitwall-danger">later braking, higher entry risk</div>
               </div>
-              <div className="bg-[#080c14] border border-[#1e293b] rounded-lg p-3">
-                <div className="text-[#8b9bb4] text-[10px]">EXIT ACCELERATION</div>
+              <div className="bg-pitwall-bg border border-pitwall-border rounded-lg p-3">
+                <div className="text-pitwall-muted text-[10px]">EXIT ACCELERATION</div>
                 <div className="font-mono font-bold mt-1">
                   {radarA.traction >= radarB.traction ? infoA?.code : infoB?.code} +{Math.max(0.04, Math.abs((radarA.traction - radarB.traction) * 0.015)).toFixed(2)}s advantage
                 </div>
-                <div className="text-[10px] text-[#8b9bb4]">traction + X-Mode deployment</div>
+                <div className="text-[10px] text-pitwall-muted">traction + X-Mode deployment</div>
               </div>
             </div>
           </div>

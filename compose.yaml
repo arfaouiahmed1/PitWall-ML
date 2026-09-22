@@ -64,11 +64,12 @@ services:
       REDIS_URL: redis://redis:6379/0
       MLFLOW_TRACKING_URI: http://mlflow:5000
       PYTHONPATH: /app/src:/app/apps/api
+      PITWALL_ARTIFACT_DIR: /app/artifacts/champion
+      PITWALL_REPLAY_ROOT: /app/data/bronze
+      PITWALL_ALLOWED_ORIGINS: http://localhost:3000
+      PITWALL_OPENF1_CACHE_TTL_SECONDS: "4"
     ports:
       - "8000:8000"
-    volumes:
-      - ./data:/app/data:ro
-      - ./configs:/app/configs:ro
     command: uvicorn pitwall_api.main:app --host 0.0.0.0 --port 8000
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]

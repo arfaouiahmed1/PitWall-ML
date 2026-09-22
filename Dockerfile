@@ -15,6 +15,8 @@ COPY pyproject.toml README.md ./
 COPY src ./src
 COPY apps/api ./apps/api
 COPY configs ./configs
+COPY data/bronze ./data/bronze
+COPY artifacts/champion ./artifacts/champion
 
 RUN pip install --upgrade pip && pip install -e "."
 

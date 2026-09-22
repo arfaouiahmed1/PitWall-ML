@@ -536,6 +536,86 @@ const FALLBACK_DRIVERS: DriverDot[] = [
   { driverNumber: 81, code: "PIA", color: "#ff8000", progress: 0.02 },
 ];
 
+interface TrackPointGeo {
+  x: number;
+  y: number;
+  nx: number;
+  ny: number;
+  angleDeg: number;
+  dx: number;
+  dy: number;
+}
+
+function sampleTrackPoint(el: SVGPathElement, length: number, totalLength: number): TrackPointGeo {
+  const normLen = ((length % totalLength) + totalLength) % totalLength;
+  const p = el.getPointAtLength(normLen);
+  const delta = 1.5;
+  const pPrev = el.getPointAtLength(((normLen - delta) % totalLength + totalLength) % totalLength);
+  const pNext = el.getPointAtLength(((normLen + delta) % totalLength + totalLength) % totalLength);
+  const dx = pNext.x - pPrev.x;
+  const dy = pNext.y - pPrev.y;
+  const mag = Math.hypot(dx, dy) || 1;
+  const udx = dx / mag;
+  const udy = dy / mag;
+  return {
+    x: p.x,
+    y: p.y,
+    nx: -udy,
+    ny: udx,
+    angleDeg: (Math.atan2(dy, dx) * 180) / Math.PI,
+    dx: udx,
+    dy: udy,
+  };
+}
+
+function findClosestLength(el: SVGPathElement, targetX: number, targetY: number, totalLen: number): number {
+  let bestLen = 0;
+  let minDistSq = Infinity;
+  const coarseSteps = 72;
+  for (let i = 0; i < coarseSteps; i++) {
+    const l = (i / coarseSteps) * totalLen;
+    const pt = el.getPointAtLength(l);
+    const dSq = (pt.x - targetX) ** 2 + (pt.y - targetY) ** 2;
+    if (dSq < minDistSq) {
+      minDistSq = dSq;
+      bestLen = l;
+    }
+  }
+  const stepSize = totalLen / coarseSteps;
+  const fineSteps = 8;
+  for (let j = -fineSteps; j <= fineSteps; j++) {
+    const l = ((bestLen + (j / fineSteps) * stepSize) % totalLen + totalLen) % totalLen;
+    const pt = el.getPointAtLength(l);
+    const dSq = (pt.x - targetX) ** 2 + (pt.y - targetY) ** 2;
+    if (dSq < minDistSq) {
+      minDistSq = dSq;
+      bestLen = l;
+    }
+  }
+  return bestLen;
+}
+
+function parseSpeedTrapLabel(label: string): { tag: string; title: string; value: string } {
+  const speedMatch = label.match(/(\d+)\s*km\/h/i);
+  if (speedMatch) {
+    return { tag: "ST", title: "SPEED TRAP", value: `${speedMatch[1]} KM/H` };
+  }
+  if (label.toUpperCase() === "FL") {
+    return { tag: "ST", title: "SPEED TRAP", value: "FINISH LINE" };
+  }
+  return { tag: "ST", title: "SPEED TRAP", value: label.toUpperCase() };
+}
+
+function formatDrsZoneLabel(rawLabel: string, index: number): string {
+  if (/DRS\s+ZONE/i.test(rawLabel)) {
+    return rawLabel.toUpperCase();
+  }
+  if (/^DRS\s+/i.test(rawLabel)) {
+    return rawLabel.replace(/^DRS\s+/i, "DRS ZONE ").toUpperCase();
+  }
+  return `DRS ZONE ${index + 1}`.toUpperCase();
+}
+
 export function CircuitMap({
   circuitId,
   drivers,
@@ -571,13 +651,14 @@ export function CircuitMap({
   }, [drivers]);
 
   const dots = drivers && drivers.length ? drivers : mockProgress;
-
+  const [totalLength, setTotalLength] = useState<number>(0);
   const [dotPos, setDotPos] = useState<{ x: number; y: number; d: DriverDot }[]>([]);
   useEffect(() => {
     const el = pathRef.current;
     if (!el) return;
     try {
       const len = el.getTotalLength();
+      setTotalLength(len);
       const pts = dots.map((d) => {
         const p = el.getPointAtLength(((d.progress % 1) + 1) % 1 * len);
         return { x: p.x, y: p.y, d };
@@ -601,24 +682,67 @@ export function CircuitMap({
         d,
       }));
 
+  const trackGeo = useMemo(() => {
+    const el = pathRef.current;
+    if (!el || totalLength <= 0) return null;
+    try {
+      const startLine = sampleTrackPoint(el, 0, totalLength);
+      const splits = circuit.sectorSplits && circuit.sectorSplits.length >= 2 ? circuit.sectorSplits : [0.33, 0.66];
+      const int1 = sampleTrackPoint(el, splits[0] * totalLength, totalLength);
+      const int2 = sampleTrackPoint(el, splits[1] * totalLength, totalLength);
+      const drsDetections = (circuit.drsSegments || []).map((seg, idx) => {
+        const actLen = findClosestLength(el, seg.x1, seg.y1, totalLength);
+        const detLen = ((actLen - totalLength * 0.038) % totalLength + totalLength) % totalLength;
+        const geo = sampleTrackPoint(el, detLen, totalLength);
+        return {
+          geo,
+          index: idx + 1,
+          label: `DRS DETECTION ${circuit.drsSegments.length > 1 ? idx + 1 : ""}`.trim(),
+        };
+      });
+      return { startLine, int1, int2, drsDetections };
+    } catch {
+      return null;
+    }
+  }, [totalLength, circuit.id, circuit.sectorSplits, circuit.drsSegments]);
+
+  const activeDrsDetections = trackGeo?.drsDetections ?? (circuit.drsSegments || []).map((seg, idx) => {
+    const dx = seg.x2 - seg.x1;
+    const dy = seg.y2 - seg.y1;
+    const len = Math.hypot(dx, dy) || 1;
+    return {
+      geo: {
+        x: seg.x1 - (dx / len) * 32,
+        y: seg.y1 - (dy / len) * 32,
+        nx: -dy / len,
+        ny: dx / len,
+        angleDeg: (Math.atan2(dy, dx) * 180) / Math.PI,
+        dx: dx / len,
+        dy: dy / len,
+      },
+      index: idx + 1,
+      label: `DRS DETECTION ${circuit.drsSegments.length > 1 ? idx + 1 : ""}`.trim(),
+    };
+  });
+
   const flagStyles: Record<Flag, { bg: string; text: string; glow: string; label: string }> = {
-    GREEN: { bg: "bg-[#052e1a] border-[#00d084]/30", text: "text-[#22c55e]", glow: "shadow-[0_0_22px_rgba(34,197,94,0.35)]", label: "GREEN : RACING" },
-    YELLOW: { bg: "bg-[#3a2d00] border-[#eab308]/40", text: "text-[#facc15]", glow: "shadow-[0_0_22px_rgba(234,179,8,0.4)]", label: "YELLOW : CAUTION" },
-    SC: { bg: "bg-[#3a1a00] border-[#ff8000]/40", text: "text-[#ff8000]", glow: "shadow-[0_0_22px_rgba(255,128,0,0.45)]", label: "SAFETY CAR" },
-    VSC: { bg: "bg-[#1e2a00] border-[#84cc16]/40", text: "text-[#a3e635]", glow: "shadow-[0_0_22px_rgba(132,204,22,0.35)]", label: "VIRTUAL SAFETY CAR" },
-    RED: { bg: "bg-[#3a0a0a] border-[#ef4444]/50", text: "text-[#f87171]", glow: "shadow-[0_0_22px_rgba(239,68,68,0.5)]", label: "RED FLAG" },
+    GREEN: { bg: "bg-pitwall-green border-pitwall-cyan/30", text: "text-pitwall-green", glow: "shadow-[0_0_22px_rgba(34,197,94,0.35)]", label: "GREEN : RACING" },
+    YELLOW: { bg: "bg-pitwall-yellow border-pitwall-yellow/40", text: "text-pitwall-amberlight", glow: "shadow-[0_0_22px_rgba(234,179,8,0.4)]", label: "YELLOW : CAUTION" },
+    SC: { bg: "bg-pitwall-papaya border-pitwall-papaya/40", text: "text-pitwall-papaya", glow: "shadow-[0_0_22px_rgba(255,128,0,0.45)]", label: "SAFETY CAR" },
+    VSC: { bg: "bg-pitwall-green border-pitwall-mint/40", text: "text-pitwall-mint", glow: "shadow-[0_0_22px_rgba(132,204,22,0.35)]", label: "VIRTUAL SAFETY CAR" },
+    RED: { bg: "bg-pitwall-danger border-pitwall-danger/50", text: "text-pitwall-rose", glow: "shadow-[0_0_22px_rgba(239,68,68,0.5)]", label: "RED FLAG" },
   };
   const flagCfg = flagStyles[flag] ?? flagStyles.GREEN;
 
   return (
-    <div className="rounded-xl overflow-hidden border border-[#1e293b] bg-[#0f172a]">
-      <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 border-b border-[#1e293b] bg-[#080c14]">
+    <div className="rounded-xl overflow-hidden border border-pitwall-border bg-pitwall-card">
+      <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 border-b border-pitwall-border bg-pitwall-bg">
         <div className="flex items-center gap-3">
-          <div className="w-2 h-2 rounded-full bg-[#00d2be] animate-pulse" />
+          <div className="w-2 h-2 rounded-full bg-pitwall-cyan animate-pulse" />
           <h3 className="font-black tracking-tight text-sm">CIRCUIT MAP</h3>
-          <span className="hidden sm:inline text-[10px] tracking-widest text-[#64748b]">AUTHENTIC FIA GEOMETRY • LIVE TELEMETRY</span>
+          <span className="hidden sm:inline text-[10px] tracking-widest text-pitwall-muted">AUTHENTIC FIA GEOMETRY • LIVE TELEMETRY</span>
           {typeof lap === "number" && (
-            <span className="ml-2 text-[11px] font-mono px-2 py-1 rounded bg-[#1e293b] border border-[#334155] text-[#94a3b8]">
+            <span className="ml-2 text-[11px] font-mono px-2 py-1 rounded bg-pitwall-border border border-pitwall-steel text-pitwall-fog">
               LAP {lap}
             </span>
           )}
@@ -628,7 +752,7 @@ export function CircuitMap({
             <select
               value={activeId}
               onChange={(e) => setSelected(e.target.value)}
-              className="bg-[#0f172a] border border-[#1e293b] rounded px-2 py-1.5 text-xs font-mono text-[#cbd5e1] focus:outline-none focus:border-[#00d2be]/40"
+              className="bg-pitwall-card border border-pitwall-border rounded px-2 py-1.5 text-xs font-mono text-pitwall-fog focus:outline-none focus:border-pitwall-cyan/40"
               aria-label="Select circuit"
             >
               {CIRCUITS.map((c) => (
@@ -642,39 +766,39 @@ export function CircuitMap({
             className={`hidden md:inline-flex items-center gap-1.5 text-[10px] font-bold tracking-widest px-2.5 py-1 rounded-full border ${flagCfg.bg} ${flagCfg.text} ${flagCfg.glow} ${flag === "YELLOW" || flag === "RED" ? "animate-pulse" : ""}`}
           >
             <span
-              className={`w-1.5 h-1.5 rounded-full ${flag === "GREEN" ? "bg-[#22c55e]" : flag === "YELLOW" ? "bg-[#eab308]" : flag === "SC" ? "bg-[#ff8000]" : flag === "VSC" ? "bg-[#a3e635]" : "bg-[#ef4444]"} ${flag !== "GREEN" ? "animate-ping" : "animate-pulse"}`}
+              className={`w-1.5 h-1.5 rounded-full ${flag === "GREEN" ? "bg-pitwall-green" : flag === "YELLOW" ? "bg-pitwall-yellow" : flag === "SC" ? "bg-pitwall-papaya" : flag === "VSC" ? "bg-pitwall-mint" : "bg-pitwall-danger"} ${flag !== "GREEN" ? "animate-ping" : "animate-pulse"}`}
             />
             {flagCfg.label}
           </span>
         </div>
       </div>
 
-      <div className="grid grid-cols-3 divide-x divide-[#1e293b] border-b border-[#1e293b] bg-[#0f172a]">
+      <div className="grid grid-cols-3 divide-x divide-pitwall-border border-b border-pitwall-border bg-pitwall-card">
         <div className="px-4 py-2">
-          <div className="text-[10px] tracking-widest text-[#64748b]">CIRCUIT</div>
+          <div className="text-[10px] tracking-widest text-pitwall-muted">CIRCUIT</div>
           <div className="text-sm font-black">{circuit.name}</div>
-          <div className="text-[11px] text-[#94a3b8]">
+          <div className="text-[11px] text-pitwall-fog">
             {circuit.country} • {circuit.lengthKm} km
           </div>
         </div>
         <div className="px-4 py-2 text-center">
-          <div className="text-[10px] tracking-widest text-[#64748b]">TURNS / DRS</div>
+          <div className="text-[10px] tracking-widest text-pitwall-muted">TURNS / DRS</div>
           <div className="font-mono font-bold text-sm mt-1">
             {circuit.turns} turns • {circuit.drsZones} zones
           </div>
-          <div className="text-[10px] text-[#00d2be] mt-0.5">S1 / S2 / S3 • DRS Zones</div>
+          <div className="text-[10px] text-pitwall-cyan mt-0.5">S1 / S2 / S3 • DRS Zones</div>
         </div>
         <div className="px-4 py-2 text-right">
-          <div className="text-[10px] tracking-widest text-[#64748b]">CONDITIONS</div>
-          <div className="text-xs font-mono text-[#cbd5e1]">Track {weather.trackTempC.toFixed(1)}°C • Air {weather.airTempC.toFixed(1)}°C</div>
-          <div className="text-[10px] text-[#00d2be] font-mono flex items-center justify-end gap-1">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#00d2be] animate-pulse" />
+          <div className="text-[10px] tracking-widest text-pitwall-muted">CONDITIONS</div>
+          <div className="text-xs font-mono text-pitwall-fog">Track {weather.trackTempC.toFixed(1)}°C • Air {weather.airTempC.toFixed(1)}°C</div>
+          <div className="text-[10px] text-pitwall-cyan font-mono flex items-center justify-end gap-1">
+            <span className="w-1.5 h-1.5 rounded-full bg-pitwall-cyan animate-pulse" />
             {weather.condition}
           </div>
         </div>
       </div>
 
-      <div className="relative bg-[#080c14] p-2 sm:p-4">
+      <div className="relative bg-pitwall-bg p-2 sm:p-4">
         <div
           className="absolute inset-0 opacity-[0.04]"
           style={{
@@ -683,50 +807,284 @@ export function CircuitMap({
           }}
         />
         <svg viewBox={circuit.viewBox} className="relative w-full h-[280px] sm:h-[360px]" role="img" aria-label={`${circuit.name} circuit map`} key={circuit.id}>
-          {/* Base asphalt glow & track line */}
-          <path d={circuit.path} fill="none" stroke="#020617" strokeWidth={22} strokeLinecap="round" strokeLinejoin="round" opacity={0.9} />
-          <path ref={pathRef} d={circuit.path} fill="none" stroke="#1e293b" strokeWidth={16} strokeLinecap="round" strokeLinejoin="round" />
-          <path d={circuit.path} fill="none" stroke="#334155" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" opacity={0.6} />
-          <path d={circuit.path} fill="none" stroke="#0f172a" strokeWidth={1} strokeDasharray="8 12" opacity={0.35} />
+          {/* Base asphalt shadow & track foundation */}
+          <path d={circuit.path} fill="none" stroke="#000000" strokeWidth={24} strokeLinecap="round" strokeLinejoin="round" opacity={0.65} />
+          <path d={circuit.path} fill="none" stroke="#020617" strokeWidth={20} strokeLinecap="round" strokeLinejoin="round" />
+          <path d={circuit.path} fill="none" stroke="#0f172a" strokeWidth={16} strokeLinecap="round" strokeLinejoin="round" />
 
-          {/* DRS zones */}
-          {circuit.drsSegments.map((s, i) => (
-            <g key={`drs-${i}`}>
-              <line x1={s.x1} y1={s.y1} x2={s.x2} y2={s.y2} stroke="#00d2be" strokeWidth={6} strokeLinecap="round" opacity={0.95} />
-              <line x1={s.x1} y1={s.y1} x2={s.x2} y2={s.y2} stroke="#0f172a" strokeWidth={1.2} strokeDasharray="6 8" opacity={0.9} />
-              <line x1={s.x1} y1={s.y1} x2={s.x2} y2={s.y2} stroke="#22d3ee" strokeWidth={2} strokeDasharray="12 20" opacity={0.6} className="animate-[dash_1.1s_linear_infinite]" />
-              <text x={(s.x1 + s.x2) / 2} y={s.y1 - 10} textAnchor="middle" fontSize={9} fontWeight={900} fill="#00d2be" letterSpacing={1.2} className="select-none">
-                {s.label}
-              </text>
-            </g>
-          ))}
+          {/* Primary reference path for length & driver dot tracking */}
+          <path ref={pathRef} d={circuit.path} fill="none" stroke="#090d16" strokeWidth={14} strokeLinecap="round" strokeLinejoin="round" />
 
-          {/* Turn markers */}
+          {/* Official Sector Color Overlays: S1 (Red: #ef4444), S2 (Cyan: #00d2be), S3 (Yellow: #eab308) */}
+          {totalLength > 0 && circuit.sectorSplits && circuit.sectorSplits.length >= 2 ? (
+            <>
+              {/* Sector 1: Red */}
+              <path
+                d={circuit.path}
+                fill="none"
+                stroke="#ef4444"
+                strokeWidth={11}
+                strokeLinecap="butt"
+                strokeLinejoin="round"
+                strokeDasharray={`${circuit.sectorSplits[0] * totalLength} ${totalLength}`}
+                strokeDashoffset={0}
+                opacity={0.95}
+              />
+              {/* Sector 2: Cyan */}
+              <path
+                d={circuit.path}
+                fill="none"
+                stroke="#00d2be"
+                strokeWidth={11}
+                strokeLinecap="butt"
+                strokeLinejoin="round"
+                strokeDasharray={`${(circuit.sectorSplits[1] - circuit.sectorSplits[0]) * totalLength} ${totalLength}`}
+                strokeDashoffset={-circuit.sectorSplits[0] * totalLength}
+                opacity={0.95}
+              />
+              {/* Sector 3: Yellow */}
+              <path
+                d={circuit.path}
+                fill="none"
+                stroke="#eab308"
+                strokeWidth={11}
+                strokeLinecap="butt"
+                strokeLinejoin="round"
+                strokeDasharray={`${(1 - circuit.sectorSplits[1]) * totalLength} ${totalLength}`}
+                strokeDashoffset={-circuit.sectorSplits[1] * totalLength}
+                opacity={0.95}
+              />
+            </>
+          ) : (
+            <path d={circuit.path} fill="none" stroke="#1e293b" strokeWidth={11} strokeLinecap="round" strokeLinejoin="round" opacity={0.6} />
+          )}
+
+          {/* Centerline kerb racing line & dark asphalt groove */}
+          <path d={circuit.path} fill="none" stroke="#080c14" strokeWidth={5} strokeLinecap="round" strokeLinejoin="round" opacity={0.7} />
+          <path d={circuit.path} fill="none" stroke="#ffffff" strokeWidth={1.2} strokeDasharray="6 12" strokeLinecap="round" strokeLinejoin="round" opacity={0.3} />
+
+          {/* Finish / Start Line: Checkered / stripe crosshair at the start of the lap */}
+          {(() => {
+            const geo = trackGeo?.startLine ?? {
+              x: 180,
+              y: 430,
+              nx: 0,
+              ny: -1,
+              angleDeg: 0,
+              dx: 1,
+              dy: 0,
+            };
+            const badgeX = Math.max(50, Math.min(750, geo.x + geo.nx * 28));
+            const badgeY = Math.max(25, Math.min(475, geo.y + geo.ny * 28));
+            const checkeredCols = [-12, -9, -6, -3, 0, 3, 6, 9];
+            return (
+              <g key="finish-start-line" className="select-none">
+                <g transform={`translate(${geo.x},${geo.y}) rotate(${geo.angleDeg})`}>
+                  {/* Longitudinal crosshair line along track center */}
+                  <line x1={-8} y1={0} x2={8} y2={0} stroke="#ffffff" strokeWidth={1.2} opacity={0.75} />
+                  {/* Transverse crosshair line across track */}
+                  <line x1={0} y1={-16} x2={0} y2={16} stroke="#ffffff" strokeWidth={1.5} opacity={0.9} />
+                  <line x1={-3} y1={-16} x2={3} y2={-16} stroke="#ffffff" strokeWidth={1} />
+                  <line x1={-3} y1={16} x2={3} y2={16} stroke="#ffffff" strokeWidth={1} />
+                  {/* Flanking transponder timing lines */}
+                  <line x1={-4.5} y1={-13} x2={-4.5} y2={13} stroke="#ffffff" strokeWidth={0.8} opacity={0.85} />
+                  <line x1={4.5} y1={-13} x2={4.5} y2={13} stroke="#ffffff" strokeWidth={0.8} opacity={0.85} />
+                  {/* Checkered pattern bar across the track width */}
+                  {checkeredCols.map((posY, i) => (
+                    <g key={`chk-${i}`}>
+                      <rect x={-3} y={posY} width={3} height={3} fill={i % 2 === 0 ? "#ffffff" : "#080c14"} stroke="#ffffff" strokeWidth={0.25} />
+                      <rect x={0} y={posY} width={3} height={3} fill={i % 2 === 0 ? "#080c14" : "#ffffff"} stroke="#ffffff" strokeWidth={0.25} />
+                    </g>
+                  ))}
+                </g>
+                {/* Leader line to badge */}
+                <line x1={geo.x} y1={geo.y} x2={badgeX} y2={badgeY} stroke="#ffffff" strokeWidth={1} strokeDasharray="2 2" opacity={0.65} />
+                {/* Finish / Start Pill Badge */}
+                <g transform={`translate(${badgeX},${badgeY})`}>
+                  <rect x={-48} y={-9} width={96} height={18} rx={3} fill="#080c14" stroke="#ffffff" strokeWidth={1.4} />
+                  <g transform="translate(-40, -5)">
+                    <rect x={0} y={0} width={5} height={5} fill="#ffffff" />
+                    <rect x={5} y={0} width={5} height={5} fill="#080c14" stroke="#ffffff" strokeWidth={0.4} />
+                    <rect x={0} y={5} width={5} height={5} fill="#080c14" stroke="#ffffff" strokeWidth={0.4} />
+                    <rect x={5} y={5} width={5} height={5} fill="#ffffff" />
+                  </g>
+                  <text x={8} y={0} textAnchor="middle" dominantBaseline="central" fontSize={7.5} fontWeight={900} fill="#ffffff" fontFamily="monospace" letterSpacing="0.08em">
+                    START / FINISH
+                  </text>
+                </g>
+              </g>
+            );
+          })()}
+
+          {/* Sector Boundary Checkpoints: Intermediate timing lines (INT 1, INT 2) */}
+          {trackGeo && (
+            <>
+              {/* Intermediate 1 (INT 1) at Sector 1 / Sector 2 split */}
+              {(() => {
+                const geo = trackGeo.int1;
+                const badgeX = Math.max(35, Math.min(765, geo.x + geo.nx * 26));
+                const badgeY = Math.max(25, Math.min(475, geo.y + geo.ny * 26));
+                return (
+                  <g key="int-1" className="select-none">
+                    <g transform={`translate(${geo.x},${geo.y}) rotate(${geo.angleDeg})`}>
+                      <line x1={0} y1={-14} x2={0} y2={14} stroke="#ef4444" strokeWidth={2.2} />
+                      <line x1={-3} y1={-14} x2={3} y2={-14} stroke="#ef4444" strokeWidth={1.2} />
+                      <line x1={-3} y1={14} x2={3} y2={14} stroke="#ef4444" strokeWidth={1.2} />
+                      <circle cx={0} cy={0} r={4} fill="#080c14" stroke="#ef4444" strokeWidth={1.5} />
+                      <circle cx={0} cy={0} r={1.6} fill="#ef4444" />
+                    </g>
+                    <line x1={geo.x} y1={geo.y} x2={badgeX} y2={badgeY} stroke="#ef4444" strokeWidth={1} strokeDasharray="2 2" opacity={0.7} />
+                    <g transform={`translate(${badgeX},${badgeY})`}>
+                      <rect x={-24} y={-8.5} width={48} height={17} rx={3} fill="#080c14" stroke="#ef4444" strokeWidth={1.4} />
+                      <rect x={-24} y={-8.5} width={15} height={17} rx={3} fill="#ef4444" />
+                      <rect x={-12} y={-8.5} width={3} height={17} fill="#ef4444" />
+                      <text x={-16.5} y={0} textAnchor="middle" dominantBaseline="central" fontSize={6.5} fontWeight={900} fill="#ffffff" fontFamily="monospace">
+                        S1
+                      </text>
+                      <text x={9} y={0} textAnchor="middle" dominantBaseline="central" fontSize={8} fontWeight={900} fill="#ef4444" fontFamily="monospace" letterSpacing="0.06em">
+                        INT 1
+                      </text>
+                    </g>
+                  </g>
+                );
+              })()}
+
+              {/* Intermediate 2 (INT 2) at Sector 2 / Sector 3 split */}
+              {(() => {
+                const geo = trackGeo.int2;
+                const badgeX = Math.max(35, Math.min(765, geo.x + geo.nx * 26));
+                const badgeY = Math.max(25, Math.min(475, geo.y + geo.ny * 26));
+                return (
+                  <g key="int-2" className="select-none">
+                    <g transform={`translate(${geo.x},${geo.y}) rotate(${geo.angleDeg})`}>
+                      <line x1={0} y1={-14} x2={0} y2={14} stroke="#00d2be" strokeWidth={2.2} />
+                      <line x1={-3} y1={-14} x2={3} y2={-14} stroke="#00d2be" strokeWidth={1.2} />
+                      <line x1={-3} y1={14} x2={3} y2={14} stroke="#00d2be" strokeWidth={1.2} />
+                      <circle cx={0} cy={0} r={4} fill="#080c14" stroke="#00d2be" strokeWidth={1.5} />
+                      <circle cx={0} cy={0} r={1.6} fill="#00d2be" />
+                    </g>
+                    <line x1={geo.x} y1={geo.y} x2={badgeX} y2={badgeY} stroke="#00d2be" strokeWidth={1} strokeDasharray="2 2" opacity={0.7} />
+                    <g transform={`translate(${badgeX},${badgeY})`}>
+                      <rect x={-24} y={-8.5} width={48} height={17} rx={3} fill="#080c14" stroke="#00d2be" strokeWidth={1.4} />
+                      <rect x={-24} y={-8.5} width={15} height={17} rx={3} fill="#00d2be" />
+                      <rect x={-12} y={-8.5} width={3} height={17} fill="#00d2be" />
+                      <text x={-16.5} y={0} textAnchor="middle" dominantBaseline="central" fontSize={6.5} fontWeight={900} fill="#080c14" fontFamily="monospace">
+                        S2
+                      </text>
+                      <text x={9} y={0} textAnchor="middle" dominantBaseline="central" fontSize={8} fontWeight={900} fill="#00d2be" fontFamily="monospace" letterSpacing="0.06em">
+                        INT 2
+                      </text>
+                    </g>
+                  </g>
+                );
+              })()}
+            </>
+          )}
+
+          {/* DRS Zones: High-visibility dashed line with glowing cyan accents and bold DRS ZONE labels */}
+          {circuit.drsSegments.map((s, i) => {
+            const labelText = formatDrsZoneLabel(s.label, i);
+            const mx = (s.x1 + s.x2) / 2;
+            const my = (s.y1 + s.y2) / 2;
+            const dx = s.x2 - s.x1;
+            const dy = s.y2 - s.y1;
+            const segLen = Math.hypot(dx, dy) || 1;
+            const badgeOffset = 18;
+            const badgeX = Math.max(50, Math.min(750, mx + (-dy / segLen) * badgeOffset));
+            const badgeY = Math.max(25, Math.min(475, my + (dx / segLen) * badgeOffset));
+            const badgeWidth = Math.max(76, labelText.length * 6.6 + 26);
+
+            return (
+              <g key={`drs-${i}`} className="select-none">
+                <line x1={s.x1} y1={s.y1} x2={s.x2} y2={s.y2} stroke="#00d2be" strokeWidth={10} opacity={0.22} strokeLinecap="round" />
+                <line x1={s.x1} y1={s.y1} x2={s.x2} y2={s.y2} stroke="#00d2be" strokeWidth={6} strokeLinecap="round" opacity={0.9} />
+                <line x1={s.x1} y1={s.y1} x2={s.x2} y2={s.y2} stroke="#080c14" strokeWidth={2.4} strokeLinecap="round" opacity={0.75} />
+                <line x1={s.x1} y1={s.y1} x2={s.x2} y2={s.y2} stroke="#22d3ee" strokeWidth={2.2} strokeDasharray="10 8" strokeLinecap="round" className="animate-[dash_1.1s_linear_infinite]" />
+                <circle cx={s.x1} cy={s.y1} r={3.5} fill="#00d2be" stroke="#080c14" strokeWidth={1.2} />
+                <circle cx={s.x2} cy={s.y2} r={3} fill="#080c14" stroke="#00d2be" strokeWidth={1.2} />
+                <line x1={mx} y1={my} x2={badgeX} y2={badgeY} stroke="#00d2be" strokeWidth={0.9} strokeDasharray="2 2" opacity={0.6} />
+                <g transform={`translate(${badgeX},${badgeY})`}>
+                  <rect x={-badgeWidth / 2} y={-8.5} width={badgeWidth} height={17} rx={4} fill="#080c14" stroke="#00d2be" strokeWidth={1.4} />
+                  <circle cx={-badgeWidth / 2 + 8} cy={0} r={2.5} fill="#00d2be" className="animate-pulse" />
+                  <text x={4} y={0} textAnchor="middle" dominantBaseline="central" fontSize={7.5} fontWeight={900} fill="#00d2be" fontFamily="monospace" letterSpacing="0.08em">
+                    {labelText}
+                  </text>
+                </g>
+              </g>
+            );
+          })}
+
+          {/* DRS Detection Points: Target circle and pill badge DRS DETECTION positioned near detection lines */}
+          {activeDrsDetections.map(({ geo, index, label }) => {
+            const badgeX = Math.max(50, Math.min(750, geo.x + geo.nx * 26));
+            const badgeY = Math.max(25, Math.min(475, geo.y + geo.ny * 26));
+            const badgeWidth = 92;
+
+            return (
+              <g key={`drs-det-${index}`} className="select-none">
+                <g transform={`translate(${geo.x},${geo.y}) rotate(${geo.angleDeg})`}>
+                  <line x1={0} y1={-13} x2={0} y2={13} stroke="#00d2be" strokeWidth={1.6} strokeDasharray="3 2" />
+                  <line x1={-2.5} y1={-13} x2={2.5} y2={-13} stroke="#00d2be" strokeWidth={1} />
+                  <line x1={-2.5} y1={13} x2={2.5} y2={13} stroke="#00d2be" strokeWidth={1} />
+                  <circle cx={0} cy={0} r={6.5} fill="#080c14" stroke="#00d2be" strokeWidth={1.5} />
+                  <line x1={-9} y1={0} x2={9} y2={0} stroke="#00d2be" strokeWidth={1} />
+                  <line x1={0} y1={-9} x2={0} y2={9} stroke="#00d2be" strokeWidth={1} />
+                  <circle cx={0} cy={0} r={3.2} fill="none" stroke="#00d2be" strokeWidth={0.9} opacity={0.85} />
+                  <circle cx={0} cy={0} r={1.5} fill="#00d2be" />
+                </g>
+                <line x1={geo.x} y1={geo.y} x2={badgeX} y2={badgeY} stroke="#00d2be" strokeWidth={1} strokeDasharray="2 2" opacity={0.65} />
+                <g transform={`translate(${badgeX},${badgeY})`}>
+                  <rect x={-badgeWidth / 2} y={-8} width={badgeWidth} height={16} rx={8} fill="#080c14" stroke="#00d2be" strokeWidth={1.2} />
+                  <circle cx={-badgeWidth / 2 + 10} cy={0} r={3} fill="none" stroke="#00d2be" strokeWidth={1} />
+                  <circle cx={-badgeWidth / 2 + 10} cy={0} r={1.2} fill="#00d2be" />
+                  <text x={6} y={0} textAnchor="middle" dominantBaseline="central" fontSize={7.2} fontWeight={900} fill="#00d2be" fontFamily="monospace" letterSpacing="0.06em">
+                    {label}
+                  </text>
+                </g>
+              </g>
+            );
+          })}
+
+          {/* Turn markers: Crisp circular badges with corner numbers offset cleanly from the kerbs */}
           {circuit.turnMarkers.map((t) => (
-            <g key={`t-${t.n}`}>
-              <circle cx={t.x} cy={t.y} r={11} fill="#0f172a" stroke="#334155" strokeWidth={1.2} />
-              <text x={t.x} y={t.y + 3.5} textAnchor="middle" fontSize={9} fontWeight={900} fill="#e2e8f0">
+            <g key={`t-${t.n}`} className="select-none">
+              <circle cx={t.x} cy={t.y} r={11.5} fill="#020617" opacity={0.8} />
+              <circle cx={t.x} cy={t.y} r={9.5} fill="#080c14" stroke="#475569" strokeWidth={1.2} />
+              <text x={t.x} y={t.y} textAnchor="middle" dominantBaseline="central" fontSize={8.5} fontWeight={900} fill="#ffffff" fontFamily="monospace">
                 {t.n}
               </text>
             </g>
           ))}
 
-          {/* Speed traps */}
-          {circuit.speedTraps.map((s, i) => (
-            <g key={`trap-${i}`}>
-              <g transform={`translate(${s.x},${s.y}) rotate(45)`}>
-                <rect x={-8} y={-8} width={16} height={16} fill="#ff8000" stroke="#ffedd5" strokeWidth={1.2} rx={2} />
-                <g transform="rotate(-45)">
-                  <text x={0} y={2.5} textAnchor="middle" fontSize={5} fontWeight={900} fill="white">
-                    *
+          {/* Speed Traps: Magenta badge with speed trap callout (ST 324 km/h / SPEED TRAP) */}
+          {circuit.speedTraps.map((s, i) => {
+            const info = parseSpeedTrapLabel(s.label);
+            const badgeY = s.y < 80 ? s.y + 24 : s.y - 24;
+            const badgeX = Math.max(50, Math.min(750, s.x));
+
+            return (
+              <g key={`trap-${i}`} className="select-none">
+                <circle cx={s.x} cy={s.y} r={12} fill="none" stroke="#d946ef" strokeWidth={0.8} opacity={0.3} className="animate-ping" />
+                <circle cx={s.x} cy={s.y} r={6} fill="#080c14" stroke="#d946ef" strokeWidth={1.8} />
+                <circle cx={s.x} cy={s.y} r={2.2} fill="#ffffff" />
+                <line x1={s.x} y1={s.y} x2={badgeX} y2={badgeY + (badgeY > s.y ? -10 : 10)} stroke="#d946ef" strokeWidth={1.2} strokeDasharray="2 2" opacity={0.8} />
+                <g transform={`translate(${badgeX},${badgeY})`}>
+                  <rect x={-43} y={-10} width={86} height={20} rx={3} fill="#080c14" stroke="#d946ef" strokeWidth={1.4} />
+                  <rect x={-43} y={-10} width={22} height={20} rx={3} fill="#d946ef" />
+                  <rect x={-23} y={-10} width={2} height={20} fill="#d946ef" />
+                  <text x={-32} y={0} textAnchor="middle" dominantBaseline="central" fontSize={7} fontWeight={900} fill="#ffffff" fontFamily="monospace">
+                    {info.tag}
+                  </text>
+                  <text x={9} y={-3} textAnchor="middle" dominantBaseline="central" fontSize={6} fontWeight={900} fill="#d946ef" fontFamily="monospace" letterSpacing="0.06em">
+                    {info.title}
+                  </text>
+                  <text x={9} y={4.5} textAnchor="middle" dominantBaseline="central" fontSize={7.5} fontWeight={900} fill="#ffffff" fontFamily="monospace">
+                    {info.value}
                   </text>
                 </g>
               </g>
-              <text x={s.x} y={s.y - 14} textAnchor="middle" fontSize={7} fontWeight={700} fill="#ff8000">
-                {s.label}
-              </text>
-            </g>
-          ))}
+            );
+          })}
 
           {/* Driver dots */}
           {displayDots.map(({ x, y, d }) => (
@@ -734,12 +1092,12 @@ export function CircuitMap({
               <circle cx={x} cy={y} r={18} fill={d.color} opacity={0.18} className="animate-pulse" />
               <circle cx={x} cy={y} r={13} fill={d.color} opacity={0.32} />
               <circle cx={x} cy={y} r={9} fill="#020617" stroke={d.color} strokeWidth={2} />
-              <text x={x} y={y + 3.2} textAnchor="middle" fontSize={7} fontWeight={900} fill="white">
+              <text x={x} y={y} textAnchor="middle" dominantBaseline="central" fontSize={7.5} fontWeight={900} fill="white">
                 {d.driverNumber}
               </text>
               <g transform={`translate(${x},${y - 16})`}>
-                <rect x={-14} y={-7} width={28} height={11} rx={5} fill="#0f172a" stroke={d.color} strokeWidth={1} opacity={0.95} />
-                <text x={0} y={1} textAnchor="middle" fontSize={6} fontWeight={900} fill={d.color}>
+                <rect x={-14} y={-7} width={28} height={12} rx={4} fill="#0f172a" stroke={d.color} strokeWidth={1} opacity={0.95} />
+                <text x={0} y={0} textAnchor="middle" dominantBaseline="central" fontSize={6.5} fontWeight={900} fill={d.color}>
                   {d.code}
                 </text>
               </g>
@@ -748,7 +1106,7 @@ export function CircuitMap({
 
           {/* North indicator */}
           <g transform="translate(740,40)">
-            <circle cx={0} cy={0} r={16} fill="#0f172a" stroke="#334155" strokeWidth={1} />
+            <circle cx={0} cy={0} r={16} fill="#080c14" stroke="#334155" strokeWidth={1} />
             <path d="M 0 -10 L 4 4 L 0 0 L -4 4 Z" fill="#e2e8f0" />
             <text x={0} y={26} textAnchor="middle" fontSize={7} fontWeight={700} fill="#64748b">
               N
@@ -757,30 +1115,55 @@ export function CircuitMap({
         </svg>
 
         <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-[10px]">
-          <div className="flex flex-wrap items-center gap-3 text-[#94a3b8]">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-pitwall-fog">
             <span className="inline-flex items-center gap-1.5">
-              <span className="w-5 h-1 rounded bg-[#00d2be]" />
-              DRS Zone
+              <span className="w-3.5 h-1 rounded-sm bg-[#ef4444]" />
+              Sector 1
             </span>
             <span className="inline-flex items-center gap-1.5">
-              <span className="w-3 h-3 rotate-45 bg-[#ff8000] border border-[#ffedd5] inline-block" />
+              <span className="w-3.5 h-1 rounded-sm bg-[#00d2be]" />
+              Sector 2
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <span className="w-3.5 h-1 rounded-sm bg-[#eab308]" />
+              Sector 3
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <span className="px-1 py-0.2 rounded border border-[#ef4444] bg-pitwall-bg text-[8px] font-mono font-bold text-[#ef4444]">INT</span>
+              Splits
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <span className="w-4 h-1 rounded-sm bg-[#00d2be] border-b border-dashed border-[#22d3ee]" />
+              DRS Zone / Detection
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <span className="px-1 py-0.2 rounded border border-[#d946ef] bg-pitwall-bg text-[8px] font-mono font-bold text-[#d946ef]">ST</span>
               Speed Trap
             </span>
             <span className="inline-flex items-center gap-1.5">
-              <span className="w-3 h-3 rounded-full border border-[#334155] bg-[#0f172a] inline-flex items-center justify-center text-[7px]">3</span>
-              Corner Number
+              <span className="w-3.5 h-3.5 rounded-full border border-pitwall-steel bg-pitwall-card inline-flex items-center justify-center text-[8px] font-mono font-bold text-white">4</span>
+              Turn
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <span className="inline-grid grid-cols-2 w-3 h-3 border border-white/40">
+                <span className="bg-white" />
+                <span className="bg-black" />
+                <span className="bg-black" />
+                <span className="bg-white" />
+              </span>
+              Start / Finish
             </span>
           </div>
-          <span className="font-mono text-[#475569] hidden sm:inline">interpolated spline coordinates</span>
+          <span className="font-mono text-[10px] text-pitwall-steel hidden lg:inline">AUTHENTIC FIA VECTOR TELEMETRY</span>
         </div>
       </div>
 
       <div
-        className={`px-4 py-2 flex items-center justify-between border-t border-[#1e293b] text-[11px] ${flag === "GREEN" ? "bg-[#052e1a]/40" : flag === "YELLOW" ? "bg-[#422006]/50" : flag === "SC" ? "bg-[#4a1f00]/60" : flag === "RED" ? "bg-[#450a0a]/70" : "bg-[#1a2e05]/50"}`}
+        className={`px-4 py-2 flex items-center justify-between border-t border-pitwall-border text-[11px] ${flag === "GREEN" ? "bg-pitwall-green/40" : flag === "YELLOW" ? "bg-pitwall-card/50" : flag === "SC" ? "bg-pitwall-papaya/60" : flag === "RED" ? "bg-pitwall-danger/70" : "bg-pitwall-green/50"}`}
       >
         <span className={`inline-flex items-center gap-2 font-black tracking-widest ${flagCfg.text} ${flag === "YELLOW" || flag === "SC" || flag === "RED" ? "animate-pulse" : ""}`}>
           <span
-            className={`w-2 h-2 rounded-full ${flag === "GREEN" ? "bg-[#22c55e] shadow-[0_0_10px_rgba(34,197,94,0.7)]" : flag === "YELLOW" ? "bg-[#eab308] shadow-[0_0_10px_rgba(234,179,8,0.8)]" : flag === "SC" ? "bg-[#ff8000] shadow-[0_0_10px_rgba(255,128,0,0.8)]" : flag === "RED" ? "bg-[#ef4444] shadow-[0_0_10px_rgba(239,68,68,0.9)]" : "bg-[#a3e635]"}`}
+            className={`w-2 h-2 rounded-full ${flag === "GREEN" ? "bg-pitwall-green shadow-[0_0_10px_rgba(34,197,94,0.7)]" : flag === "YELLOW" ? "bg-pitwall-yellow shadow-[0_0_10px_rgba(234,179,8,0.8)]" : flag === "SC" ? "bg-pitwall-papaya shadow-[0_0_10px_rgba(255,128,0,0.8)]" : flag === "RED" ? "bg-pitwall-danger shadow-[0_0_10px_rgba(239,68,68,0.9)]" : "bg-pitwall-mint"}`}
           />
           TRACK: {flagCfg.label}
           <span className="hidden sm:inline font-normal opacity-70">
@@ -796,7 +1179,7 @@ export function CircuitMap({
                     : ": red flag, session suspended"}
           </span>
         </span>
-        <span className="font-mono text-[#64748b] hidden sm:inline">
+        <span className="font-mono text-pitwall-muted hidden sm:inline">
           {circuit.lengthKm} km • {circuit.turns} turns • {circuit.drsZones} DRS zones
         </span>
       </div>

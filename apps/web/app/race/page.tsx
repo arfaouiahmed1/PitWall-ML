@@ -1,6 +1,5 @@
-import RacePage from "../page";
+import { redirect } from "next/navigation";
 
 export default function RaceRoute() {
-  return <RacePage />;
+  redirect("/");
 }
-

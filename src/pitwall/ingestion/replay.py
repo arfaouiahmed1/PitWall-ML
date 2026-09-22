@@ -1,18 +1,15 @@
-"""Replay engine — streams historical events through the live pipeline.
-
-Supports modes:
-  1x, 5x, 20x, MAX (no sleep), STEP (manual advance)
-"""
+"""Replay historical lap data through the live race-state pipeline."""
 
 from __future__ import annotations
 
 import asyncio
-import contextlib
+import json
+import re
 from collections.abc import AsyncIterator
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
-from typing import Literal
+from typing import Any, Literal
 
 import polars as pl
 
@@ -20,34 +17,94 @@ from pitwall.schemas.events import RaceEvent
 
 ReplaySpeed = Literal["1x", "5x", "20x", "MAX", "STEP"] | float
 
-
 SPEED_FACTORS: dict[str, float | None] = {
     "1x": 1.0,
     "5x": 5.0,
     "20x": 20.0,
-    "MAX": None,  # no sleep
+    "MAX": None,
     "STEP": None,
 }
+_REPLAY_EPOCH = datetime(2000, 1, 1, tzinfo=UTC)
+
+
+@dataclass(frozen=True)
+class ReplaySession:
+    """One curated replayable session discovered from a bronze data bundle."""
+
+    id: str
+    path: Path
+    season: int | None
+    event: str
+    session_type: str
+
+    @property
+    def label(self) -> str:
+        season = str(self.season) if self.season is not None else "Historical"
+        return f"{season} {self.event.replace('_', ' ')} · {self.session_type.replace('_', ' ')}"
+
+
+def _catalog_id(relative_path: Path, occupied: set[str]) -> str:
+    raw = "-".join(relative_path.parts).lower()
+    base = re.sub(r"[^a-z0-9]+", "-", raw).strip("-")
+    candidate = base
+    suffix = 2
+    while candidate in occupied:
+        candidate = f"{base}-{suffix}"
+        suffix += 1
+    occupied.add(candidate)
+    return candidate
+
+
+def discover_replay_sessions(root: Path | str) -> dict[str, ReplaySession]:
+    """Discover real lap datasets without exposing their paths to API callers."""
+
+    replay_root = Path(root)
+    if not replay_root.is_dir():
+        return {}
+
+    sessions: dict[str, ReplaySession] = {}
+    occupied: set[str] = set()
+    for lap_file in sorted(replay_root.rglob("laps.parquet")):
+        session_path = lap_file.parent
+        relative = session_path.relative_to(replay_root)
+        parts = {
+            key: value
+            for part in relative.parts
+            if "=" in part
+            for key, value in [part.split("=", 1)]
+        }
+        event = parts.get("event", "unknown")
+        session_type = parts.get("session") or parts.get("session_type") or "unknown"
+        season_raw = parts.get("season") or parts.get("year")
+        try:
+            season = int(season_raw) if season_raw is not None else None
+        except ValueError:
+            season = None
+        replay_id = _catalog_id(relative, occupied)
+        sessions[replay_id] = ReplaySession(
+            id=replay_id,
+            path=session_path,
+            season=season,
+            event=event,
+            session_type=session_type,
+        )
+    return sessions
 
 
 @dataclass
 class ReplayConfig:
     bronze_path: Path | str
     speed: ReplaySpeed = "20x"
-    session_filter: str | None = None  # e.g. "2025_Monaco_R"
     loop: bool = False
     max_events: int | None = None
 
 
 class ParquetReplaySource:
-    """Replays Bronze Parquet events in event-time order.
+    """Replay one curated Bronze session in event-time order.
 
-    Bronze layout expected:
-      data/bronze/openf1/season=2025/event=.../session=.../topic=.../*.parquet
-    or flat:
-      data/bronze/events.parquet
-
-    Each row must contain at least: source, event_type, event_ts, payload (json/str)
+    The deployed data bundle contains canonical ``laps.parquet`` files. Legacy
+    serialized ``events.parquet`` inputs remain readable for test fixtures and
+    historical exports, but an empty source deliberately yields no events.
     """
 
     def __init__(self, config: ReplayConfig) -> None:
@@ -74,141 +131,154 @@ class ParquetReplaySource:
         self.config.speed = speed
 
     def _resolve_speed_factor(self) -> float | None:
-        s = self.config.speed
-        if isinstance(s, (int, float)):
-            return float(s)
-        key = str(s).upper()
-        # normalize "20X" -> "20x"
-        key = key.lower() if key.lower() in SPEED_FACTORS else key
-        # handle "20x" vs "20X"
-        for k, v in SPEED_FACTORS.items():
-            if k.lower() == str(s).lower():
-                return v
-        return 1.0
+        speed = self.config.speed
+        if isinstance(speed, (int, float)):
+            return float(speed)
+        return SPEED_FACTORS.get(str(speed).upper(), 1.0)
 
-    def _load_events(self) -> list[RaceEvent]:
+    def _files_named(self, filename: str) -> list[Path]:
         path = Path(self.config.bronze_path)
-        if not path.exists():
+        if path.is_file() and path.name == filename:
+            return [path]
+        if not path.is_dir():
             return []
+        return sorted(path.rglob(filename))
 
-        # Collect parquet files
-        if path.is_file() and path.suffix == ".parquet":
-            files = [path]
-        else:
-            files = list(path.rglob("*.parquet"))
+    @staticmethod
+    def _int(value: Any) -> int | None:
+        try:
+            return int(float(value))
+        except (TypeError, ValueError):
+            return None
 
-        if not files:
-            return []
+    @staticmethod
+    def _float(value: Any) -> float | None:
+        try:
+            return float(value)
+        except (TypeError, ValueError):
+            return None
 
-        lf = pl.scan_parquet([str(f) for f in files])
-        # Optional session filter
-        if self.config.session_filter:
-            # naive: filter if column exists
-            with contextlib.suppress(Exception):
-                lf = lf.filter(pl.col("session_id") == self.config.session_filter)
+    @staticmethod
+    def _event_time(row: dict[str, Any], ordinal: int) -> datetime:
+        timestamp = row.get("LapStartDate") or row.get("date_start") or row.get("event_ts")
+        if isinstance(timestamp, datetime):
+            return timestamp.replace(tzinfo=timestamp.tzinfo or UTC)
+        elapsed = row.get("Time")
+        if isinstance(elapsed, timedelta):
+            return _REPLAY_EPOCH + elapsed
+        return _REPLAY_EPOCH + timedelta(milliseconds=ordinal)
 
-        df = lf.sort("event_ts").collect()
-        if self.config.max_events:
-            df = df.head(self.config.max_events)
+    def _load_serialized_events(self, files: list[Path]) -> list[RaceEvent]:
+        events: list[RaceEvent] = []
+        for file in files:
+            for ordinal, row in enumerate(pl.read_parquet(file).to_dicts()):
+                try:
+                    payload = row.get("payload", {})
+                    if isinstance(payload, str):
+                        payload = json.loads(payload)
+                    if not isinstance(payload, dict):
+                        continue
+                    events.append(
+                        RaceEvent(
+                            source=str(row.get("source", "parquet_replay")),
+                            event_type=row.get("event_type", "unknown"),
+                            meeting_key=row.get("meeting_key"),
+                            session_key=row.get("session_key"),
+                            driver_number=self._int(row.get("driver_number")),
+                            event_ts=self._event_time(row, ordinal),
+                            ingest_ts=self._event_time(row, ordinal),
+                            source_id=row.get("source_id"),
+                            schema_version=self._int(row.get("schema_version")) or 1,
+                            payload=payload,
+                        )
+                    )
+                except (TypeError, ValueError, json.JSONDecodeError):
+                    continue
+        return events
+
+    def _load_lap_events(self, files: list[Path]) -> list[RaceEvent]:
+        rows: list[tuple[Path, dict[str, Any]]] = []
+        for file in files:
+            for row in pl.read_parquet(file).to_dicts():
+                if self._int(row.get("driver_number")) is not None and self._int(row.get("lap_number")) is not None:
+                    rows.append((file, row))
+
+        def event_key(item: tuple[Path, dict[str, Any]]) -> tuple[datetime, int, int]:
+            _, row = item
+            return (
+                self._event_time(row, 0),
+                self._int(row.get("lap_number")) or 0,
+                self._int(row.get("driver_number")) or 0,
+            )
 
         events: list[RaceEvent] = []
-        for row in df.to_dicts():
-            try:
-                # payload may be json string
-                payload = row.get("payload", {})
-                if isinstance(payload, str):
-                    import json
-
-                    payload = json.loads(payload)
-                events.append(
-                    RaceEvent(
-                        source=row.get("source", "parquet_replay"),
-                        event_type=row.get("event_type", "unknown"),
-                        meeting_key=row.get("meeting_key"),
-                        session_key=row.get("session_key"),
-                        driver_number=row.get("driver_number"),
-                        event_ts=row.get("event_ts", datetime.now(UTC)),
-                        ingest_ts=row.get("ingest_ts", datetime.now(UTC)),
-                        source_id=row.get("source_id"),
-                        schema_version=row.get("schema_version", 1),
-                        payload=payload if isinstance(payload, dict) else {},
-                    )
-                )
-            except Exception:
+        for ordinal, (file, row) in enumerate(sorted(rows, key=event_key)):
+            driver_number = self._int(row.get("driver_number"))
+            lap_number = self._int(row.get("lap_number"))
+            if driver_number is None or lap_number is None:
                 continue
+            payload = {
+                "lap_number": lap_number,
+                "lap_time_s": self._float(row.get("lap_time_s")),
+                "compound": row.get("compound"),
+                "tyre_age": self._int(row.get("tyre_age")),
+                "position": self._int(row.get("position")),
+                "stint": self._int(row.get("stint_no")),
+                "team": row.get("team_id"),
+                "track_status": row.get("track_status"),
+            }
+            events.append(
+                RaceEvent(
+                    source="bronze_laps",
+                    event_type="lap",
+                    meeting_key=file.parent.parent.name,
+                    session_key=row.get("session_id") or file.parent.name,
+                    driver_number=driver_number,
+                    event_ts=self._event_time(row, ordinal),
+                    ingest_ts=self._event_time(row, ordinal),
+                    source_id=f"{file.name}:{ordinal}",
+                    schema_version=1,
+                    payload={key: value for key, value in payload.items() if value is not None},
+                )
+            )
+        return events
+
+    def _load_events(self) -> list[RaceEvent]:
+        serialized_files = self._files_named("events.parquet")
+        if serialized_files:
+            events = self._load_serialized_events(serialized_files)
+        else:
+            events = self._load_lap_events(self._files_named("laps.parquet"))
+        if self.config.max_events is not None:
+            return events[: self.config.max_events]
         return events
 
     async def events(self) -> AsyncIterator[RaceEvent]:
         stored = self._load_events()
         if not stored:
-            # Emit synthetic demo events if no data yet (so V1 UI works without ingestion)
-            async for e in self._demo_events():
-                if self._stop:
-                    break
-                yield e
             return
 
         factor = self._resolve_speed_factor()
         is_max = factor is None and str(self.config.speed).upper() == "MAX"
         is_step = str(self.config.speed).upper() == "STEP"
+        previous_timestamp = stored[0].event_ts
 
-        prev_ts = stored[0].event_ts if stored else None
-        for ev in stored:
+        for event in stored:
             if self._stop:
-                break
-
-            # handle pause/step
+                return
             while self._paused and not is_step:
                 await asyncio.sleep(0.1)
                 if self._stop:
                     return
-
             if is_step:
                 await self._step_event.wait()
                 self._step_event.clear()
                 if self._stop:
                     return
-
-            # sleep based on event-time delta
-            if not is_max and prev_ts is not None and not is_step:
+            if not is_max and not is_step:
                 assert factor is not None
-                delta = (ev.event_ts - prev_ts).total_seconds() / factor
-                if delta > 0:
-                    # cap sleep to avoid huge gaps in demo (e.g. between sessions)
-                    delta = min(delta, 0.5)
-                    await asyncio.sleep(delta)
-
-            prev_ts = ev.event_ts
-            yield ev
-
-            if self.config.loop and ev == stored[-1]:
-                prev_ts = None
-
-    async def _demo_events(self) -> AsyncIterator[RaceEvent]:
-        """Synthetic events so the dashboard is demonstrable before real ingestion."""
-        import random
-
-        drivers = [1, 4, 16, 55, 63, 44, 81, 11, 14, 18]
-        base = datetime.now(UTC)
-        # Simulate 66 laps
-        for lap in range(1, 67):
-            for dn in drivers:
-                ev = RaceEvent(
-                    source="demo",
-                    event_type="lap",
-                    meeting_key="demo_2025_monaco",
-                    session_key="R",
-                    driver_number=dn,
-                    event_ts=base,
-                    payload={
-                        "lap_number": lap,
-                        "lap_time_s": round(
-                            random.uniform(78.5, 82.0) + random.uniform(-0.3, 0.5), 3
-                        ),
-                        "compound": random.choice(["SOFT", "MEDIUM", "HARD"]),
-                        "tyre_age": lap % 25,
-                        "position": drivers.index(dn) + 1,
-                    },
-                )
-                yield ev
-            await asyncio.sleep(0.05 if str(self.config.speed).upper() != "MAX" else 0)
+                delay = (event.event_ts - previous_timestamp).total_seconds() / factor
+                if delay > 0:
+                    await asyncio.sleep(min(delay, 0.5))
+            previous_timestamp = event.event_ts
+            yield event

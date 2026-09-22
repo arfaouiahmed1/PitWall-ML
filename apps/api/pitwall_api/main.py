@@ -4,21 +4,31 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
+import json
+from collections import deque
 from contextlib import asynccontextmanager
 from datetime import UTC, datetime
-from pathlib import Path
 from typing import Any
 
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 
-from pitwall.ingestion.replay import ParquetReplaySource, ReplayConfig
+from pitwall.ingestion.replay import (
+    ParquetReplaySource,
+    ReplayConfig,
+    ReplaySession,
+    discover_replay_sessions,
+)
+from pitwall.schemas.events import RaceEvent
 from pitwall.schemas.predictions import PacePrediction, WhatIfRequest, WhatIfResponse
 from pitwall.state.race_state import RaceState
+from pitwall_api.live_data import OpenF1Snapshot, OpenF1SnapshotProvider
+from pitwall_api.settings import ServingSettings
 
 # --- App state ---
-race_state = RaceState(session_id="demo")
+settings = ServingSettings.from_env()
+race_state = RaceState(session_id="uninitialized")
 ml_model = None
 quantile_model = None
 hybrid_model = None
@@ -26,9 +36,13 @@ adaptive_router = None
 sector_chain_model = None
 tyre_model = None
 pit_model = None
-model_version = "demo-v0"
+model_version = "unloaded"
 model_metrics: dict[str, Any] = {}
 shap_summary: dict[str, float] = {}
+replay_sessions: dict[str, ReplaySession] = {}
+active_replay_id: str | None = None
+recent_events: deque[dict[str, Any]] = deque(maxlen=40)
+live_provider = OpenF1SnapshotProvider(settings.openf1_cache_ttl_seconds)
 
 
 @asynccontextmanager
@@ -43,75 +57,56 @@ async def lifespan(app: FastAPI):  # type: ignore[no-untyped-def]
         pit_model, \
         model_version, \
         model_metrics, \
-        shap_summary
-    import os
+        shap_summary, \
+        replay_sessions
 
-    # Try local artifacts first (fast, no network) — preferred for smoke/tests
-    # Only try MLflow if env explicitly points to a tracking server
-    if os.getenv("MLFLOW_TRACKING_URI"):
-        try:
-            from pitwall.registry.mlflow_utils import load_champion
+    artifact_dir = settings.artifact_dir
+    if not (artifact_dir / "model" / "model.pkl").is_file():
+        raise RuntimeError(f"Configured pace artifact is missing: {artifact_dir / 'model' / 'model.pkl'}")
+    if not (artifact_dir / "metrics.json").is_file():
+        raise RuntimeError(f"Configured metrics artifact is missing: {artifact_dir / 'metrics.json'}")
+    replay_sessions = discover_replay_sessions(settings.replay_root)
+    if not replay_sessions:
+        raise RuntimeError(f"No replay sessions found beneath {settings.replay_root}")
 
-            ml_model = load_champion()
-            model_version = "champion"
-        except Exception:
-            ml_model = None
-    else:
-        ml_model = None
+    try:
+        from pitwall.models.pace.lightgbm_model import PaceLightGBM, QuantileLightGBM
+        from pitwall.models.pit.lightgbm_pit import PitHazardLightGBM
+        from pitwall.models.tyre.lightgbm_tyre import TyreLightGBM
 
-    # Try local artifacts (V2) as fallback — will override demo if present (prefer newest)
-    local_candidates = [
-        Path("artifacts/candidate_smoke"),
-        Path("artifacts/candidate"),
-        Path("artifacts/v2_shap_test"),
-        Path("artifacts/v2_full_test"),
-        Path("artifacts/v2_test_full"),
-        Path("artifacts/v2_quantile_test"),
-        Path("artifacts/smoke"),
-    ]
-    for cand in local_candidates:
-        if (cand / "model" / "model.pkl").exists():
-            try:
-                from pitwall.models.pace.lightgbm_model import PaceLightGBM, QuantileLightGBM
-                from pitwall.models.pit.lightgbm_pit import PitHazardLightGBM
-                from pitwall.models.tyre.lightgbm_tyre import TyreLightGBM
+        ml_model = PaceLightGBM.load(artifact_dir / "model")
+        if (artifact_dir / "model_quantile" / "model.pkl").is_file():
+            quantile_model = QuantileLightGBM.load(artifact_dir / "model_quantile")
+        if (artifact_dir / "model_tyre" / "model.pkl").is_file():
+            tyre_model = TyreLightGBM.load(artifact_dir / "model_tyre")
+        if (artifact_dir / "model_pit" / "model.pkl").is_file():
+            pit_model = PitHazardLightGBM.load(artifact_dir / "model_pit")
+        if (artifact_dir / "model_hybrid" / "hybrid_manifest.json").is_file():
+            from pitwall.models.pace.hybrid_model import HybridPaceModel
 
-                if ml_model is None:
-                    ml_model = PaceLightGBM.load(cand / "model")
-                    model_version = f"local:{cand.name}"
-                if (cand / "model_quantile" / "model.pkl").exists():
-                    quantile_model = QuantileLightGBM.load(cand / "model_quantile")
-                if (cand / "model_tyre" / "model.pkl").exists():
-                    tyre_model = TyreLightGBM.load(cand / "model_tyre")
-                if (cand / "model_pit" / "model.pkl").exists():
-                    pit_model = PitHazardLightGBM.load(cand / "model_pit")
-                if (cand / "model_hybrid" / "hybrid_manifest.json").exists():
-                    from pitwall.models.pace.hybrid_model import HybridPaceModel
-                    hybrid_model = HybridPaceModel.load(cand / "model_hybrid")
-                if (cand / "model_adaptive_router" / "router_manifest.json").exists():
-                    from pitwall.models.pace.challengers import CircuitAdaptivePaceRouter
+            hybrid_model = HybridPaceModel.load(artifact_dir / "model_hybrid")
+        if (artifact_dir / "model_adaptive_router" / "router_manifest.json").is_file():
+            from pitwall.models.pace.challengers import CircuitAdaptivePaceRouter
 
-                    adaptive_router = CircuitAdaptivePaceRouter.load(cand / "model_adaptive_router")
-                if (cand / "model_sector_chain" / "sector_chain_manifest.json").exists():
-                    from pitwall.models.pace.sector_chain import SectorChainModel
-                    sector_chain_model = SectorChainModel.load(cand / "model_sector_chain")
-                if (cand / "metrics.json").exists():
-                    import json
+            adaptive_router = CircuitAdaptivePaceRouter.load(artifact_dir / "model_adaptive_router")
+        if (artifact_dir / "model_sector_chain" / "sector_chain_manifest.json").is_file():
+            from pitwall.models.pace.sector_chain import SectorChainModel
 
-                    model_metrics = json.loads((cand / "metrics.json").read_text())
-                if (cand / "shap_summary.json").exists():
-                    import json
+            sector_chain_model = SectorChainModel.load(artifact_dir / "model_sector_chain")
 
-                    shap_summary = json.loads((cand / "shap_summary.json").read_text())
-                break
-            except Exception:
-                continue
-    # Push initial metrics to Prometheus gauges
+        model_metrics = json.loads((artifact_dir / "metrics.json").read_text())
+        shap_path = artifact_dir / "shap_summary.json"
+        shap_summary = json.loads(shap_path.read_text()) if shap_path.is_file() else {}
+        manifest_path = artifact_dir / "model" / "manifest.json"
+        manifest = json.loads(manifest_path.read_text()) if manifest_path.is_file() else {}
+        model_version = f"artifact:{manifest.get('version', 'unknown')}"
+    except Exception as exc:
+        raise RuntimeError(f"Could not load configured artifact directory: {artifact_dir}") from exc
+
     try:
         from pitwall.monitoring.metrics import set_pace_metrics
 
-        if model_metrics:
-            set_pace_metrics(model_metrics, model_version=model_version)
+        set_pace_metrics(model_metrics, model_version=model_version)
     except Exception:
         pass
     yield
@@ -121,10 +116,10 @@ app = FastAPI(title="PitWall ML API", version="0.1.0", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=list(settings.allowed_origins),
+    allow_credentials=False,
+    allow_methods=["GET", "POST"],
+    allow_headers=["Content-Type"],
 )
 
 
@@ -153,6 +148,7 @@ async def health() -> dict[str, Any]:
     return {
         "status": "ok",
         "model_version": model_version,
+        "replay_sessions": len(replay_sessions),
         "race_state": {
             "session_id": race_state.session_id,
             "lap": race_state.lap,
@@ -178,6 +174,20 @@ async def get_race_state() -> dict[str, Any]:
         "drivers": {str(k): v.__dict__ for k, v in race_state.drivers.items()},
         "event_count": race_state.event_count,
     }
+
+@app.get("/race/sessions")
+async def get_replay_sessions() -> list[dict[str, Any]]:
+    return [
+        {
+            "id": replay.id,
+            "season": replay.season,
+            "event": replay.event,
+            "session_type": replay.session_type,
+            "label": replay.label,
+            "available": True,
+        }
+        for replay in replay_sessions.values()
+    ]
 
 
 @app.get("/predictions/pace")
@@ -365,6 +375,182 @@ async def get_pit_predictions() -> list[dict[str, Any]]:
     return out
 
 
+def _snapshot_rows(
+    pace_predictions: list[dict[str, Any]],
+    tyre_predictions: list[dict[str, Any]],
+    pit_predictions: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    pace_by_driver = {prediction["driver_number"]: prediction for prediction in pace_predictions}
+    tyre_by_driver = {prediction["driver_number"]: prediction for prediction in tyre_predictions}
+    pit_by_driver = {prediction["driver_number"]: prediction for prediction in pit_predictions}
+    rows: list[dict[str, Any]] = []
+    for driver_number, driver in sorted(
+        race_state.drivers.items(), key=lambda item: item[1].position if item[1].position is not None else 999
+    ):
+        rows.append(
+            {
+                "driver_number": driver_number,
+                "position": driver.position,
+                "gap_to_leader_s": driver.gap_to_leader_s,
+                "gap_ahead_s": driver.gap_ahead_s,
+                "last_lap_s": driver.last_lap_s,
+                "lap_number": driver.last_lap_no,
+                "compound": driver.compound,
+                "tyre_age": driver.tyre_age,
+                "team_name": driver.team_name,
+                "pace": pace_by_driver.get(driver_number),
+                "tyre": tyre_by_driver.get(driver_number),
+                "pit": pit_by_driver.get(driver_number),
+            }
+        )
+    return rows
+
+
+def _apply_live_snapshot(snapshot: OpenF1Snapshot) -> None:
+    global race_state
+    if snapshot.provenance != "LIVE" or snapshot.race_state is None:
+        return
+    live_state = RaceState(session_id=f"openf1:{snapshot.source_id}")
+    for row in snapshot.rows:
+        driver_number = row["driver_number"]
+        event_time = datetime.now(UTC)
+        live_state.apply(
+            RaceEvent(
+                source="openf1_rest",
+                event_type="lap",
+                session_key=snapshot.source_id,
+                driver_number=driver_number,
+                event_ts=event_time,
+                payload={
+                    "lap_number": row.get("lap_number"),
+                    "lap_time_s": row.get("last_lap_s"),
+                    "compound": row.get("compound"),
+                    "tyre_age": row.get("tyre_age"),
+                    "position": row.get("position"),
+                    "team": row.get("team_name"),
+                },
+            )
+        )
+        live_state.apply(
+            RaceEvent(
+                source="openf1_rest",
+                event_type="interval",
+                session_key=snapshot.source_id,
+                driver_number=driver_number,
+                event_ts=event_time,
+                payload={"gap_to_leader": row.get("gap_to_leader_s"), "interval": row.get("gap_ahead_s")},
+            )
+        )
+    live_state.track_status = str(snapshot.race_state.get("track_status", "UNKNOWN"))
+    race_state = live_state
+
+
+@app.get("/race/snapshot")
+async def get_race_snapshot(source: str = "replay", replay_id: str | None = None) -> dict[str, Any]:
+    if source not in {"replay", "live"}:
+        raise HTTPException(status_code=422, detail="source must be replay or live")
+    if source == "replay" and replay_id not in replay_sessions:
+        raise HTTPException(status_code=404, detail="unknown replay_id")
+    if source == "live":
+        snapshot = await live_provider.snapshot()
+        if snapshot.provenance != "LIVE":
+            return snapshot.as_response()
+        _apply_live_snapshot(snapshot)
+        pace_predictions = await get_pace_predictions()
+        tyre_predictions = await get_tyre_predictions()
+        pit_predictions = await get_pit_predictions()
+        response = snapshot.as_response()
+        model_rows = {
+            row["driver_number"]: row
+            for row in _snapshot_rows(pace_predictions, tyre_predictions, pit_predictions)
+        }
+        for row in response["rows"]:
+            row.update(
+                {
+                    key: value
+                    for key, value in model_rows.get(row["driver_number"], {}).items()
+                    if key in {"pace", "tyre", "pit"}
+                }
+            )
+        response.update(
+            {
+                "pace_predictions": pace_predictions,
+                "tyre_predictions": tyre_predictions,
+                "pit_predictions": pit_predictions,
+            }
+        )
+        return response
+
+    replay_started = active_replay_id == replay_id and bool(race_state.drivers)
+    pace_predictions = await get_pace_predictions() if replay_started else []
+    tyre_predictions = await get_tyre_predictions() if replay_started else []
+    pit_predictions = await get_pit_predictions() if replay_started else []
+    return {
+        "provenance": "REPLAY" if replay_started else "UNAVAILABLE",
+        "reason": None if replay_started else "replay_not_started",
+        "observed_at": race_state.last_update.isoformat() if replay_started else None,
+        "source_id": replay_id,
+        "race_state": {
+            "session_id": race_state.session_id,
+            "lap": race_state.lap,
+            "track_status": race_state.track_status,
+            "event_count": race_state.event_count,
+        }
+        if replay_started
+        else None,
+        "rows": _snapshot_rows(pace_predictions, tyre_predictions, pit_predictions),
+        "dots": [],
+        "events": list(recent_events),
+        "pace_predictions": pace_predictions,
+        "tyre_predictions": tyre_predictions,
+        "pit_predictions": pit_predictions,
+    }
+
+
+@app.get("/drivers")
+async def get_drivers(source: str = "replay") -> dict[str, Any]:
+    if source == "live":
+        snapshot = await live_provider.snapshot()
+        return {
+            "provenance": snapshot.provenance,
+            "reason": snapshot.reason,
+            "drivers": snapshot.drivers,
+            "observed_at": snapshot.observed_at,
+        }
+    return {
+        "provenance": "REPLAY" if race_state.drivers else "UNAVAILABLE",
+        "reason": None if race_state.drivers else "replay_not_started",
+        "drivers": [
+            {
+                "driver_number": driver_number,
+                "team_name": driver.team_name,
+            }
+            for driver_number, driver in sorted(race_state.drivers.items())
+        ],
+        "observed_at": race_state.last_update.isoformat() if race_state.drivers else None,
+    }
+
+
+@app.get("/drivers/{driver_number}/telemetry")
+async def get_driver_telemetry(driver_number: int, source: str = "live") -> dict[str, Any]:
+    if source != "live":
+        return {
+            "provenance": "UNAVAILABLE",
+            "reason": "replay_telemetry_not_bundled",
+            "driver_number": driver_number,
+            "points": [],
+        }
+    return await live_provider.driver_telemetry(driver_number)
+
+
+@app.get("/benchmarks/challengers")
+async def challenger_benchmark() -> dict[str, Any]:
+    benchmark_path = settings.artifact_dir.parent / "benchmark_challengers.json"
+    if not benchmark_path.is_file():
+        raise HTTPException(status_code=503, detail="challenger benchmark is unavailable")
+    return json.loads(benchmark_path.read_text())
+
+
 @app.get("/models/info")
 async def models_info() -> dict[str, Any]:
     return {
@@ -419,53 +605,26 @@ async def monitoring_drift() -> dict[str, Any]:
 
         from pitwall.monitoring.drift import drift_on_window
 
-        # For demo, reconstruct synthetic gold as in train
-        # Attempt to load silver then build gold, else return no_data
         silver_root = Path("data/silver")
         files = (
             list((silver_root / "laps").rglob("*.parquet"))
             if (silver_root / "laps").exists()
             else []
         )
-        if files:
-            silver = pl.read_parquet(files)
-            from pitwall.features.pace import build_pace_features
+        if not files:
+            return {
+                "status": "unavailable",
+                "reason": "missing_silver_laps",
+                "drift": {},
+                "model_version": model_version,
+                "timestamp": datetime.now(UTC).isoformat(),
+            }
 
-            gold = build_pace_features(silver)
-        else:
-            # synthetic small gold for drift demo
-            import numpy as np
+        silver = pl.read_parquet(files)
+        from pitwall.features.pace import build_pace_features
 
-            np.random.seed(0)
-            rows = []
-            for s in range(6):
-                for d in [1, 44]:
-                    for lap in range(1, 10):
-                        rows.append(
-                            {
-                                "session_id": f"2024_R{s}",
-                                "driver_number": d,
-                                "lap_number": lap,
-                                "lap_time_s": 90 + np.random.normal(0, 1),
-                                "compound": "MEDIUM",
-                                "tyre_age": lap % 5,
-                                "stint_no": 1,
-                                "position": 1,
-                                "is_valid_training_lap": True,
-                                "rolling_median_5": 90.0,
-                                "rolling_std_5": 0.5,
-                                "track_temp_c": 37.0,
-                                "race_progress": lap / 10,
-                            }
-                        )
-            silver = pl.DataFrame(rows)
-            from pitwall.features.pace import build_pace_features
-
-            gold = build_pace_features(silver)
-
-        # Use pace feature cols for drift
+        gold = build_pace_features(silver)
         drift_res = drift_on_window(gold, n_reference_races=2, n_current_races=2)
-        # push to gauges
         try:
             from pitwall.monitoring.metrics import set_drift_metrics
 
@@ -473,25 +632,28 @@ async def monitoring_drift() -> dict[str, Any]:
         except Exception:
             pass
         return {
+            "status": "available",
             "drift": drift_res,
             "model_version": model_version,
             "timestamp": datetime.now(UTC).isoformat(),
         }
     except Exception as e:
-        return {"error": str(e), "model_version": model_version}
+        return {"status": "error", "error": str(e), "model_version": model_version}
 
 
 @app.get("/monitoring/overview")
 async def monitoring_overview() -> dict[str, Any]:
     """Aggregated health for Grafana + frontend monitoring page."""
-    # Reuse drift and promotion
-    drift = {}
+    drift_payload = {}
     with contextlib.suppress(Exception):
-        drift = (await monitoring_drift()).get("drift", {})
+        drift_payload = await monitoring_drift()
+    drift = drift_payload.get("drift", {})
+    drift_status = drift_payload.get("status", "unavailable")
     promo = {}
     with contextlib.suppress(Exception):
         promo = await registry_promotion()
     return {
+        "status": drift_status,
         "model_version": model_version,
         "metrics": model_metrics,
         "drift_ratio": drift.get("drift_ratio", 0.0),
@@ -504,47 +666,29 @@ async def monitoring_overview() -> dict[str, Any]:
 @app.post("/simulate")
 async def simulate(payload: dict[str, Any] | None = None) -> dict[str, Any]:
     """Monte Carlo race outcome from current state."""
+    if not race_state.drivers:
+        raise HTTPException(status_code=503, detail="race_state_empty")
     body = payload or {}
     laps_remaining = int(body.get("laps_remaining", 15))
     n_sims = int(body.get("n_simulations", 200))
     n_sims = max(10, min(n_sims, 2000))  # clamp for latency
-    if not race_state.drivers:
-        # demo drivers if no live state
-        from pitwall.simulation.engine import DriverStateSim
+    from pitwall.simulation.engine import DriverStateSim
 
-        drivers = [
+    drivers = []
+    for dn, ds in race_state.drivers.items():
+        drivers.append(
             DriverStateSim(
-                driver_id="1", position=1, current_time_s=0, tyre_age=5, compound="MEDIUM"
-            ),
-            DriverStateSim(
-                driver_id="16", position=2, current_time_s=1.2, tyre_age=8, compound="MEDIUM"
-            ),
-            DriverStateSim(
-                driver_id="44", position=3, current_time_s=3.5, tyre_age=2, compound="HARD"
-            ),
-            DriverStateSim(
-                driver_id="63", position=4, current_time_s=5.1, tyre_age=11, compound="MEDIUM"
-            ),
-        ]
-    else:
-        from pitwall.simulation.engine import DriverStateSim
-
-        drivers = []
-        for dn, ds in race_state.drivers.items():
-            drivers.append(
-                DriverStateSim(
-                    driver_id=str(dn),
-                    position=getattr(ds, "position", 0) or 0,
-                    current_time_s=getattr(ds, "gap_to_leader_s", 0) or 0,
-                    gap_to_leader_s=getattr(ds, "gap_to_leader_s", 0) or 0,
-                    compound=getattr(ds, "compound", "MEDIUM") or "MEDIUM",
-                    tyre_age=getattr(ds, "tyre_age", 0) or 0,
-                    stint_no=getattr(ds, "stint_no", 1) or 1,
-                    lap_number=getattr(ds, "last_lap_no", 1) or 1,
-                )
+                driver_id=str(dn),
+                position=getattr(ds, "position", 0) or 0,
+                current_time_s=getattr(ds, "gap_to_leader_s", 0) or 0,
+                gap_to_leader_s=getattr(ds, "gap_to_leader_s", 0) or 0,
+                compound=getattr(ds, "compound", "MEDIUM") or "MEDIUM",
+                tyre_age=getattr(ds, "tyre_age", 0) or 0,
+                stint_no=getattr(ds, "stint_no", 1) or 1,
+                lap_number=getattr(ds, "last_lap_no", 1) or 1,
             )
-        drivers.sort(key=lambda x: x.position if x.position else 999)
-
+        )
+    drivers.sort(key=lambda x: x.position if x.position else 999)
     from pitwall.simulation.engine import simulate_race
 
     result = simulate_race(
@@ -609,6 +753,13 @@ async def whatif(req: WhatIfRequest) -> WhatIfResponse:
     tot = sum(dist.values()) or 1.0
     dist = {k: round(v / tot, 2) for k, v in dist.items()}
 
+    trajectory = []
+    for step in range(min(remaining, 15)):
+        lap_num = curr_lap + step
+        t = step / 14.0
+        base_gap = round((1 - t) * 1.2 + np.sin(t * 3) * 0.4, 3)
+        whatif_gap = round(base_gap + time_delta * (t * 0.5), 3)
+        trajectory.append({"lap": lap_num, "baseline": float(base_gap), "whatif": float(whatif_gap)})
 
     return WhatIfResponse(
         driver_number=d_num,
@@ -624,10 +775,10 @@ async def whatif(req: WhatIfRequest) -> WhatIfResponse:
         baseline_expected_position=base_pos,
         whatif_expected_position=projected_pos,
         cliff_risk=round(cliff_risk, 2),
+        gap_trajectory=trajectory,
         n_simulations=n_sims,
         model_version=model_version,
     )
-
 
 @app.get("/replay/status")
 async def replay_status() -> dict[str, Any]:
@@ -641,16 +792,25 @@ connected_clients: set[WebSocket] = set()
 
 @app.websocket("/ws/race")
 async def ws_race(websocket: WebSocket) -> None:
+    params = websocket.query_params
+    replay_id = params.get("replay_id")
+    speed = params.get("speed", "20x")
+    if replay_id not in replay_sessions:
+        await websocket.close(code=1008, reason="unknown replay_id")
+        return
+    if speed not in {"1x", "5x", "20x", "MAX"}:
+        await websocket.close(code=1008, reason="invalid replay speed")
+        return
+
+    global active_replay_id, race_state
+    replay = replay_sessions[replay_id]
+    race_state = RaceState(session_id=replay.id)
+    active_replay_id = replay.id
+    recent_events.clear()
+    source = ParquetReplaySource(ReplayConfig(bronze_path=replay.path, speed=speed))
+
     await websocket.accept()
     connected_clients.add(websocket)
-
-    # optional query params: speed, session
-    params = websocket.query_params
-    speed = params.get("speed", "20x")
-    bronze_path = params.get("bronze_path", "data/bronze")
-
-    config = ReplayConfig(bronze_path=Path(bronze_path), speed=speed)  # type: ignore[arg-type]
-    source = ParquetReplaySource(config)
 
     try:
         await websocket.send_json(
@@ -743,14 +903,7 @@ async def ws_race(websocket: WebSocket) -> None:
                         except Exception:
                             pass
                 except Exception:
-                    base = getattr(ds, "last_lap_s", 90.0) or 90.0
-                    age = getattr(ds, "tyre_age", 0) or 0
-                    point = base + age * 0.05
-                    pred = {
-                        "q10": round(point - 0.5, 3),
-                        "q50": round(point, 3),
-                        "q90": round(point + 0.6, 3),
-                    }
+                    pred = None
 
             msg = {
                 "type": "race_update",
@@ -773,6 +926,15 @@ async def ws_race(websocket: WebSocket) -> None:
                 "prediction": pred,
                 "ts": datetime.now(UTC).isoformat(),
             }
+            recent_events.appendleft(
+                {
+                    "source": event.source,
+                    "event_type": str(event.event_type.value if hasattr(event.event_type, "value") else event.event_type),
+                    "driver_number": event.driver_number,
+                    "event_ts": event.event_ts.isoformat(),
+                    "payload": event.payload,
+                }
+            )
             import contextlib
 
             with contextlib.suppress(Exception):
@@ -786,9 +948,9 @@ async def ws_race(websocket: WebSocket) -> None:
 
     except WebSocketDisconnect:
         pass
-    except Exception as e:
+    except Exception:
         with contextlib.suppress(Exception):
-            await websocket.send_json({"type": "error", "message": str(e)})
+            await websocket.send_json({"type": "error", "message": "replay stream failed"})
     finally:
         connected_clients.discard(websocket)
 

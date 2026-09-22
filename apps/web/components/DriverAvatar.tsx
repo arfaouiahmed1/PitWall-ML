@@ -154,7 +154,7 @@ export function DriverAvatar({
 
   return (
     <div
-      className={`relative inline-flex items-center justify-center shrink-0 rounded-full overflow-hidden border border-[#334155] bg-[#080c14] ${className}`}
+      className={`relative inline-flex items-center justify-center shrink-0 rounded-full overflow-hidden border border-pitwall-steel bg-pitwall-bg ${className}`}
       style={{ width: size, height: size }}
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}

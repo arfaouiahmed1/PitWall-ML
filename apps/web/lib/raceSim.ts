@@ -257,7 +257,11 @@ export function useRaceSim(speed: SimSpeed, enabled: boolean): RaceSimState {
       return;
     }
 
-    const tick = () => commit(stepLap(world, () => feedIdRef.current++));
+    const tick = () => {
+      // 20x burns 8 ticks/s; skip the whole lap-step in background tabs.
+      if (typeof document !== "undefined" && document.hidden) return;
+      commit(stepLap(world, () => feedIdRef.current++));
+    };
     tick(); // move immediately on start/resume/speed change : no dead first second
     const interval = setInterval(tick, TICK_MS[speed]);
     return () => clearInterval(interval);

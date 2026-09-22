@@ -111,6 +111,11 @@ class WhatIfRequest(BaseModel):
             return "WET"
         return up
 
+class GapTrajectoryPoint(BaseModel):
+    lap: int
+    baseline: float
+    whatif: float
+
 
 class WhatIfResponse(BaseModel):
     """Response for POST /whatif - strategy scenario delta vs baseline."""
@@ -134,6 +139,7 @@ class WhatIfResponse(BaseModel):
         description="Win probability delta (what-if P(win) - baseline P(win))"
     )
     cliff_risk: float = Field(ge=0, le=1, description="Tire degradation cliff risk index 0..1")
+    gap_trajectory: list[GapTrajectoryPoint] = Field(default_factory=list)
 
     # Extended diagnostics
     baseline_win_prob: float = Field(ge=0, le=1, default=0.0)

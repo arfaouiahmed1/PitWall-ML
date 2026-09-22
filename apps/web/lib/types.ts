@@ -1,9 +1,10 @@
-// Unified TypeScript interfaces : shared design tokens and data contracts
-// Background: #080c14, Card: #0f172a, Border: #1e293b
-// Neon: #ff1801 Racing Red, #00d2be Mercedes Cyan, #3671c6 Red Bull Blue, #ff8000 Papaya, #e8002d Ferrari, #22c55e Green, #eab308 Yellow
-
+// Shared data contracts. Design tokens live in tailwind.config.js `pitwall`.
 export type Compound = "S" | "M" | "H" | "I" | "W" | "SOFT" | "MEDIUM" | "HARD" | "INTER" | "WET";
-export type TyreCompound = Compound;
+const COMPOUND_CODES: readonly string[] = ["S", "M", "H", "I", "W", "SOFT", "MEDIUM", "HARD", "INTER", "WET"];
+/** Type guard for URL/API compound strings (replaces `as Compound` casts). */
+export function isCompound(v: string): v is Compound {
+  return (COMPOUND_CODES as readonly string[]).includes(v);
+}
 
 export type TelemetryPoint = {
   lap: number;
@@ -62,7 +63,12 @@ export type PacePrediction = {
   pit_prob_next5?: number;
   finish_probs?: FinishDistribution;
 };
-export type Prediction = PacePrediction;
+export type GapTrajectoryPoint = { lap: number; baseline: number; whatif: number };
+export type LegacyGapPoint = { lap: number; baseline_gap: number; whatif_gap: number };
+/** Normalize legacy `{ baseline_gap, whatif_gap }` API shapes to canonical points. */
+export function normalizeGapTrajectory(points: (GapTrajectoryPoint | LegacyGapPoint)[]): GapTrajectoryPoint[] {
+  return points.map((p) => ("baseline" in p ? p : { lap: p.lap, baseline: p.baseline_gap, whatif: p.whatif_gap }));
+}
 export type TyrePrediction = { driver_number: number; delta_s: number; confidence: number };
 export type PitHazard = { driver_number: number; p1: number; p3: number; p5: number };
 export type FinishDistribution = { p1: number; podium: number; points: number };
@@ -76,7 +82,7 @@ export type SimulationResult = {
   delta_s: number;
   reentry_position: number;
   reentry_position_dist: number[];
-  gap_trajectory: { lap: number; baseline_gap: number; whatif_gap: number }[];
+  gap_trajectory: GapTrajectoryPoint[];
   cliff_risk: number;
   finishing_dist_baseline: number[];
   finishing_dist_whatif: number[];
@@ -91,7 +97,6 @@ export type WhatIfRequest = {
   current_lap: number;
   simulations?: number;
 };
-export type WhatIfScenario = WhatIfRequest;
 export type WhatIfResponse = {
   projected_reentry_position: number;
   reentry_distribution: number[];
@@ -99,12 +104,11 @@ export type WhatIfResponse = {
   win_prob_baseline: number;
   win_prob_whatif: number;
   cliff_risk: number;
-  gap_trajectory: { lap: number; baseline: number; whatif: number }[];
+  gap_trajectory: GapTrajectoryPoint[];
   finishing_probs?: { baseline: number[]; whatif: number[] };
 };
 
 export type ShapAttribution = { feature: string; shap_value: number; feature_value?: number };
-export type SHAPAttribution = ShapAttribution;
 export type LocalExplanation = { driver_number: number; lap: number; base_value: number; attributions: ShapAttribution[] };
 export type GlobalFeatureImportance = { feature: string; importance: number };
 export type ShapSummary = Record<string, number>;
@@ -139,7 +143,6 @@ export type DriftFeatureRow = {
   js_divergence: number;
   severity: DriftSeverity;
 };
-export type FeatureDrift = DriftFeatureRow;
 export type DriftReport = {
   era_from: string;
   era_to: string;
@@ -162,10 +165,7 @@ export type WeatherMetrics = {
   rainfall_prob?: number;
   session_id?: string;
 };
-export type WeatherData = WeatherMetrics;
-
 export type FlagStatus = "GREEN" | "YELLOW" | "SC" | "VSC" | "RED" | "UNKNOWN";
-export type TrackFlag = FlagStatus;
 export type ConnectionStatus = "live" | "replay" | "sim" | "offline";
 
 export type SessionInfo = {
@@ -204,11 +204,9 @@ export type LatencySample = { ts: number; p50: number; p95: number; p99: number 
 
 export type CalibrationPoint = { nominal: number; empirical: number; compound?: string };
 export type SubgroupMetric = { group: string; category: string; mae: number; rmse: number; n: number };
-export type SubgroupRow = SubgroupMetric;
 
 export type RaceState = {
   lap: number;
-  total_laps: number;
-  flag: TrackFlag;
+  flag: FlagStatus;
   entries: DriverState[];
 };

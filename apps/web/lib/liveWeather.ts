@@ -5,6 +5,7 @@
 // and real-time live meteorological telemetry via Open-Meteo for each circuit's exact GPS coordinates.
 
 import { useEffect, useState } from "react";
+import { fetchJson, startPoller } from "@/lib/fetcher";
 
 export type LiveWeatherData = {
   airTempC: number;
@@ -76,76 +77,87 @@ export const DEFAULT_LIVE_WEATHER: LiveWeatherData = {
   timestamp: new Date().toISOString(),
 };
 
+/** Minimal Open-Meteo forecast shape used by fetchCircuitWeather. */
+type OpenMeteoResponse = {
+  current?: {
+    time?: string;
+    temperature_2m?: number;
+    relative_humidity_2m?: number;
+    surface_pressure?: number;
+    wind_speed_10m?: number;
+    wind_direction_10m?: number;
+    weather_code?: number;
+  };
+  hourly?: { precipitation_probability?: number[] };
+};
+
 /**
  * Fetch live meteorological telemetry for any circuit.
  * Prioritizes OpenF1 live transponder feed; seamlessly falls back to Open-Meteo GPS weather station.
  */
 export async function fetchCircuitWeather(circuitId: string): Promise<LiveWeatherData> {
-  // 1. Try OpenF1 live weather
-  try {
-    const res = await fetch("https://api.openf1.org/v1/weather?session_key=latest", {
-      signal: AbortSignal.timeout(2500),
-    });
-    if (res.ok) {
-      const data = await res.json();
-      if (Array.isArray(data) && data.length > 0) {
-        const latest = data[data.length - 1];
-        if (typeof latest.air_temperature === "number" && typeof latest.track_temperature === "number") {
-          return {
-            airTempC: Number(latest.air_temperature.toFixed(1)),
-            trackTempC: Number(latest.track_temperature.toFixed(1)),
-            humidityPct: Math.round(latest.humidity ?? 50),
-            pressureMbar: Math.round(latest.pressure ?? 1013),
-            windSpeedKmh: Number(((latest.wind_speed ?? 3.5) * 3.6).toFixed(1)),
-            windDeg: Math.round(latest.wind_direction ?? 180),
-            rainfallProb: latest.rainfall ? 0.95 : 0.05,
-            precipHours: [0.02, 0.05, 0.08, 0.12, 0.10, 0.06, 0.04, 0.02],
-            condition: latest.rainfall ? "Rain on track" : "Track dry",
-            source: "OpenF1 Live Timing",
-            isLive: true,
-            timestamp: latest.date ?? new Date().toISOString(),
-          };
-        }
-      }
+  // 1. Try OpenF1 live weather via the shared fetcher (2.5s timeout).
+  const openF1 = await fetchJson<Record<string, unknown>[]>(
+    "https://api.openf1.org/v1/weather?session_key=latest",
+    {},
+    { timeoutMs: 2500 }
+  );
+  if (openF1 && openF1.length > 0) {
+    const latest = openF1[openF1.length - 1];
+    const airT = latest.air_temperature;
+    const trackT = latest.track_temperature;
+    if (typeof airT === "number" && typeof trackT === "number") {
+      return {
+        airTempC: Number(airT.toFixed(1)),
+        trackTempC: Number(trackT.toFixed(1)),
+        humidityPct: Math.round(typeof latest.humidity === "number" ? latest.humidity : 50),
+        pressureMbar: Math.round(typeof latest.pressure === "number" ? latest.pressure : 1013),
+        windSpeedKmh: Number(((typeof latest.wind_speed === "number" ? latest.wind_speed : 3.5) * 3.6).toFixed(1)),
+        windDeg: Math.round(typeof latest.wind_direction === "number" ? latest.wind_direction : 180),
+        rainfallProb: latest.rainfall ? 0.95 : 0.05,
+        precipHours: [0.02, 0.05, 0.08, 0.12, 0.1, 0.06, 0.04, 0.02],
+        condition: latest.rainfall ? "Rain on track" : "Track dry",
+        source: "OpenF1 Live Timing",
+        isLive: true,
+        timestamp: typeof latest.date === "string" ? latest.date : new Date().toISOString(),
+      };
     }
-  } catch {}
+  }
 
-  // 2. Fetch live real-time weather from Open-Meteo by GPS coordinates
+  // 2. Fetch live real-time weather from Open-Meteo by GPS coordinates (3.5s timeout).
   const coords = CIRCUIT_COORDINATES[circuitId] ?? CIRCUIT_COORDINATES.barcelona;
-  try {
-    const url = `https://api.open-meteo.com/v1/forecast?latitude=${coords.lat}&longitude=${coords.lon}&current=temperature_2m,relative_humidity_2m,surface_pressure,wind_speed_10m,wind_direction_10m,precipitation,weather_code&hourly=precipitation_probability&forecast_days=1`;
-    const res = await fetch(url, { signal: AbortSignal.timeout(3500) });
-    if (res.ok) {
-      const json = await res.json();
-      const current = json.current;
-      if (current) {
-        const air = Number(current.temperature_2m.toFixed(1));
-        // Track surface temperature model: air temp + solar load offset (approx +10 to +14 deg C in daytime)
-        const isDaytime = new Date().getUTCHours() >= 6 && new Date().getUTCHours() <= 18;
-        const trackOffset = isDaytime ? 11.8 : 1.5;
-        const track = Number((air + trackOffset).toFixed(1));
-        const rainProb = (json.hourly?.precipitation_probability?.[0] ?? 0) / 100;
-        const precipSlice = (json.hourly?.precipitation_probability ?? [5, 10, 15, 20, 25, 15, 10, 5])
-          .slice(0, 8)
-          .map((v: number) => v / 100);
-
-        return {
-          airTempC: air,
-          trackTempC: track,
-          humidityPct: Math.round(current.relative_humidity_2m),
-          pressureMbar: Math.round(current.surface_pressure),
-          windSpeedKmh: Number(current.wind_speed_10m.toFixed(1)),
-          windDeg: Math.round(current.wind_direction_10m),
-          rainfallProb: rainProb,
-          precipHours: precipSlice,
-          condition: weatherConditionFromWmo(current.weather_code ?? 0),
-          source: `Live Station : ${coords.name}`,
-          isLive: true,
-          timestamp: current.time ?? new Date().toISOString(),
-        };
-      }
-    }
-  } catch {}
+  const meteo = await fetchJson<OpenMeteoResponse>(
+    `https://api.open-meteo.com/v1/forecast?latitude=${coords.lat}&longitude=${coords.lon}&current=temperature_2m,relative_humidity_2m,surface_pressure,wind_speed_10m,wind_direction_10m,precipitation,weather_code&hourly=precipitation_probability&forecast_days=1`,
+    {},
+    { timeoutMs: 3500 }
+  );
+  const current = meteo?.current;
+  if (current && typeof current.temperature_2m === "number") {
+    const air = Number(current.temperature_2m.toFixed(1));
+    // Track surface temperature model: air temp + solar load offset (approx +10 to +14 deg C in daytime)
+    const isDaytime = new Date().getUTCHours() >= 6 && new Date().getUTCHours() <= 18;
+    const trackOffset = isDaytime ? 11.8 : 1.5;
+    const track = Number((air + trackOffset).toFixed(1));
+    const probs = meteo?.hourly?.precipitation_probability;
+    const rainProb = (Array.isArray(probs) && typeof probs[0] === "number" ? probs[0] : 0) / 100;
+    const precipSlice = (Array.isArray(probs) && probs.length ? probs : [5, 10, 15, 20, 25, 15, 10, 5])
+      .slice(0, 8)
+      .map((v) => (typeof v === "number" ? v : 0) / 100);
+    return {
+      airTempC: air,
+      trackTempC: track,
+      humidityPct: Math.round(current.relative_humidity_2m ?? 50),
+      pressureMbar: Math.round(current.surface_pressure ?? 1013),
+      windSpeedKmh: Number((current.wind_speed_10m ?? 0).toFixed(1)),
+      windDeg: Math.round(current.wind_direction_10m ?? 180),
+      rainfallProb: rainProb,
+      precipHours: precipSlice,
+      condition: weatherConditionFromWmo(current.weather_code ?? 0),
+      source: `Live Station : ${coords.name}`,
+      isLive: true,
+      timestamp: current.time ?? new Date().toISOString(),
+    };
+  }
 
   return DEFAULT_LIVE_WEATHER;
 }
@@ -170,12 +182,11 @@ export function useLiveWeather(circuitId = "barcelona") {
     };
 
     load();
-    // Poll real live weather every 45 seconds
-    const interval = setInterval(load, 45000);
-
+    // Poll real live weather every 45 seconds, paused while the tab is hidden.
+    const stop = startPoller(load, 45000);
     return () => {
       cancelled = true;
-      clearInterval(interval);
+      stop();
     };
   }, [circuitId]);
 
