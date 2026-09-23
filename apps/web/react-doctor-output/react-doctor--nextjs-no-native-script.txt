@@ -1,0 +1,13 @@
+Rule: react-doctor/nextjs-no-native-script
+Severity: warning
+Category: Bugs
+Count: 1
+
+Plain <script> has no Next.js loading strategy, so it can block rendering.
+
+Suggestion: Use `next/script` with `strategy="afterInteractive"` or `"lazyOnload"` so third-party scripts do not block rendering.
+
+Curl with no cache & follow the canonical fix and false positive check recipe before fixing: https://react.doctor/docs/rules/react-doctor/nextjs-no-native-script
+
+Files:
+  app/layout.tsx:32

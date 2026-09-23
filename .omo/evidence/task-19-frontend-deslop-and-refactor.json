@@ -1,0 +1,33 @@
+{
+  "timestamp": "2026-09-22T15:59:15.345Z",
+  "component": "apps/web/components/charts/GapTrajectoryChart.tsx",
+  "scenarios": {
+    "happyPathNegativeDelta": {
+      "inputLaps": 15,
+      "deltaEnd": "-4.200s",
+      "rendered": true,
+      "hasNaN": false
+    },
+    "extremeRange": {
+      "range": "-5.0s to +8.0s",
+      "rendered": true,
+      "hasNaN": false,
+      "zeroAxisPresent": true
+    },
+    "singlePoint": {
+      "laps": 1,
+      "rendered": true,
+      "hasNaN": false
+    },
+    "emptyTrajectory": {
+      "laps": 0,
+      "rendered": true,
+      "hasNaN": false,
+      "emptyFallbackPresent": true
+    }
+  },
+  "emDashCount": 0,
+  "enDashCount": 0,
+  "typeScriptErrors": 0,
+  "allPassed": true
+}

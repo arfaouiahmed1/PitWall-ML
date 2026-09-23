@@ -1,0 +1,13 @@
+Rule: react-doctor/rerender-memo-with-default-value
+Severity: warning
+Category: Performance
+Count: 1
+
+This reruns hooks that list it in their dependency array because default prop value [] makes a brand new array every render, so move it to a constant at the top of the file
+
+Suggestion: Move it to the top of the file: `const EMPTY_ITEMS: Item[] = []`, then use that as the default value
+
+Curl with no cache & follow the canonical fix and false positive check recipe before fixing: https://react.doctor/docs/rules/react-doctor/rerender-memo-with-default-value
+
+Files:
+  components/circuit/TrackGeometry.tsx:52

@@ -1,0 +1,36 @@
+{
+  "task": 2,
+  "description": "Implement Micro-Batched Bronze Parquet Writer with Replay Finalizer",
+  "timestamp": "2026-09-22T17:15:00Z",
+  "status": "passed",
+  "verification": {
+    "files_created": [
+      "src/pitwall/storage/parquet_writer.py",
+      "tests/unit/test_parquet_writer.py"
+    ],
+    "files_modified": [
+      "src/pitwall/storage/__init__.py",
+      "src/pitwall/ingestion/replay.py",
+      ".omo/plans/frontend-deslop-and-refactor.md",
+      ".omo/notepads/frontend-deslop-and-refactor/learnings.md"
+    ],
+    "components": {
+      "ParquetPartitionWriter": {
+        "buffering": "In-memory buffer with count (max_buffer_size=500) and time (max_buffer_seconds=30.0) flush triggers",
+        "serialization": "Polars DataFrame normalized schema with UTC event_ts/ingest_ts and json-serialized payload/payload_json",
+        "partitions": "part-{seq}.parquet with auto-detected sequence resumption",
+        "finalizer": "finalize_session() merges partitions into events.parquet with optional cleanup_partitions"
+      },
+      "replay_discovery": {
+        "discover_replay_sessions": "Discovers live sessions with events.parquet or part-*.parquet and sets label to [LIVE-RECORDED]",
+        "ParquetReplaySource": "Seamlessly streams events from either events.parquet or part-*.parquet in chronological order"
+      }
+    },
+    "pytest_results": {
+      "tests/unit/test_parquet_writer.py": "16 passed",
+      "tests/replay/test_replay.py": "3 passed",
+      "exit_code": 0
+    },
+    "ruff_check": "All checks passed"
+  }
+}

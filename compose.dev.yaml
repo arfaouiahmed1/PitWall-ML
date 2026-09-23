@@ -1,0 +1,25 @@
+services:
+  postgres:
+    environment:
+      POSTGRES_USER: pitwall
+      POSTGRES_PASSWORD: pitwall-dev-secret
+      POSTGRES_DB: pitwall
+
+  mlflow:
+    command: >
+      mlflow server
+      --host 0.0.0.0
+      --port 5000
+      --backend-store-uri postgresql+psycopg2://pitwall:pitwall-dev-secret@postgres:5432/pitwall
+      --artifacts-destination /mlartifacts
+      --serve-artifacts
+
+  api:
+    environment:
+      DATABASE_URL: postgresql+asyncpg://pitwall:pitwall-dev-secret@postgres:5432/pitwall
+      PITWALL_ENV: development
+      PITWALL_LIVE_API_KEY: dev-live-api-key
+
+  grafana:
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: pitwall-dev-secret

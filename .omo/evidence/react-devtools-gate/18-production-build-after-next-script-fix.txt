@@ -1,0 +1,24 @@
+
+> pitwall-web@0.1.0 build
+> next build
+
+   ▲ Next.js 15.5.21
+
+   Creating an optimized production build ...
+ ✓ Compiled successfully in 3.2s
+   Linting and checking validity of types ...
+Failed to compile.
+
+.next/types/app/monitoring/page.ts:12:13
+Type error: Type 'OmitWithTag<typeof import("C:/Users/ahmed/Desktop/Personal Projects/PitWall ML/apps/web/app/monitoring/page"), "default" | "metadata" | "viewport" | "config" | "generateStaticParams" | ... 9 more ... | "experimental_ppr", "">' does not satisfy the constraint '{ [x: string]: never; }'.
+  Property 'parseEraReport' is incompatible with index signature.
+    Type '(value: unknown) => EraReport | null' is not assignable to type 'never'.
+
+  10 |
+  11 | // Check that the entry is a valid entry
+> 12 | checkFields<Diff<{
+     |             ^
+  13 |   default: Function
+  14 |   config?: {}
+  15 |   generateStaticParams?: Function
+Next.js build worker exited with code: 1 and signal: null

@@ -1,0 +1,311 @@
+- generic [active] [ref=e1]:
+  - banner [ref=e2]:
+    - generic [ref=e3]:
+      - generic [ref=e4]:
+        - link "PW PITWALLML" [ref=e5] [cursor=pointer]:
+          - /url: /
+          - generic [ref=e6]: PW
+          - generic [ref=e7]: PITWALLML
+        - generic [ref=e8]: 2025/26 season
+      - generic [ref=e9]:
+        - 'status "Session status: OFFLINE" [ref=e10]':
+          - generic [ref=e12]: OFFLINE
+        - status "Lap -, total laps unavailable" [ref=e13]:
+          - generic [ref=e14]: LAP
+          - generic [ref=e15]: "-"
+          - text: /
+          - generic [ref=e16]: N/A
+        - 'status "Track flag: GREEN" [ref=e17]': GREEN
+    - navigation "Desktop Navigation" [ref=e19]:
+      - generic [ref=e20]:
+        - link "Race Cockpit" [ref=e21] [cursor=pointer]:
+          - /url: /
+        - link "Strategy Sandbox" [ref=e22] [cursor=pointer]:
+          - /url: /strategy
+        - link "Driver Telemetry" [ref=e23] [cursor=pointer]:
+          - /url: /drivers
+        - link "Circuit & Schedule" [ref=e24] [cursor=pointer]:
+          - /url: /circuit
+        - link "Model Intelligence" [ref=e25] [cursor=pointer]:
+          - /url: /models
+        - link "MLOps & Drift" [ref=e26] [cursor=pointer]:
+          - /url: /monitoring
+        - link "API DOCS" [ref=e27] [cursor=pointer]:
+          - /url: /api-docs
+  - main [ref=e29]:
+    - generic [ref=e30]:
+      - generic [ref=e31]:
+        - heading "DRIVER TELEMETRY • HEAD-TO-HEAD" [level=1] [ref=e32]
+        - paragraph [ref=e33]: Dual-driver speed • throttle • brake • gear • DRS / X-Mode overlay + PerformanceVector radar. Click a driver card to open detail.
+      - generic [ref=e34]:
+        - generic [ref=e35]:
+          - generic [ref=e36]: SELECT DRIVERS
+          - generic [ref=e37]:
+            - 'button "Max Verstappen (VER) VER #1 B Max Verstappen • Red Bull Red Bull Formula 1 Car - Top View" [ref=e38] [cursor=pointer]':
+              - img "Max Verstappen (VER)" [ref=e40]
+              - generic [ref=e41]:
+                - generic [ref=e42]:
+                  - text: VER
+                  - generic [ref=e43]: "#1"
+                  - text: B
+                - generic [ref=e44]: Max Verstappen • Red Bull
+              - img "Red Bull Formula 1 Car - Top View" [ref=e45]
+            - 'button "Lando Norris (NOR) NOR #4 A Lando Norris • McLaren McLaren Formula 1 Car - Top View" [ref=e87] [cursor=pointer]':
+              - img "Lando Norris (NOR)" [ref=e89]
+              - generic [ref=e90]:
+                - generic [ref=e91]:
+                  - text: NOR
+                  - generic [ref=e92]: "#4"
+                  - text: A
+                - generic [ref=e93]: Lando Norris • McLaren
+              - img "McLaren Formula 1 Car - Top View" [ref=e94]
+            - 'button "Gabriel Bortoleto (BOR) BOR #5 Gabriel Bortoleto • Sauber Sauber Formula 1 Car - Top View" [ref=e136] [cursor=pointer]':
+              - img "Gabriel Bortoleto (BOR)" [ref=e138]
+              - generic [ref=e139]:
+                - generic [ref=e140]:
+                  - text: BOR
+                  - generic [ref=e141]: "#5"
+                - generic [ref=e142]: Gabriel Bortoleto • Sauber
+              - img "Sauber Formula 1 Car - Top View" [ref=e143]
+            - 'button "Isack Hadjar (HAD) HAD #6 Isack Hadjar • Racing Bulls Racing Bulls Formula 1 Car - Top View" [ref=e185] [cursor=pointer]':
+              - img "Isack Hadjar (HAD)" [ref=e187]
+              - generic [ref=e188]:
+                - generic [ref=e189]:
+                  - text: HAD
+                  - generic [ref=e190]: "#6"
+                - generic [ref=e191]: Isack Hadjar • Racing Bulls
+              - img "Racing Bulls Formula 1 Car - Top View" [ref=e192]
+            - 'button "Jack Doohan (DOO) DOO #7 Jack Doohan • Alpine Alpine Formula 1 Car - Top View" [ref=e234] [cursor=pointer]':
+              - img "Jack Doohan (DOO)" [ref=e236]
+              - generic [ref=e237]:
+                - generic [ref=e238]:
+                  - text: DOO
+                  - generic [ref=e239]: "#7"
+                - generic [ref=e240]: Jack Doohan • Alpine
+              - img "Alpine Formula 1 Car - Top View" [ref=e241]
+            - 'button "Pierre Gasly (GAS) GAS #10 Pierre Gasly • Alpine Alpine Formula 1 Car - Top View" [ref=e283] [cursor=pointer]':
+              - img "Pierre Gasly (GAS)" [ref=e285]
+              - generic [ref=e286]:
+                - generic [ref=e287]:
+                  - text: GAS
+                  - generic [ref=e288]: "#10"
+                - generic [ref=e289]: Pierre Gasly • Alpine
+              - img "Alpine Formula 1 Car - Top View" [ref=e290]
+            - 'button "Kimi Antonelli (ANT) ANT #12 Kimi Antonelli • Mercedes Mercedes Formula 1 Car - Top View" [ref=e332] [cursor=pointer]':
+              - img "Kimi Antonelli (ANT)" [ref=e334]
+              - generic [ref=e335]:
+                - generic [ref=e336]:
+                  - text: ANT
+                  - generic [ref=e337]: "#12"
+                - generic [ref=e338]: Kimi Antonelli • Mercedes
+              - img "Mercedes Formula 1 Car - Top View" [ref=e339]
+            - 'button "Fernando Alonso (ALO) ALO #14 Fernando Alonso • Aston Martin Aston Martin Formula 1 Car - Top View" [ref=e381] [cursor=pointer]':
+              - img "Fernando Alonso (ALO)" [ref=e383]
+              - generic [ref=e384]:
+                - generic [ref=e385]:
+                  - text: ALO
+                  - generic [ref=e386]: "#14"
+                - generic [ref=e387]: Fernando Alonso • Aston Martin
+              - img "Aston Martin Formula 1 Car - Top View" [ref=e388]
+            - 'button "Charles Leclerc (LEC) LEC #16 Charles Leclerc • Ferrari Ferrari Formula 1 Car - Top View" [ref=e430] [cursor=pointer]':
+              - img "Charles Leclerc (LEC)" [ref=e432]
+              - generic [ref=e433]:
+                - generic [ref=e434]:
+                  - text: LEC
+                  - generic [ref=e435]: "#16"
+                - generic [ref=e436]: Charles Leclerc • Ferrari
+              - img "Ferrari Formula 1 Car - Top View" [ref=e437]
+            - 'button "Lance Stroll (STR) STR #18 Lance Stroll • Aston Martin Aston Martin Formula 1 Car - Top View" [ref=e479] [cursor=pointer]':
+              - img "Lance Stroll (STR)" [ref=e481]
+              - generic [ref=e482]:
+                - generic [ref=e483]:
+                  - text: STR
+                  - generic [ref=e484]: "#18"
+                - generic [ref=e485]: Lance Stroll • Aston Martin
+              - img "Aston Martin Formula 1 Car - Top View" [ref=e486]
+            - 'button "Yuki Tsunoda (TSU) TSU #22 Yuki Tsunoda • Racing Bulls Racing Bulls Formula 1 Car - Top View" [ref=e528] [cursor=pointer]':
+              - img "Yuki Tsunoda (TSU)" [ref=e530]
+              - generic [ref=e531]:
+                - generic [ref=e532]:
+                  - text: TSU
+                  - generic [ref=e533]: "#22"
+                - generic [ref=e534]: Yuki Tsunoda • Racing Bulls
+              - img "Racing Bulls Formula 1 Car - Top View" [ref=e535]
+            - 'button "Alexander Albon (ALB) ALB #23 Alexander Albon • Williams Williams Formula 1 Car - Top View" [ref=e577] [cursor=pointer]':
+              - img "Alexander Albon (ALB)" [ref=e579]
+              - generic [ref=e580]:
+                - generic [ref=e581]:
+                  - text: ALB
+                  - generic [ref=e582]: "#23"
+                - generic [ref=e583]: Alexander Albon • Williams
+              - img "Williams Formula 1 Car - Top View" [ref=e584]
+            - 'button "Nico Hulkenberg (HUL) HUL #27 Nico Hulkenberg • Sauber Sauber Formula 1 Car - Top View" [ref=e626] [cursor=pointer]':
+              - img "Nico Hulkenberg (HUL)" [ref=e628]
+              - generic [ref=e629]:
+                - generic [ref=e630]:
+                  - text: HUL
+                  - generic [ref=e631]: "#27"
+                - generic [ref=e632]: Nico Hulkenberg • Sauber
+              - img "Sauber Formula 1 Car - Top View" [ref=e633]
+            - 'button "Liam Lawson (LAW) LAW #30 Liam Lawson • Racing Bulls Racing Bulls Formula 1 Car - Top View" [ref=e675] [cursor=pointer]':
+              - img "Liam Lawson (LAW)" [ref=e677]
+              - generic [ref=e678]:
+                - generic [ref=e679]:
+                  - text: LAW
+                  - generic [ref=e680]: "#30"
+                - generic [ref=e681]: Liam Lawson • Racing Bulls
+              - img "Racing Bulls Formula 1 Car - Top View" [ref=e682]
+            - 'button "Esteban Ocon (OCO) OCO #31 Esteban Ocon • Haas Haas Formula 1 Car - Top View" [ref=e724] [cursor=pointer]':
+              - img "Esteban Ocon (OCO)" [ref=e726]
+              - generic [ref=e727]:
+                - generic [ref=e728]:
+                  - text: OCO
+                  - generic [ref=e729]: "#31"
+                - generic [ref=e730]: Esteban Ocon • Haas
+              - img "Haas Formula 1 Car - Top View" [ref=e731]
+            - 'button "Lewis Hamilton (HAM) HAM #44 Lewis Hamilton • Ferrari Ferrari Formula 1 Car - Top View" [ref=e773] [cursor=pointer]':
+              - img "Lewis Hamilton (HAM)" [ref=e775]
+              - generic [ref=e776]:
+                - generic [ref=e777]:
+                  - text: HAM
+                  - generic [ref=e778]: "#44"
+                - generic [ref=e779]: Lewis Hamilton • Ferrari
+              - img "Ferrari Formula 1 Car - Top View" [ref=e780]
+            - 'button "Carlos Sainz (SAI) SAI #55 Carlos Sainz • Williams Williams Formula 1 Car - Top View" [ref=e822] [cursor=pointer]':
+              - img "Carlos Sainz (SAI)" [ref=e824]
+              - generic [ref=e825]:
+                - generic [ref=e826]:
+                  - text: SAI
+                  - generic [ref=e827]: "#55"
+                - generic [ref=e828]: Carlos Sainz • Williams
+              - img "Williams Formula 1 Car - Top View" [ref=e829]
+            - 'button "George Russell (RUS) RUS #63 George Russell • Mercedes Mercedes Formula 1 Car - Top View" [ref=e871] [cursor=pointer]':
+              - img "George Russell (RUS)" [ref=e873]
+              - generic [ref=e874]:
+                - generic [ref=e875]:
+                  - text: RUS
+                  - generic [ref=e876]: "#63"
+                - generic [ref=e877]: George Russell • Mercedes
+              - img "Mercedes Formula 1 Car - Top View" [ref=e878]
+            - 'button "Oscar Piastri (PIA) PIA #81 Oscar Piastri • McLaren McLaren Formula 1 Car - Top View" [ref=e920] [cursor=pointer]':
+              - img "Oscar Piastri (PIA)" [ref=e922]
+              - generic [ref=e923]:
+                - generic [ref=e924]:
+                  - text: PIA
+                  - generic [ref=e925]: "#81"
+                - generic [ref=e926]: Oscar Piastri • McLaren
+              - img "McLaren Formula 1 Car - Top View" [ref=e927]
+            - 'button "Oliver Bearman (BEA) BEA #87 Oliver Bearman • Haas Haas Formula 1 Car - Top View" [ref=e969] [cursor=pointer]':
+              - img "Oliver Bearman (BEA)" [ref=e971]
+              - generic [ref=e972]:
+                - generic [ref=e973]:
+                  - text: BEA
+                  - generic [ref=e974]: "#87"
+                - generic [ref=e975]: Oliver Bearman • Haas
+              - img "Haas Formula 1 Car - Top View" [ref=e976]
+          - generic [ref=e1018]:
+            - combobox [ref=e1019]:
+              - 'option "VER #1"'
+              - 'option "NOR #4" [selected]'
+              - 'option "BOR #5"'
+              - 'option "HAD #6"'
+              - 'option "DOO #7"'
+              - 'option "GAS #10"'
+              - 'option "ANT #12"'
+              - 'option "ALO #14"'
+              - 'option "LEC #16"'
+              - 'option "STR #18"'
+              - 'option "TSU #22"'
+              - 'option "ALB #23"'
+              - 'option "HUL #27"'
+              - 'option "LAW #30"'
+              - 'option "OCO #31"'
+              - 'option "HAM #44"'
+              - 'option "SAI #55"'
+              - 'option "RUS #63"'
+              - 'option "PIA #81"'
+              - 'option "BEA #87"'
+            - generic [ref=e1020]: vs
+            - combobox [ref=e1021]:
+              - 'option "VER #1" [selected]'
+              - 'option "NOR #4"'
+              - 'option "BOR #5"'
+              - 'option "HAD #6"'
+              - 'option "DOO #7"'
+              - 'option "GAS #10"'
+              - 'option "ANT #12"'
+              - 'option "ALO #14"'
+              - 'option "LEC #16"'
+              - 'option "STR #18"'
+              - 'option "TSU #22"'
+              - 'option "ALB #23"'
+              - 'option "HUL #27"'
+              - 'option "LAW #30"'
+              - 'option "OCO #31"'
+              - 'option "HAM #44"'
+              - 'option "SAI #55"'
+              - 'option "RUS #63"'
+              - 'option "PIA #81"'
+              - 'option "BEA #87"'
+          - link "Open NOR detail →" [ref=e1022] [cursor=pointer]:
+            - /url: /drivers/4
+        - generic [ref=e1023]:
+          - region "Telemetry overlay" [ref=e1024]:
+            - generic [ref=e1025]:
+              - generic [ref=e1026]:
+                - heading "TELEMETRY OVERLAY" [level=3] [ref=e1027]
+                - paragraph [ref=e1028]: RAW SOURCE SAMPLES ONLY
+              - generic [ref=e1029]:
+                - combobox "Driver A" [ref=e1030]:
+                  - 'option "VER #1"'
+                  - 'option "NOR #4" [selected]'
+                  - 'option "BOR #5"'
+                  - 'option "HAD #6"'
+                  - 'option "DOO #7"'
+                  - 'option "GAS #10"'
+                  - 'option "ANT #12"'
+                  - 'option "ALO #14"'
+                - generic [ref=e1031]: VS
+                - combobox "Driver B" [ref=e1032]:
+                  - 'option "VER #1" [selected]'
+                  - 'option "NOR #4"'
+                  - 'option "BOR #5"'
+                  - 'option "HAD #6"'
+                  - 'option "DOO #7"'
+                  - 'option "GAS #10"'
+                  - 'option "ANT #12"'
+                  - 'option "ALO #14"'
+            - paragraph [ref=e1033]: AWAITING SOURCE TELEMETRY...
+          - generic [ref=e1034]:
+            - generic [ref=e1035]:
+              - generic [ref=e1036]:
+                - img "Lando Norris (NOR)" [ref=e1038]
+                - generic [ref=e1039]:
+                  - generic [ref=e1040]:
+                    - text: Lando Norris
+                    - generic [ref=e1041]: "#4"
+                  - generic [ref=e1042]: McLaren
+                - generic [ref=e1043]: A
+              - status [ref=e1045]:
+                - paragraph [ref=e1046]: Performance vector unavailable
+                - paragraph [ref=e1047]: Measured performance dimensions are not available for this driver comparison.
+              - link "View detail →" [ref=e1048] [cursor=pointer]:
+                - /url: /drivers/4
+            - generic [ref=e1049]:
+              - generic [ref=e1050]:
+                - img "Max Verstappen (VER)" [ref=e1052]
+                - generic [ref=e1053]:
+                  - generic [ref=e1054]:
+                    - text: Max Verstappen
+                    - generic [ref=e1055]: "#1"
+                  - generic [ref=e1056]: Red Bull
+                - generic [ref=e1057]: B
+              - status [ref=e1059]:
+                - paragraph [ref=e1060]: Performance vector unavailable
+                - paragraph [ref=e1061]: Measured performance dimensions are not available for this driver comparison.
+              - link "View detail →" [ref=e1062] [cursor=pointer]:
+                - /url: /drivers/1
+          - generic [ref=e1063]:
+            - generic [ref=e1064]: CORNER DELTA ANALYSIS
+            - paragraph [ref=e1065]: Measured corner deltas are unavailable until the driver telemetry source is connected.
+  - contentinfo [ref=e1066]: PitWall ML • FastF1 • Polars • LightGBM • FastAPI • Next.js

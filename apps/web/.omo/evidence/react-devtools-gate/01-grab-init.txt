@@ -1,0 +1,84 @@
+✿ React Grab 0.2.0
+
+- Preflight checks.
+√ Preflight checks.
+- Verifying framework.
+√ Verifying framework. Found Next.js.
+- Detecting router type.
+√ Detecting router type. Found App Router.
+- Detecting package manager.
+√ Detecting package manager. Found npm.
+
+
+[1mFile: C:\Users\ahmed\Desktop\Personal Projects\PitWall ML\apps\web\app\layout.tsx[0m
+────────────────────────────────────────────────────────────
+[90m  import "./globals.css";
+[0m
+[90m  import type { Metadata, Viewport } from "next";
+[0m
+[32m+ import Script from "next/script";[0m
+[90m  import { Geist, JetBrains_Mono } from "next/font/google";
+[0m
+[90m  import SiteHeader from "@/components/SiteHeader";
+[0m
+[90m  
+[0m
+[90m  ...[0m
+[90m  
+[0m
+[90m  export default function RootLayout({ children }: { children: React.ReactNode }) {
+[0m
+[90m    return (
+[0m
+[31m-     <html lang="en" className="dark">
+[0m
+[32m+     <html lang="en" className="dark">[0m
+[32m+       <head>[0m
+[32m+         {process.env.NODE_ENV === "development" && ([0m
+[32m+           <Script[0m
+[32m+             src="//unpkg.com/react-grab/dist/index.global.js"[0m
+[32m+             crossOrigin="anonymous"[0m
+[32m+             strategy="beforeInteractive"[0m
+[32m+           />[0m
+[32m+         )}[0m
+[32m+       </head>
+[0m
+[90m        <body className={`${geistSans.variable} ${geistMono.variable} min-h-screen antialiased bg-pitwall-bg text-slate-200`}>
+[0m
+[90m          <SiteHeader />
+[0m
+[90m          <main className="max-w-[1400px] mx-auto px-6 py-6">{children}</main>
+[0m
+────────────────────────────────────────────────────────────
+
+Auto-detection may not be 100% accurate.
+Please verify the changes before committing.
+- Installing react-grab.
+
+added 31 packages, and audited 453 packages in 5s
+
+168 packages are looking for funding
+  run `npm fund` for details
+
+4 vulnerabilities (3 high, 1 critical)
+
+To address issues that do not require attention, run:
+  npm audit fix
+
+To address all issues, run:
+  npm audit fix --force
+
+Run `npm audit` for details.
+npm warn allow-scripts 3 packages have install scripts not yet covered by allowScripts:
+npm warn allow-scripts   esbuild@0.28.2 (postinstall: node install.js)
+npm warn allow-scripts   sharp@0.34.5 (install: node install/check.js || npm run build)
+npm warn allow-scripts   unrs-resolver@1.12.2 (postinstall: node postinstall.js)
+npm warn allow-scripts
+npm warn allow-scripts Run `npm approve-scripts --allow-scripts-pending` to review, or `npm approve-scripts <pkg>` to allow.
+√ Installing react-grab.
+- Applying changes to C:\Users\ahmed\Desktop\Personal Projects\PitWall ML\apps\web\app\layout.tsx.
+√ Applying changes to C:\Users\ahmed\Desktop\Personal Projects\PitWall ML\apps\web\app\layout.tsx.
+
+Success! React Grab has been installed.
+You may now start your development server.
+

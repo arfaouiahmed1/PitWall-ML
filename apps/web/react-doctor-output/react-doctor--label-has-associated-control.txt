@@ -1,0 +1,16 @@
+Rule: react-doctor/label-has-associated-control
+Severity: warning
+Category: Accessibility
+Count: 4
+
+Screen reader users can't tell which input this label names because it's tied to none, so add `htmlFor` or wrap the input inside it.
+
+Suggestion: Tie every label to a control with `htmlFor`, or by nesting the input.
+
+Curl with no cache & follow the canonical fix and false positive check recipe before fixing: https://react.doctor/docs/rules/react-doctor/label-has-associated-control
+
+Files:
+  app/strategy/page.tsx:185
+  app/strategy/page.tsx:195
+  app/strategy/page.tsx:200
+  app/strategy/page.tsx:207

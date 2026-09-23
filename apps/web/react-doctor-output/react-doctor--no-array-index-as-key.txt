@@ -1,0 +1,18 @@
+Rule: react-doctor/no-array-index-as-key
+Severity: warning
+Category: Bugs
+Count: 4
+
+Your users can see & submit the wrong data when this list reorders or filters, so use a stable id like `key={item.id}`, not the array index "i".
+
+Your users can see & submit the wrong data when this list reorders or filters, so use a stable id like `key={item.id}`, not the array index "idx".
+
+Suggestion: Use a stable id from the item, like `key={item.id}` or `key={item.slug}`. Index keys break when the list reorders or filters.
+
+Curl with no cache & follow the canonical fix and false positive check recipe before fixing: https://react.doctor/docs/rules/react-doctor/no-array-index-as-key
+
+Files:
+  app/strategy/page.tsx:259
+  components/charts/gap/GapTrajectorySvg.tsx:126
+  components/circuit/TrackOverlays.tsx:116
+  components/ops/OperationalHoverCard.tsx:25

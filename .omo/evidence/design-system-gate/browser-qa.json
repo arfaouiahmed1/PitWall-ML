@@ -1,0 +1,60 @@
+{
+  "route": "/design-system",
+  "captures": [
+    {
+      "width": 375,
+      "height": 844,
+      "name": "showcase-375x844.png",
+      "title": "PitWall ML component showcase",
+      "bodyHasContent": true,
+      "horizontalOverflow": false,
+      "errorOverlay": false,
+      "errors": [
+        "console: Failed to load resource: the server responded with a status of 404 (Not Found)"
+      ]
+    },
+    {
+      "width": 768,
+      "height": 1024,
+      "name": "showcase-768x1024.png",
+      "title": "PitWall ML component showcase",
+      "bodyHasContent": true,
+      "horizontalOverflow": false,
+      "errorOverlay": false,
+      "errors": []
+    },
+    {
+      "width": 1440,
+      "height": 1024,
+      "name": "showcase-1440x1024.png",
+      "title": "PitWall ML component showcase",
+      "bodyHasContent": true,
+      "horizontalOverflow": false,
+      "errorOverlay": false,
+      "errors": []
+    }
+  ],
+  "interactions": {
+    "keyboardFocus": {
+      "focusedName": "Open control guidance",
+      "outlineStyle": "solid"
+    },
+    "dialog": {
+      "visible": true,
+      "closedWithEscape": true
+    },
+    "menu": {
+      "visible": true,
+      "disabledItem": true
+    },
+    "empty": {
+      "visible": true
+    },
+    "error": {
+      "visible": true
+    }
+  },
+  "consoleErrors": [
+    "console: Failed to load resource: the server responded with a status of 404 (Not Found)"
+  ]
+}

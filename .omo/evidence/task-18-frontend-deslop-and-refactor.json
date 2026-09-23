@@ -1,0 +1,32 @@
+{
+  "timestamp": "2026-09-22T16:20:00.000Z",
+  "component": "apps/web/components/charts/TelemetryTraceChart.tsx",
+  "scenarios": {
+    "happyPathSingleDriver": {
+      "points": 250,
+      "rendered": true,
+      "hasNaN": false,
+      "crosshairRendered": true,
+      "channels": ["speed", "throttle", "brake", "gear", "drs"]
+    },
+    "happyPathDualDriverComparison": {
+      "driverA": "VER",
+      "driverB": "NOR",
+      "rendered": true,
+      "hasNaN": false,
+      "deltaTooltipsCalculated": true,
+      "channelsSynchronized": true
+    },
+    "emptyState": {
+      "points": 0,
+      "rendered": true,
+      "hasNaN": false,
+      "emptyFallbackPresent": true,
+      "asciiHyphenUsed": true
+    }
+  },
+  "emDashCount": 0,
+  "enDashCount": 0,
+  "typeScriptErrors": 0,
+  "allPassed": true
+}

@@ -1,0 +1,37 @@
+{
+  "task": 5,
+  "description": "Expose Opponent Pit Model Endpoint (GET /predictions/undercut)",
+  "timestamp": "2026-09-22T18:00:00Z",
+  "status": "passed",
+  "verification": {
+    "files_created": [
+      "tests/unit/test_undercut_api.py"
+    ],
+    "files_modified": [
+      "apps/api/pitwall_api/main.py",
+      "src/pitwall/schemas/predictions.py",
+      ".omo/plans/frontend-deslop-and-refactor.md",
+      ".omo/notepads/frontend-deslop-and-refactor/learnings.md"
+    ],
+    "components": {
+      "endpoint": "GET /predictions/undercut",
+      "tags": ["Predictions"],
+      "model": "pitwall.models.pit.opponent_model.OpponentPitModel",
+      "response_schema": "pitwall.schemas.predictions.UndercutThreat",
+      "features": [
+        "Parameter-driven threat evaluation (driver_number, rival_number, gap_s, driver_compound, rival_compound, driver_tyre_age, rival_tyre_age, tyre_age_delta)",
+        "Graceful fallback to live race_state.drivers for omitted parameters",
+        "Automatic P1 and trailing P2 pairing or grid relative position lookup",
+        "Strict uppercase compound validation (SOFT, MEDIUM, HARD) with case-insensitive normalization",
+        "Positive driver number validation and duplicate driver rejection",
+        "Graceful degraded empty state handling returning HTTP 200 with reason='no_active_drivers' or 'no_trailing_rival'"
+      ]
+    },
+    "pytest_results": {
+      "tests/unit/test_undercut_api.py": "14 passed",
+      "tests/integration/test_api.py": "5 passed",
+      "exit_code": 0
+    },
+    "ruff_check": "All checks passed"
+  }
+}

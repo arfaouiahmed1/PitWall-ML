@@ -1,0 +1,69 @@
+{
+  "timestamp": "2026-09-22T22:30:00Z",
+  "task": 16,
+  "title": "Build Parameterized Spline Track Engine",
+  "components": [
+    "apps/web/components/circuit/TrackGeometry.tsx",
+    "apps/web/components/circuit/TrackOverlays.tsx",
+    "apps/web/components/circuit/trackUtils.ts",
+    "apps/web/lib/circuits/types.ts"
+  ],
+  "contracts": {
+    "resolveSectors": "Returns empty array [] when circuit sector metadata is unavailable, missing, or empty. Never guesses or fabricates equal thirds (1/3, 2/3). Rejects inverted sector ranges (startProgress >= endProgress). Returns normalized SectorDivision[] only when sourced boundaries are provided.",
+    "overlayLayers": "Turn markers, DRS zones, speed traps, and sector division layers render ONLY when verified sourced metadata is present in circuit.overlays. Coordinates for overlays with progress are strictly mapped to the authentic GeoJSON track spline, rejecting floating/unverified coordinates. DRS zones never stroke the full circuit path when unmeasured.",
+    "driverPlacement": "Driver positions strictly clamp progress to [0, 1] (NaN defaults to 0), synchronously evaluate coordinates on the authentic GeoJSON polyline spline (ensuring immediate SSR and static HTML rendering), and update with SVG getPointAtLength when mounted in the DOM.",
+    "missingCircuit": "Unknown or unspecified circuit IDs render an explicit accessible unavailable status card (role=\"status\"), never a silent fallback to Monza under another name.",
+    "provenance": "Accurate source provenance (bacinger/f1-circuits, MIT license, commit revision) is preserved in SVG desc, screen-reader text, and optional provenance strip."
+  },
+  "verification": {
+    "testSuite": {
+      "command": "npx tsx --tsconfig apps/web/tsconfig.json tests/unit/test_track_geometry.ts",
+      "result": "passed (Track geometry contracts verified successfully.)",
+      "scenarios": [
+        "Scenario 1: resolveSectors returns empty array [] for bundled Monza with unavailable sectors; no 1/3 or 2/3 splits",
+        "Scenario 2: resolveSectors returns 3 normalized SectorDivision items when sourced boundaries are provided",
+        "Scenario 3: Missing/unavailable overlays produce NO inferred DRS, turn, speed trap, or sector elements in rendered output; source provenance preserved",
+        "Scenario 4: Valid sourced overlays (turns T1/T2, DRS zones, speed traps, sector splits) are faithfully rendered when metadata is present",
+        "Scenario 5: clampProgress clamps negative, >1, NaN, and +/-Infinity to [0, 1]",
+        "Scenario 6: Unknown circuit ID renders accessible unavailable status, NOT Monza track path or Monza metadata",
+        "Scenario 7: Zero em-dashes (— or –) or NaN coordinates in rendered DOM",
+        "Scenario 8: calculateSplineLength and getPointAtProgress spline projection on authentic GeoJSON normalizedCoordinates",
+        "Scenario 9: Sourced turn markers and traps reject floating coordinates, anchoring to track spline",
+        "Scenario 10: DRS overlays render accurate stroke segments and NEVER stroke full track",
+        "Scenario 11: Driver dots render synchronously in static markup / SSR directly on spline",
+        "Scenario 12: resolveSectors rejects inverted or zero-length sector ranges"
+      ]
+    },
+    "registryTest": {
+      "command": "cd apps/web && npx tsx ../../tests/unit/test_circuits_registry.ts",
+      "result": "passed (All 25 circuit geometries match source revision 394d8fbe70ef2c0b0c8d23ff7bee61fa09606055 within tolerance)"
+    },
+    "typecheck": {
+      "command": "cd apps/web && npx tsc --noEmit",
+      "result": "passed (exit code 0; zero TypeScript diagnostics)"
+    },
+    "lint": {
+      "command": "cd apps/web && npx eslint components/circuit/TrackGeometry.tsx components/circuit/TrackOverlays.tsx components/circuit/trackUtils.ts lib/circuits/types.ts",
+      "result": "passed (exit code 0; zero ESLint warnings or errors)"
+    }
+  },
+  "browserVisualQA": {
+    "playwrightChromiumProbe": "Blocked: Playwright Chromium executable is absent at C:\\Users\\ahmed\\AppData\\Local\\Google\\Chrome\\Application\\chrome.exe. Automatic installation requires administrative privileges which are not available.",
+    "headlessBrowserUsed": "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe",
+    "visualArtifact": ".omo/evidence/task-16-track-geometry.png",
+    "visualVerificationHtml": ".omo/evidence/task-16-visual-verification.html",
+    "visualInspectionVerdict": "Verified via look_at: Panel 1 renders authentic Monza spline with drivers VER, NOR, LEC, RUS directly on the track spline without guessed third overlays; Panel 2 renders verified DRS, turns, speed traps, and sector division layers all anchored directly to the authentic track spline (resolving previously floating turn markers); Panel 3 renders explicit unavailable card without silent Monza fallback. Spacing, typography, and dark telemetry theme verified with zero visual defects."
+  },
+  "pureLocAudit": {
+    "TrackGeometry.tsx": { "totalLines": 211, "pureLoc": 187, "status": "healthy (< 200 LOC)" },
+    "TrackOverlays.tsx": { "totalLines": 141, "pureLoc": 132, "status": "healthy (< 200 LOC)" },
+    "trackUtils.ts": { "totalLines": 88, "pureLoc": 68, "status": "healthy (< 200 LOC)" }
+  },
+  "compliance": {
+    "emDashCount": 0,
+    "driverModuloCount": 0,
+    "untypedAnyCount": 0,
+    "circuitMapUntouched": true,
+    "allPassed": true
+  }
+}

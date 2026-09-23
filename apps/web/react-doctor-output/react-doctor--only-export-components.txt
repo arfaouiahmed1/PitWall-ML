@@ -1,0 +1,41 @@
+Rule: react-doctor/only-export-components
+Severity: warning
+Category: Maintainability
+Count: 29
+
+This file exports non-components, so Fast Refresh can't safely preserve component state.
+
+Suggestion: Move non-component exports out of component files so Fast Refresh can preserve component state instead of full-reloading.
+
+Curl with no cache & follow the canonical fix and false positive check recipe before fixing: https://react.doctor/docs/rules/react-doctor/only-export-components
+
+Files:
+  components/CarRenders.tsx:17
+  components/CarRenders.tsx:156
+  components/CarRenders.tsx:171
+  components/CarRenders.tsx:176
+  components/CircuitMap.tsx:37
+  components/CircuitMap.tsx:49
+  components/SiteHeader.tsx:45
+  components/SiteHeader.tsx:55
+  components/SiteHeader.tsx:60
+  components/charts/CalibrationCurveChart.tsx:17
+  components/charts/FeatureWaterfallChart.tsx:41
+  components/charts/PerformanceRadarChart.tsx:53
+  components/charts/PerformanceRadarChart.tsx:64
+  components/charts/PerformanceRadarChart.tsx:77
+  components/charts/PerformanceRadarChart.tsx:89
+  components/charts/PerformanceRadarChart.tsx:139
+  components/charts/TelemetryTraceChart.tsx:43
+  components/charts/TelemetryTraceChart.tsx:43
+  components/charts/TelemetryTraceChart.tsx:43
+  components/charts/TelemetryTraceChart.tsx:43
+  components/circuit/TrackGeometry.tsx:22
+  components/circuit/TrackGeometry.tsx:23
+  components/circuit/TrackGeometry.tsx:24
+  components/circuit/TrackGeometry.tsx:25
+  components/circuit/TrackGeometry.tsx:26
+  components/circuit/TrackGeometry.tsx:27
+  components/circuit/TrackGeometry.tsx:28
+  components/ui/badge.tsx:32
+  components/ui/button.tsx:47

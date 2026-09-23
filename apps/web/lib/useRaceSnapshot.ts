@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { API_URL, WS_URL, fetchJson, startPoller } from "@/lib/api";
+import { useEffect, useState } from "react";
+import { API_URL, fetchJson, startPoller } from "@/lib/api";
 import type { RaceRow } from "@/components/RaceTable";
 import type { DriverDot } from "@/components/CircuitMap";
 import type { FeedEvent } from "@/components/EventFeed";
@@ -23,8 +23,15 @@ export type RaceSnapshotState = {
   loading: boolean;
   error: string | null;
   lastUpdated: string | null;
+  sourceTimestamp: string | null;
+  observedAt: string | null;
+  receivedAt: string | null;
+  sourceId: string | null;
+  dataAgeSeconds: number | null;
+  stale: boolean | null;
   lap: number;
-  trackStatus: string;
+  lapAvailable: boolean;
+  trackStatus: string | null;
   rows: RaceRow[];
   dots: DriverDot[];
   events: FeedEvent[];
@@ -36,6 +43,10 @@ type ApiSnapshotResponse = {
   reason: string | null;
   observed_at: string | null;
   source_id: string | null;
+  source_timestamp?: string | null;
+  received_at?: string | null;
+  data_age_seconds?: number | null;
+  stale?: boolean | null;
   race_state: {
     session_id?: string;
     lap?: number;
@@ -54,50 +65,86 @@ const INITIAL_STATE: RaceSnapshotState = {
   loading: true,
   error: null,
   lastUpdated: null,
-  lap: 1,
-  trackStatus: "GREEN",
+  sourceTimestamp: null,
+  observedAt: null,
+  receivedAt: null,
+  sourceId: null,
+  dataAgeSeconds: null,
+  stale: null,
+  lap: 0,
+  lapAvailable: false,
+  trackStatus: null,
   rows: [],
   dots: [],
   events: [],
   availableSessions: [],
 };
 
-function normalizeRow(raw: Record<string, unknown>, index: number): RaceRow {
-  const driverNum = typeof raw.driver_number === "number" ? raw.driver_number : index + 1;
-  const pos = typeof raw.position === "number" ? raw.position : index + 1;
-  const compoundRaw = String(raw.compound ?? "M").toUpperCase();
-  const validTyres = ["S", "M", "H", "I", "W"] as const;
-  const tyre = (validTyres.find((t) => t === compoundRaw || compoundRaw.startsWith(t)) ?? "M") as "S" | "M" | "H" | "I" | "W";
-  
-  const gapAhead = raw.gap_ahead_s != null ? Number(raw.gap_ahead_s) : null;
-  const gapLeader = raw.gap_to_leader_s != null ? Number(raw.gap_to_leader_s) : null;
+function finiteNumber(value: unknown): number | undefined {
+  return typeof value === "number" && Number.isFinite(value) ? value : undefined;
+}
+
+function nonEmptyString(value: unknown): string | undefined {
+  return typeof value === "string" && value.trim().length > 0 ? value : undefined;
+}
+
+function normalizeCompound(value: unknown): RaceRow["tyre"] {
+  const compound = nonEmptyString(value)?.toUpperCase();
+  if (!compound) return undefined;
+
+  if (compound === "S" || compound === "SOFT") return "S";
+  if (compound === "M" || compound === "MEDIUM") return "M";
+  if (compound === "H" || compound === "HARD") return "H";
+  if (compound === "I" || compound === "INTERMEDIATE") return "I";
+  if (compound === "W" || compound === "WET") return "W";
+  return undefined;
+}
+
+function normalizePace(value: unknown): RaceRow["pace"] {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return undefined;
+
+  const pace = value as Record<string, unknown>;
+  const q10 = finiteNumber(pace.q10);
+  const q50 = finiteNumber(pace.q50);
+  const q90 = finiteNumber(pace.q90);
+  return q10 === undefined && q50 === undefined && q90 === undefined ? undefined : { q10, q50, q90 };
+}
+
+export function normalizeRow(raw: Record<string, unknown>, _index: number): RaceRow {
+  void _index;
+  const driverNumber = finiteNumber(raw.driver_number);
+  const position = finiteNumber(raw.position);
+  const gapAhead = finiteNumber(raw.gap_ahead_s);
+  const gapLeader = finiteNumber(raw.gap_to_leader_s);
+  const tyreAge = finiteNumber(raw.tyre_age);
+  const isLeader = position === 1;
 
   return {
-    driver_number: driverNum,
-    position: pos,
-    code: typeof raw.code === "string" ? raw.code : String(driverNum),
-    name: typeof raw.name === "string" ? raw.name : `Driver ${driverNum}`,
-    team: typeof raw.team_name === "string" ? raw.team_name : typeof raw.team === "string" ? raw.team : "",
-    gap: pos === 1 ? "LEADER" : gapLeader != null ? `+${gapLeader.toFixed(2)}` : `+${(index * 1.5).toFixed(2)}`,
-    gapToLeader: pos === 1 ? "LEADER" : gapLeader != null ? `+${gapLeader.toFixed(2)}` : undefined,
-    gapToAhead: pos === 1 ? "LEADER" : gapAhead != null ? `+${gapAhead.toFixed(2)}` : "+0.85",
-    gapDelta: 0.02,
-    tyre,
-    tyreAge: typeof raw.tyre_age === "number" ? raw.tyre_age : 10,
-    drs: pos > 1 && gapAhead != null && gapAhead < 1.0,
-    pace: raw.pace && typeof raw.pace === "object" ? (raw.pace as RaceRow["pace"]) : undefined,
-    pit: raw.pit && typeof raw.pit === "object" ? (raw.pit as RaceRow["pit"]) : undefined,
+    driver_number: driverNumber,
+    position,
+    code: nonEmptyString(raw.code),
+    name: nonEmptyString(raw.name),
+    team: nonEmptyString(raw.team_name) ?? nonEmptyString(raw.team),
+    gap: isLeader ? "LEADER" : gapLeader === undefined ? undefined : `+${gapLeader.toFixed(2)}`,
+    gapToLeader: isLeader ? "LEADER" : gapLeader === undefined ? undefined : `+${gapLeader.toFixed(2)}`,
+    gapToAhead: isLeader ? "LEADER" : gapAhead === undefined ? undefined : `+${gapAhead.toFixed(2)}`,
+    gapToLeaderSeconds: gapLeader,
+    gapToAheadSeconds: gapAhead,
+    gapDelta: finiteNumber(raw.gap_delta),
+    tyre: normalizeCompound(raw.compound),
+    tyreAge,
+    drs: typeof raw.drs === "boolean" ? raw.drs : undefined,
+    pace: normalizePace(raw.pace),
   };
 }
 
 export function useRaceSnapshot(params: {
   source: "replay" | "live";
   replayId: string | null;
-  speed: string | null;
+  speed?: string | null;
 }): RaceSnapshotState {
-  const { source, replayId, speed } = params;
+  const { source, replayId } = params;
   const [state, setState] = useState<RaceSnapshotState>(INITIAL_STATE);
-  const activeWsRef = useRef<WebSocket | null>(null);
 
   // Fetch replay sessions catalog once
   useEffect(() => {
@@ -143,8 +190,8 @@ export function useRaceSnapshot(params: {
       }
 
       const rows = Array.isArray(data.rows) ? data.rows.map(normalizeRow) : [];
-      const lap = data.race_state?.lap ?? (rows[0]?.position ? 1 : 0);
-      const trackStatus = data.race_state?.track_status ?? "GREEN";
+      const lap = data.race_state?.lap ?? null;
+      const trackStatus = data.race_state?.track_status ?? null;
 
       setState((prev) => ({
         ...prev,
@@ -152,9 +199,16 @@ export function useRaceSnapshot(params: {
         reason: data.reason,
         loading: false,
         error: null,
-        lastUpdated: data.observed_at ?? new Date().toISOString(),
-        lap: Math.max(prev.lap, lap),
-        trackStatus,
+        lastUpdated: data.observed_at,
+        sourceTimestamp: data.source_timestamp ?? data.observed_at,
+        observedAt: data.observed_at,
+        receivedAt: data.received_at ?? null,
+        sourceId: data.source_id,
+        dataAgeSeconds: data.data_age_seconds ?? null,
+        stale: data.stale ?? null,
+        lap: lap ?? prev.lap,
+        lapAvailable: lap !== null || prev.lapAvailable,
+        trackStatus: trackStatus ?? prev.trackStatus,
         rows: rows.length > 0 ? rows : prev.rows,
       }));
     };
@@ -167,77 +221,6 @@ export function useRaceSnapshot(params: {
       cleanupPoller();
     };
   }, [source, replayId]);
-
-  // Connect replay WebSocket if in replay mode with active speed and replayId
-  useEffect(() => {
-    if (source !== "replay" || !replayId || !speed || !WS_URL) {
-      if (activeWsRef.current) {
-        activeWsRef.current.close();
-        activeWsRef.current = null;
-      }
-      return;
-    }
-
-    let ws: WebSocket | null = null;
-    try {
-      const wsUrl = `${WS_URL}/ws/race?replay_id=${encodeURIComponent(replayId)}&speed=${encodeURIComponent(speed)}`;
-      ws = new WebSocket(wsUrl);
-      activeWsRef.current = ws;
-
-      ws.onmessage = (event) => {
-        try {
-          const msg = JSON.parse(event.data);
-          if (msg.type === "race_update") {
-            const rs = msg.race_state;
-            const ev = msg.event;
-            setState((prev) => {
-              const updatedLap = typeof rs?.lap === "number" ? rs.lap : prev.lap;
-              const updatedStatus = typeof rs?.track_status === "string" ? rs.track_status : prev.trackStatus;
-
-              let updatedEvents = prev.events;
-              if (ev) {
-                const newEv: FeedEvent = {
-                  id: `ev-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-                  lap: updatedLap,
-                  type: typeof ev.event_type === "string" ? (ev.event_type as FeedEvent["type"]) : "ANOMALY",
-                  driverNumber: ev.driver_number,
-                  text: `${ev.driver_number ? `#${ev.driver_number} ` : ""}${ev.event_type ?? "Update"}`,
-                  detail: typeof ev.payload === "object" ? JSON.stringify(ev.payload) : undefined,
-                };
-                updatedEvents = [newEv, ...prev.events].slice(0, 30);
-              }
-
-              return {
-                ...prev,
-                provenance: "REPLAY",
-                lastUpdated: msg.ts ?? new Date().toISOString(),
-                lap: updatedLap,
-                trackStatus: updatedStatus,
-                events: updatedEvents,
-              };
-            });
-          }
-        } catch {
-          // ignore malformed ws messages
-        }
-      };
-
-      ws.onerror = () => {
-        // ws error fallback to polling
-      };
-    } catch {
-      // ws connection error
-    }
-
-    return () => {
-      if (ws) {
-        ws.close();
-      }
-      if (activeWsRef.current === ws) {
-        activeWsRef.current = null;
-      }
-    };
-  }, [source, replayId, speed]);
 
   return state;
 }

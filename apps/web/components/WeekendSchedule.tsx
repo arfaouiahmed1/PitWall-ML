@@ -121,9 +121,9 @@ export function WeekendSchedule({
 
       {/* countdown banner for next session */}
       {nextUpcoming && new Date(nextUpcoming.utc).getTime() > nowMs && (
-        <div className="px-4 py-2 flex items-center justify-between bg-pitwall-accent/[0.07] border-b border-pitwall-border">
-          <span className="text-[11px] font-bold tracking-widest text-pitwall-accent">NEXT : {nextUpcoming.label.toUpperCase()}</span>
-          <span className="font-mono text-xs font-black text-pitwall-fog tracking-wide">
+        <div className="px-4 py-2 flex flex-wrap items-center justify-between gap-2 bg-pitwall-accent/[0.07] border-b border-pitwall-border">
+          <span className="text-[11px] font-bold tracking-widest text-pitwall-accent min-w-0">NEXT : {nextUpcoming.label.toUpperCase()}</span>
+          <span className="font-mono text-xs font-black text-pitwall-fog tracking-wide min-w-0 text-right">
             {countdown(nextUpcoming.utc, nowMs)} <span className="font-normal text-pitwall-fog">• {fmtDate(nextUpcoming.utc)} {fmtTime(nextUpcoming.utc, utcMode)}</span>
           </span>
         </div>
@@ -152,12 +152,12 @@ export function WeekendSchedule({
                 </div>
                 <div className="text-[11px] text-pitwall-fog truncate">{s.day} • {fmtDate(s.utc)} • {isLive ? "in progress" : isCompleted ? "completed" : "upcoming"}</div>
               </div>
-              <div className="text-right">
+              <div className="text-right shrink-0">
                 <div className="font-mono font-bold text-sm">{fmtTime(s.utc, utcMode)}</div>
                 <div className="text-[10px] text-pitwall-muted">{utcMode ? new Date(s.utc).toLocaleDateString([], { weekday: "short" }) : "Local"}</div>
               </div>
               {/* status rail */}
-              <div className={`w-1 self-stretch rounded-full ${isLive ? "bg-pitwall-cyan shadow-[0_0_8px_rgba(0,208,132,0.6)] animate-pulse" : isCompleted ? "bg-pitwall-steel" : "bg-pitwall-border"}`} />
+              <div className={`w-1 self-stretch rounded-full shrink-0 ${isLive ? "bg-pitwall-cyan shadow-[0_0_8px_rgba(0,208,132,0.6)] animate-pulse" : isCompleted ? "bg-pitwall-steel" : "bg-pitwall-border"}`} />
             </div>
           );
         })}

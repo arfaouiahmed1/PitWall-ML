@@ -1,0 +1,27 @@
+{
+  "task": "Todo 34 - propagate source timestamps and provenance through live data",
+  "runtime_requested": "openai/gpt-6-luna",
+  "runtime_evidence": "The active OpenCode runtime reports openai/gpt-6-luna.",
+  "baseline": {
+    "command": "uv run pytest tests/integration/test_live_data.py tests/unit/test_live_recorder.py tests/unit/test_parquet_writer.py tests/unit/test_live_api.py -q",
+    "result": "Passed before implementation; the initial captured output did not retain the exact count."
+  },
+  "red_tests": [
+    "uv run pytest tests/unit/test_live_recorder.py -q -k 'preserves_source_time or rejects_missing' — failed because the clock seam was absent and invalid/missing timestamps were replaced with current time.",
+    "uv run pytest tests/integration/test_live_data.py -q -k 'injected_clock or invalid_source' — failed because injected freshness configuration was absent and invalid source time was reported LIVE."
+  ],
+  "final_verification": {
+    "pytest_command": "uv run pytest tests/integration/test_live_data.py tests/unit/test_live_recorder.py tests/unit/test_parquet_writer.py tests/unit/test_live_api.py -q",
+    "pytest_result": "41 passed",
+    "ruff_command": "uv run ruff check apps/api/pitwall_api/live_data.py src/pitwall/ingestion/live_recorder.py apps/api/pitwall_api/main.py tests/integration/test_live_data.py tests/unit/test_live_recorder.py tests/unit/test_parquet_writer.py tests/unit/test_live_api.py",
+    "ruff_result": "All checks passed",
+    "real_asgi_check": "test_live_snapshot_asgi_exposes_source_and_receive_metadata exercised GET /race/snapshot?source=live through httpx.ASGITransport; HTTP 200 and source/receive/provenance/age/stale fields verified."
+  },
+  "probes": {
+    "stale_state": "Passed: injected clock shows stale source rows have age 20 seconds, provenance STALE, and stale=true; stale snapshots do not enter live inference path.",
+    "dirty_worktree": "Inspected before editing. The repository already had broad unrelated dirty/untracked work, including pending Todo 1 live_recorder.py and Todo 4 main.py changes. Changes were restricted to requested backend paths, tests, and Todo 34 notepad/evidence. Existing edits were retained.",
+    "misleading_success_output": "Each test and lint command exited successfully; pytest reported 41 passed and Ruff printed All checks passed. No success is inferred from formatting output alone."
+  },
+  "cleanup_receipt": "No temporary source files or generated test artifacts were created. Pytest cache remains repository-managed. Todo 34 checkbox was not edited. Todo 9 frontend hook/type files were not edited.",
+  "contract_note": "Todo 9 should extend its web response type with source_timestamp, received_at, source_id, provenance, data_age_seconds, stale, and observed_at."
+}

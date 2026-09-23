@@ -1,0 +1,16 @@
+{
+  "normal": {
+    "reducedMotion": "no-preference",
+    "loaderCount": 1,
+    "animationName": "spin",
+    "reducedMotionQuery": false,
+    "viewportOverflow": false
+  },
+  "reduced": {
+    "reducedMotion": "reduce",
+    "loaderCount": 1,
+    "animationName": "none",
+    "reducedMotionQuery": true,
+    "viewportOverflow": false
+  }
+}

@@ -158,3 +158,42 @@ class WhatIfResponse(BaseModel):
             object.__setattr__(self, "position_distribution", dict(self.re_entry_position_dist))
         elif not self.re_entry_position_dist:
             object.__setattr__(self, "re_entry_position_dist", dict(self.position_distribution))
+
+
+class UndercutThreat(BaseModel):
+    """Assessment of rival undercut/overcut threat."""
+
+    driver_number: int | None = Field(default=None, description="Driver number evaluated")
+    rival_number: int | None = Field(default=None, description="Trailing rival driver number")
+    gap_s: float | None = Field(
+        default=None, description="Gap to rival in seconds (positive if driver ahead)"
+    )
+    is_undercut_threat: bool = Field(
+        default=False, description="True if rival poses an immediate undercut threat"
+    )
+    is_overcut_threat: bool = Field(
+        default=False, description="True if driver is vulnerable to an overcut or can execute one"
+    )
+    rival_pit_probability_3l: float = Field(
+        default=0.0, ge=0.0, le=1.0, description="Estimated probability rival pits in next 3 laps"
+    )
+    tyre_age_delta: int = Field(
+        default=0, description="Difference in tyre age (rival_age - driver_age)"
+    )
+    estimated_delta_at_pit_exit_s: float = Field(
+        default=0.0, description="Estimated delta at pit exit after fresh tyre advantage (s)"
+    )
+    recommended_action: str = Field(
+        default="HOLD",
+        description="Recommended tactical action: COVER_UNDERCUT, EXTEND_OVERCUT, or HOLD",
+    )
+    reason: str | None = Field(
+        default=None, description="Status or explanation reason if defaulted or unpopulated"
+    )
+    model_version: str = Field(default="unknown", description="Active model version identifier")
+
+
+# Alias for consistent naming
+UndercutThreatPrediction = UndercutThreat
+
+

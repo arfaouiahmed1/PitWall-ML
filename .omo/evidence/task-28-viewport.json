@@ -1,0 +1,16 @@
+{
+  "mobile375": {
+    "width": 375,
+    "url": "http://127.0.0.1:3000/circuit",
+    "scrollWidth": 375,
+    "clientWidth": 375,
+    "fits": true
+  },
+  "desktop1280": {
+    "width": 1280,
+    "url": "http://127.0.0.1:3000/circuit",
+    "scrollWidth": 1280,
+    "clientWidth": 1280,
+    "fits": true
+  }
+}

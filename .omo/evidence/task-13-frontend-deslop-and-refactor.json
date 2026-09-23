@@ -1,0 +1,33 @@
+{
+  "todo": 13,
+  "captured_at": "2026-09-22",
+  "done_claim": "Todo 13 OpenAPI fallback drift detection and provenance audit findings are addressed. The page type-checks, the live FastAPI schema matches the bundled fallback, and targeted lint passes. No visual pass is claimed because Chromium is unavailable.",
+  "implementation": {
+    "page": "apps/web/app/api-docs/page.tsx",
+    "page_lines": 90,
+    "live_mode": "iframe to configured FastAPI /docs after successful health probe",
+    "fallback_mode": "vendored FastAPI /openapi.json snapshot for mixed HTTP-in-HTTPS or unreachable backend",
+    "snapshot": "apps/web/lib/openapi/snapshot.json",
+    "provenance": "apps/web/lib/openapi/index.ts",
+    "snapshot_validation": "Full paths/operations/components/security comparison against uv run python import of apps.api.pitwall_api.main:app.openapi(); exact match. Components comparison includes schemas and securitySchemes.",
+    "snapshot_provenance": {
+      "captured_date": "2026-09-22",
+      "source_commit": "ea5d61f9ee63290ae0f993aea119ec7264852d35",
+      "openapi_sha256": "a513509736914fc3c3516375061887998fa8516f11f614fe545d744a85a407ff"
+    }
+  },
+  "qa": {
+    "unit": "From repository root: npx tsx tests/unit/test_api_docs_openapi.ts: passed; test exports FastAPI app.openapi() and compares paths/operations/components (schemas/security definitions), plus exact captured schema SHA-256.",
+    "typecheck": "From apps/web: npx tsc --noEmit: passed; the current page source is 90 lines and has no reported ReactNode/unknown error.",
+    "targeted_lint": "From apps/web: npx eslint app/api-docs/page.tsx lib/openapi/index.ts: passed.",
+    "live_http": "Not available: requests to localhost:8000/openapi.json and localhost:3000/api-docs timed out; no live HTTP pass claimed.",
+    "playwright": "Blocked: Chromium distribution missing at the configured Chrome path. No browser or visual pass claimed.",
+    "build": "Not run; scoped checks above passed."
+  },
+  "cleanup": {
+    "servers": "No servers started by this task. Localhost API/web requests timed out.",
+    "stale_state": "Probed task note against current source: old line-1226 ReactNode finding does not reproduce; page.tsx currently has 90 lines and npx tsc --noEmit passes. Existing local HTTP endpoints are unavailable.",
+    "dirty_worktree": "Confirmed pre-existing broad dirty worktree before edits. Preserved unrelated changes; only tests/unit/test_api_docs_openapi.ts, apps/web/lib/openapi/index.ts, and this task-13 evidence record were changed by this task.",
+    "misleading_success_output": "None. Browser and HTTP checks are reported unavailable, not passed; snapshot equality is verified against the runtime-generated backend schema."
+  }
+}

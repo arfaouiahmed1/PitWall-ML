@@ -26,6 +26,18 @@ replay_events_processed_total = Counter("replay_events_processed_total", "Replay
 websocket_clients = Gauge("websocket_clients", "Connected WS clients")
 errors_total = Counter("errors_total", "Errors", ["type"])
 
+# System Health & Storage — V4
+database_connected = Gauge(
+    "database_connected", "Relational database connection status (1=connected, 0=error)"
+)
+model_loaded = Gauge("model_loaded", "Pace model loaded status (1=loaded, 0=unloaded)")
+live_recorder_stale = Gauge(
+    "live_recorder_stale", "Live ingestion staleness status (1=stale, 0=fresh)"
+)
+parquet_buffered_events = Gauge(
+    "parquet_buffered_events", "In-memory events buffered in Parquet writer"
+)
+
 # ML — V3
 pace_mae_seconds = Gauge("pace_mae_seconds", "Pace MAE", ["model_version", "alias"])
 pace_rmse_seconds = Gauge("pace_rmse_seconds", "Pace RMSE", ["model_version", "alias"])
@@ -245,3 +257,18 @@ def inc_strategy_simulation(mode: str = "whatif") -> None:
     """Increment strategy simulation counter."""
     with contextlib.suppress(Exception):
         strategy_simulations_total.labels(mode=str(mode)).inc()
+
+
+def set_system_health(
+    db_connected: bool,
+    model_is_loaded: bool,
+    recorder_is_stale: bool = False,
+    parquet_buffer: int = 0,
+) -> None:
+    """Update runtime health and storage gauges for Prometheus and Grafana alerting."""
+    with contextlib.suppress(Exception):
+        database_connected.set(1.0 if db_connected else 0.0)
+        model_loaded.set(1.0 if model_is_loaded else 0.0)
+        live_recorder_stale.set(1.0 if recorder_is_stale else 0.0)
+        parquet_buffered_events.set(float(parquet_buffer))
+

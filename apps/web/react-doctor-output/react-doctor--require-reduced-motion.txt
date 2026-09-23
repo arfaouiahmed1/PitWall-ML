@@ -1,0 +1,11 @@
+Rule: react-doctor/require-reduced-motion
+Severity: error
+Category: Accessibility
+Count: 1
+
+Project uses a motion library but has no prefers-reduced-motion handling — required for accessibility (WCAG 2.3.3)
+
+Suggestion: Add `useReducedMotion()` from your animation library, or a `@media (prefers-reduced-motion: reduce)` CSS query
+
+Files:
+  package.json

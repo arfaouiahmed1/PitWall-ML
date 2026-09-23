@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="utf-8" />
+  <title>EventFeed Visual QA - Task 24</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 24px;
+      background: #080c14;
+      color: #e2e8f0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace;
+    }
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 32px;
+    }
+    .panel {
+      background: #0f172a;
+      border: 1px solid #1e293b;
+      border-radius: 12px;
+      padding: 16px;
+      overflow: hidden;
+    }
+    h2 {
+      font-size: 14px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin: 0 0 12px 0;
+      color: #00d2be;
+    }
+    .desc {
+      font-size: 12px;
+      color: #94a3b8;
+      margin-bottom: 12px;
+    }
+    .bg-pitwall-bg { background-color: #080c14; }
+    .bg-pitwall-card { background-color: #0f172a; }
+    .bg-pitwall-border { background-color: #1e293b; }
+    .border-pitwall-border { border-color: #1e293b; }
+    .text-pitwall-muted { color: #64748b; }
+    .text-pitwall-fog { color: #94a3b8; }
+    .border { border-width: 1px; }
+    .border-b { border-bottom-width: 1px; }
+    .rounded-xl { border-radius: 12px; }
+    .rounded { border-radius: 4px; }
+    .font-mono { font-family: monospace; }
+    .font-black { font-weight: 900; }
+    .flex { display: flex; }
+    .flex-col { flex-direction: column; }
+    .items-center { align-items: center; }
+    .justify-between { justify-content: space-between; }
+    .px-4 { padding-left: 16px; padding-right: 16px; }
+    .py-3 { padding-top: 12px; padding-bottom: 12px; }
+    .px-3 { padding-left: 12px; padding-right: 12px; }
+    .py-2 { padding-top: 8px; padding-bottom: 8px; }
+    .p-8 { padding: 32px; }
+    .text-center { text-align: center; }
+    .text-xs { font-size: 12px; }
+    .text-sm { font-size: 14px; }
+    .text-\[10px\] { font-size: 10px; }
+    .text-\[11px\] { font-size: 11px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="panel">
+      <h2>1. EventFeed - Live Race Control Stream (Empty / Standby State)</h2>
+      <div class="desc">Rendered with 0 events; displays 'No race events available' without hardcoded mock arrays or fake SC copy.</div>
+      <section aria-label="LIVE EVENT FEED" class="rounded-xl overflow-hidden border border-pitwall-border bg-pitwall-card flex flex-col"><header class="flex items-center justify-between px-4 py-3 border-b border-pitwall-border bg-pitwall-bg"><h3 class="font-black tracking-tight text-sm">LIVE EVENT FEED</h3><span class="text-[10px] font-mono px-2 py-1 rounded bg-pitwall-border border border-pitwall-steel text-pitwall-fog" aria-live="polite">0 events</span></header><div class="px-3 py-2 border-b border-pitwall-border text-[11px] text-pitwall-fog" aria-live="polite">Safety car: <strong>Unavailable</strong><span> · Forecast loading</span></div><div class="flex-1 overflow-auto max-h-[380px] divide-y divide-pitwall-border/60 bg-pitwall-bg"><div class="p-8 text-center text-xs font-mono text-pitwall-muted" role="status">No race events available</div></div></section>
+    </div>
+  </div>
+</body>
+</html>

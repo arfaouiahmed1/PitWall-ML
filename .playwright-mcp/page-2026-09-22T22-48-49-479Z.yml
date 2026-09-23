@@ -1,0 +1,229 @@
+- generic [ref=f9e1]:
+  - banner [ref=f9e2]:
+    - generic [ref=f9e3]:
+      - link "PW PITWALLML" [ref=f9e5] [cursor=pointer]:
+        - /url: /
+        - generic [ref=f9e6]: PW
+        - generic [ref=f9e7]: PITWALLML
+      - generic [ref=f9e8]:
+        - 'status "Session status: OFFLINE" [ref=f9e9]':
+          - generic [ref=f9e11]: OFFLINE
+        - status "Lap -, total laps unavailable" [ref=f9e12]:
+          - generic [ref=f9e13]: LAP
+          - generic [ref=f9e14]: "-"
+          - text: /
+          - generic [ref=f9e15]: N/A
+        - 'status "Track flag: GREEN" [ref=f9e16]': GREEN
+        - button "Toggle navigation menu" [expanded] [active] [ref=f9e18] [cursor=pointer]
+    - navigation "Mobile Navigation" [ref=f9e227]:
+      - link "Race Cockpit" [ref=f9e228] [cursor=pointer]:
+        - /url: /
+      - link "Strategy Sandbox" [ref=f9e229] [cursor=pointer]:
+        - /url: /strategy
+      - link "Driver Telemetry" [ref=f9e230] [cursor=pointer]:
+        - /url: /drivers
+      - link "Circuit & Schedule" [ref=f9e231] [cursor=pointer]:
+        - /url: /circuit
+      - link "Model Intelligence" [ref=f9e232] [cursor=pointer]:
+        - /url: /models
+      - link "MLOps & Drift" [ref=f9e233] [cursor=pointer]:
+        - /url: /monitoring
+      - link "API DOCS" [ref=f9e234] [cursor=pointer]:
+        - /url: /api-docs
+  - main [ref=f9e21]:
+    - main [ref=f9e22]:
+      - generic [ref=f9e23]:
+        - generic [ref=f9e27]:
+          - heading "API DOCUMENTATION" [level=1] [ref=f9e28]
+          - paragraph [ref=f9e29]: FastAPI OpenAPI documentation and an offline schema snapshot.
+        - generic [ref=f9e30]:
+          - button "Retry" [ref=f9e31] [cursor=pointer]
+          - button "openapi.json" [ref=f9e32] [cursor=pointer]
+          - link "Open docs" [ref=f9e33] [cursor=pointer]:
+            - /url: http://localhost:8000/docs
+      - generic [ref=f9e35]:
+        - generic [ref=f9e36]:
+          - heading "Offline OpenAPI snapshot" [level=3] [ref=f9e37]
+          - generic [ref=f9e38]: OFFLINE
+        - paragraph [ref=f9e39]: "Backend: http://localhost:8000"
+      - region "Offline OpenAPI schema snapshot" [ref=f9e40]:
+        - generic [ref=f9e45]:
+          - heading "Static snapshot only" [level=3] [ref=f9e46]
+          - paragraph [ref=f9e47]:
+            - text: This fallback is a captured backend
+            - code [ref=f9e48]: /openapi.json
+            - text: ", not a live Swagger interface. Captured 2026-09-22 from apps/api/pitwall_api/main.py app.openapi() exported as /openapi.json. Backend version: 0.1.0."
+        - generic [ref=f9e49]:
+          - textbox "Filter OpenAPI operations" [ref=f9e50]:
+            - /placeholder: Filter operations
+          - combobox "Filter OpenAPI tags" [ref=f9e51]:
+            - option "ALL" [selected]
+            - option "Circuits"
+            - option "Live Ingestion"
+            - option "Monitoring"
+            - option "Other"
+            - option "Predictions"
+        - generic [ref=f9e52]:
+          - generic [ref=f9e53]:
+            - heading "Operations (27)" [level=3] [ref=f9e54]
+            - paragraph [ref=f9e55]: Derived directly from the vendored OpenAPI snapshot.
+          - generic [ref=f9e56]:
+            - article [ref=f9e57]:
+              - generic [ref=f9e58]: GET
+              - code [ref=f9e59]: /health
+              - generic [ref=f9e60]: Health
+              - generic [ref=f9e61]: Other
+            - article [ref=f9e62]:
+              - generic [ref=f9e63]: GET
+              - code [ref=f9e64]: /metrics
+              - generic [ref=f9e65]: Metrics
+              - generic [ref=f9e66]: Other
+            - article [ref=f9e67]:
+              - generic [ref=f9e68]: GET
+              - code [ref=f9e69]: /race/state
+              - generic [ref=f9e70]: Get Race State
+              - generic [ref=f9e71]: Other
+            - article [ref=f9e72]:
+              - generic [ref=f9e73]: POST
+              - code [ref=f9e74]: /live/start
+              - generic [ref=f9e75]: Start Live Capture
+              - generic [ref=f9e76]: Live Ingestion
+            - article [ref=f9e77]:
+              - generic [ref=f9e78]: POST
+              - code [ref=f9e79]: /live/stop
+              - generic [ref=f9e80]: Stop Live Capture
+              - generic [ref=f9e81]: Live Ingestion
+            - article [ref=f9e82]:
+              - generic [ref=f9e83]: GET
+              - code [ref=f9e84]: /live/status
+              - generic [ref=f9e85]: Live Capture Status
+              - generic [ref=f9e86]: Live Ingestion
+            - article [ref=f9e87]:
+              - generic [ref=f9e88]: GET
+              - code [ref=f9e89]: /race/sessions
+              - generic [ref=f9e90]: Get Replay Sessions
+              - generic [ref=f9e91]: Other
+            - article [ref=f9e92]:
+              - generic [ref=f9e93]: GET
+              - code [ref=f9e94]: /predictions/pace
+              - generic [ref=f9e95]: Get Pace Predictions
+              - generic [ref=f9e96]: Other
+            - article [ref=f9e97]:
+              - generic [ref=f9e98]: GET
+              - code [ref=f9e99]: /predictions/tyre
+              - generic [ref=f9e100]: Get Tyre Predictions
+              - generic [ref=f9e101]: Other
+            - article [ref=f9e102]:
+              - generic [ref=f9e103]: GET
+              - code [ref=f9e104]: /predictions/pit
+              - generic [ref=f9e105]: Get Pit Predictions
+              - generic [ref=f9e106]: Other
+            - article [ref=f9e107]:
+              - generic [ref=f9e108]: GET
+              - code [ref=f9e109]: /predictions/undercut
+              - generic [ref=f9e110]: Evaluate opponent undercut and overcut threat
+              - generic [ref=f9e111]: Predictions
+            - article [ref=f9e112]:
+              - generic [ref=f9e113]: GET
+              - code [ref=f9e114]: /predictions/safety-car
+              - generic [ref=f9e115]: Predict safety car and neutralization hazard
+              - generic [ref=f9e116]: Predictions
+            - article [ref=f9e117]:
+              - generic [ref=f9e118]: GET
+              - code [ref=f9e119]: /race/snapshot
+              - generic [ref=f9e120]: Get Race Snapshot
+              - generic [ref=f9e121]: Other
+            - article [ref=f9e122]:
+              - generic [ref=f9e123]: GET
+              - code [ref=f9e124]: /drivers
+              - generic [ref=f9e125]: Get Drivers
+              - generic [ref=f9e126]: Other
+            - article [ref=f9e127]:
+              - generic [ref=f9e128]: GET
+              - code [ref=f9e129]: "/drivers/{driver_number}/telemetry"
+              - generic [ref=f9e130]: Get Driver Telemetry
+              - generic [ref=f9e131]: Other
+            - article [ref=f9e132]:
+              - generic [ref=f9e133]: GET
+              - code [ref=f9e134]: /benchmarks/challengers
+              - generic [ref=f9e135]: Challenger Benchmark
+              - generic [ref=f9e136]: Other
+            - article [ref=f9e137]:
+              - generic [ref=f9e138]: GET
+              - code [ref=f9e139]: /models/info
+              - generic [ref=f9e140]: Models Info
+              - generic [ref=f9e141]: Other
+            - article [ref=f9e142]:
+              - generic [ref=f9e143]: GET
+              - code [ref=f9e144]: /models/shap
+              - generic [ref=f9e145]: Models Shap
+              - generic [ref=f9e146]: Other
+            - article [ref=f9e147]:
+              - generic [ref=f9e148]: GET
+              - code [ref=f9e149]: /registry/promotion
+              - generic [ref=f9e150]: Registry Promotion
+              - generic [ref=f9e151]: Other
+            - article [ref=f9e152]:
+              - generic [ref=f9e153]: GET
+              - code [ref=f9e154]: /monitoring/era-drift
+              - generic [ref=f9e155]: Monitoring Era Drift
+              - generic [ref=f9e156]: Monitoring
+            - article [ref=f9e157]:
+              - generic [ref=f9e158]: GET
+              - code [ref=f9e159]: /circuits
+              - generic [ref=f9e160]: List Circuits
+              - generic [ref=f9e161]: Circuits
+            - article [ref=f9e162]:
+              - generic [ref=f9e163]: GET
+              - code [ref=f9e164]: "/circuits/{circuit_id}"
+              - generic [ref=f9e165]: Circuit Detail
+              - generic [ref=f9e166]: Circuits
+            - article [ref=f9e167]:
+              - generic [ref=f9e168]: GET
+              - code [ref=f9e169]: /monitoring/drift
+              - generic [ref=f9e170]: Monitoring Drift
+              - generic [ref=f9e171]: Other
+            - article [ref=f9e172]:
+              - generic [ref=f9e173]: GET
+              - code [ref=f9e174]: /monitoring/overview
+              - generic [ref=f9e175]: Monitoring Overview
+              - generic [ref=f9e176]: Other
+            - article [ref=f9e177]:
+              - generic [ref=f9e178]: POST
+              - code [ref=f9e179]: /simulate
+              - generic [ref=f9e180]: Simulate
+              - generic [ref=f9e181]: Other
+            - article [ref=f9e182]:
+              - generic [ref=f9e183]: POST
+              - code [ref=f9e184]: /whatif
+              - generic [ref=f9e185]: Whatif
+              - generic [ref=f9e186]: Other
+            - article [ref=f9e187]:
+              - generic [ref=f9e188]: GET
+              - code [ref=f9e189]: /replay/status
+              - generic [ref=f9e190]: Replay Status
+              - generic [ref=f9e191]: Other
+        - generic [ref=f9e192]:
+          - generic [ref=f9e193]:
+            - heading "Schemas (16)" [level=3] [ref=f9e194]
+            - paragraph [ref=f9e195]: Named models present in the captured OpenAPI components.
+          - generic [ref=f9e196]:
+            - generic [ref=f9e197]: CircuitListResponse
+            - generic [ref=f9e198]: CircuitResponse
+            - generic [ref=f9e199]: CircuitSegmentResponse
+            - generic [ref=f9e200]: EraDriftMetric
+            - generic [ref=f9e201]: EraDriftResponse
+            - generic [ref=f9e202]: GapTrajectoryPoint
+            - generic [ref=f9e203]: HTTPValidationError
+            - generic [ref=f9e204]: LiveStartRequest
+            - generic [ref=f9e205]: LiveStartResponse
+            - generic [ref=f9e206]: LiveStatusResponse
+            - generic [ref=f9e207]: LiveStopResponse
+            - generic [ref=f9e208]: SafetyCarPrediction
+            - generic [ref=f9e209]: UndercutThreat
+            - generic [ref=f9e210]: ValidationError
+            - generic [ref=f9e211]: WhatIfRequest
+            - generic [ref=f9e212]: WhatIfResponse
+  - contentinfo [ref=f9e213]: PitWall ML • FastF1 • Polars • LightGBM • FastAPI • Next.js
+  - button "Open Next.js Dev Tools" [ref=f9e219] [cursor=pointer]
+  - alert [ref=f9e223]

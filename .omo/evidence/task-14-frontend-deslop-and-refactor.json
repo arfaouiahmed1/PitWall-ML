@@ -1,0 +1,101 @@
+{
+  "timestamp": "2026-09-22T23:05:00Z",
+  "task": 14,
+  "title": "Integrate API Docs into Global Navigation and Sourced Header Metadata",
+  "components": [
+    "apps/web/components/SiteHeader.tsx",
+    "tests/unit/test_site_header.ts",
+    "scripts/visual_qa_site_header.ts"
+  ],
+  "contracts": {
+    "navigation": {
+      "apiDocs": "Desktop and mobile nav contains link to '/api-docs' with exact label 'API DOCS'.",
+      "items": [
+        { "href": "/", "label": "Race Cockpit" },
+        { "href": "/strategy", "label": "Strategy Sandbox" },
+        { "href": "/drivers", "label": "Driver Telemetry" },
+        { "href": "/circuit", "label": "Circuit & Schedule" },
+        { "href": "/models", "label": "Model Intelligence" },
+        { "href": "/monitoring", "label": "MLOps & Drift" },
+        { "href": "/api-docs", "label": "API DOCS" }
+      ],
+      "activeRoute": "Active route state is determined via isActive(currentPathname, href); active link carries aria-current=\"page\" and prominent active telemetry styling (border-pitwall-accent text-white font-bold on desktop; bg-pitwall-accent/15 border-pitwall-accent/30 on mobile). Inactive links carry aria-current=undefined.",
+      "ariaBehavior": "Desktop navigation has aria-label=\"Desktop Navigation\". Mobile navigation has aria-label=\"Mobile Navigation\" and id=\"mobile-nav\". Hamburger toggle button has aria-label=\"Toggle navigation menu\", aria-expanded binding, and aria-controls=\"mobile-nav\"."
+    },
+    "sessionDerivedMetadata": {
+      "status": "Reflects real useRaceSocket state (LIVE, REPLAY, STALE, OFFLINE). When socket.connected is true, status is guaranteed non-OFFLINE (defaults to REPLAY if speed is present, else LIVE). Displays configured speed badge only for REPLAY mode (e.g. '• 20x').",
+      "lapCount": "Sourced lap count displays current lap (or '-' when null/zero) and total laps. Total laps is dynamically resolved from active socket.totalLaps or resolveCircuitTotalLaps(socket.sessionId) against verified calendar and replay references (Monza: 53, Spa: 44, Monaco: 78, Silverstone: 52). When total laps is unavailable or offline, concisely renders 'N/A' and never hardcodes 66.",
+      "ariaStatusLabels": "Status badge carries accessible role=\"status\" with aria-label=\"Session status: <STATUS>\". Lap badge carries role=\"status\" with aria-label=\"Lap <X> of <Y>\" or \"Lap <X>, total laps unavailable\". Flag badge carries role=\"status\" with aria-label=\"Track flag: <FLAG>\".",
+      "noPlaceholders": "Zero useNow polling hooks, zero synthetic standby/next grand prix placeholders, zero fake connection badges ('WS CONNECTED'), zero 'on track' / 'off track' mock flags, and zero em-dashes (— or –)."
+    }
+  },
+  "verification": {
+    "unitTests": {
+      "command": "$env:NODE_PATH=\"apps/web/node_modules\"; npx --prefix apps/web tsx --tsconfig apps/web/tsconfig.json tests/unit/test_site_header.ts",
+      "result": "passed (SiteHeader contracts verified successfully.)",
+      "scenarios": [
+        "Scenario 1: Static source audit: nonBlankNonCommentLines <= 250 (237 pure LOC), zero em-dash / en-dash characters, no totalLaps = 66 or ?? 66, no fake 'WS CONNECTED' / 'STANDBY' / 'NEXT:' placeholders.",
+        "Scenario 2: Navigation items contract: NAV contains /api-docs with label 'API DOCS'; all 7 expected navigation routes matched in exact order.",
+        "Scenario 3: isActive helper properly matches exact root '/', route matches, subroutes ('/drivers/44' matches '/drivers'), and rejects prefix substrings ('/drivers-overview').",
+        "Scenario 4: Render tests: pathname='/api-docs' renders desktop nav with aria-current='page' and 'API DOCS'; inactive links do not have aria-current='page'.",
+        "Scenario 5: Mobile navigation: default initialMobileOpen=false renders hamburger button with aria-expanded='false' and omits mobile-nav container; initialMobileOpen=true renders aria-expanded='true' and mobile-nav with aria-label='Mobile Navigation' and all 7 links.",
+        "Scenario 6: Connection and provenance statuses: verifies rendering and accessible aria-label for 'LIVE', 'REPLAY', 'STALE', and 'OFFLINE'.",
+        "Scenario 7: Replay speed badge renders '• 20x' when status='REPLAY' and speed='20x'; live status omits speed multiplier.",
+        "Scenario 8: Dynamic total lap count: Monza renders 53 (not 66) with aria-label='Lap 12 of 53'; Spa renders 44 with aria-label='Lap 5 of 44'; unavailable renders 'N/A' (not 66) with aria-label='Lap -, total laps unavailable'.",
+        "Scenario 9: resolveCircuitTotalLaps resolves '2024_monza' to 53, 'spa_replay' to 44, 'silverstone_2025' to 52, 'monaco' to 78, and safely returns null for null, undefined, or unknown fictional tracks.",
+        "Scenario 10: Track flag indicators: renders 'SAFETY CAR' and 'Track flag: SAFETY CAR' for SC flag; renders 'RED FLAG' and 'Track flag: RED FLAG' for RED flag.",
+        "Scenario 11: Zero-prop default rendering: renders status 'OFFLINE', total laps 'N/A', zero 66 defaults, and full navigation with 'API DOCS'."
+      ]
+    },
+    "typecheck": {
+      "command": "cd apps/web && npx tsc --noEmit",
+      "result": "passed (exit code 0; zero TypeScript diagnostics)"
+    },
+    "lint": {
+      "command": "cd apps/web && npx eslint components/SiteHeader.tsx",
+      "result": "passed (exit code 0; zero ESLint warnings or errors)"
+    },
+    "browserRealVerification": {
+      "playwrightEngine": "Active Playwright MCP session connected to local application",
+      "desktopNavigation": {
+        "url": "http://localhost:3000/",
+        "action": "Clicked on 'API DOCS' navigation link in header",
+        "postActionUrl": "http://localhost:3000/api-docs",
+        "activeLinkState": "Verified active link in desktop navigation: link 'API DOCS' [active] [ref=f8e27]",
+        "screenshot": ".omo/evidence/task-14-api-docs-desktop.png"
+      },
+      "mobileNavigation": {
+        "viewport": "375x667 (mobile emulation)",
+        "action": "Clicked button 'Toggle navigation menu'",
+        "expandedState": "Verified button [expanded] and navigation 'Mobile Navigation' rendered with all 7 links including active 'API DOCS'",
+        "screenshot": ".omo/evidence/task-14-api-docs-mobile.png"
+      },
+      "headlessEdgeVerification": {
+        "browser": "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe",
+        "script": "scripts/visual_qa_site_header.ts",
+        "htmlArtifact": ".omo/evidence/task-14-visual-verification.html",
+        "imageArtifact": ".omo/evidence/task-14-site-header-edge.png",
+        "result": "Successfully captured 111,021 byte visual snapshot covering desktop cockpit, desktop active api-docs, desktop offline standby, and mobile menu open."
+      }
+    }
+  },
+  "cleanup": {
+    "browser": "Playwright page closed via playwright_browser_close; no orphan browser tabs.",
+    "server": "Next.js dev server on port 3000 terminated; confirmed port 3000 is clean and idle."
+  },
+  "pureLocAudit": {
+    "SiteHeader.tsx": {
+      "totalLines": 267,
+      "pureLoc": 237,
+      "status": "healthy (<= 250 LOC)"
+    }
+  },
+  "compliance": {
+    "emDashCount": 0,
+    "default66Laps": false,
+    "syntheticStatus": false,
+    "untypedAnyCount": 0,
+    "apiDocsLabelExact": true,
+    "allPassed": true
+  }
+}

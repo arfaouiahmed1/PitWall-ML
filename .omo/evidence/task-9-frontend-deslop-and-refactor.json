@@ -1,0 +1,52 @@
+{
+  "task": "Todo 9 - unify web race socket engine and retain snapshot polling",
+  "runtime_requested": "antigravity-gemini-3.8-flash",
+  "runtime_evidence": "The active OpenCode runtime reports antigravity-gemini-3.8-flash.",
+  "baseline": {
+    "public_hook_shape": "useRaceSocket(speed?: string | null) with a shared singleton, one owner, and argument-free subscribers; useRaceSnapshot({ source, replayId, speed }) owned its own replay WebSocket in addition to polling.",
+    "baseline_tests": "tests/unit/test_race_socket.ts baseline characterization added, covering connected frame, URL builders, race_snapshot, race_update predictions, and normalizeRow anti-slop checks.",
+    "worktree": "The worktree contained broad unrelated modifications and untracked files before this task; they were retained. This task added/changed only the socket protocol/hook, polling hook, focused unit contract test, and this evidence file."
+  },
+  "red_tests": [
+    "Added tests/unit/test_race_socket.ts tests for connected frame parsing with model_version, snapshot drivers map, event_count, and normalizeRow without fake math.",
+    "Initial run failed as expected on missing modelVersion and drivers contract, establishing the missing behavior before implementation."
+  ],
+  "implementation": {
+    "socket_hook": "useRaceSocket accepts RaceSocketOptions { source, replayId, speed } while retaining the legacy positional owner-speed call and argument-free subscribers. A legacy speed-only owner is treated as replay without an id and therefore remains disconnected rather than being misrouted to live. One singleton connection, owner lifecycle, visibility resume, and exponential reconnect behavior remain centralized.",
+    "protocol": "raceSocketProtocol.ts parses connected, race_snapshot, and race_update at the boundary, requires replay_id in replay mode, sends source=live for live mode, and exposes q10/q50/q90/tyre_deg/pit_next_3, eventCount, drivers map, and source_timestamp/observed_at/received_at/source_id/provenance/data_age_seconds/stale.",
+    "truthfulness": "Only backend provenance/source marks data LIVE; stale input marks STALE. Event rows require backend source_id and event_type, use backend received_at/source timestamps, and do not synthesize IDs, event text, lap/flag telemetry, or timestamps. Initial lap availability is explicitly false and flag is UNKNOWN. Missing predictions/freshness are null. normalizeRow in useRaceSnapshot does not invent gap or tyre age values.",
+    "snapshot_polling": "Removed the duplicate WebSocket from useRaceSnapshot.ts, retained its HTTP snapshot/catalog polling, propagated snapshot freshness metadata, and removed Date.now-style fallback timestamps and synthetic (index * 1.5) gaps."
+  },
+  "verification": {
+    "hook_unit": {
+      "command": "cd apps/web && npx tsx ../../tests/unit/test_race_socket.ts",
+      "result": "PASS - Race socket contracts verified."
+    },
+    "typecheck": {
+      "command": "cd apps/web && npx tsc --noEmit",
+      "result": "PASS - exit 0, no diagnostics."
+    },
+    "targeted_eslint": {
+      "command": "cd apps/web && npx eslint --config .eslintrc.json lib/useRaceSocket.ts lib/raceSocketProtocol.ts lib/useRaceSnapshot.ts",
+      "result": "PASS - exit 0, no warnings or errors."
+    },
+    "asgi_websocket": {
+      "command": "uv run pytest tests/integration/test_api.py -q -k 'replay_catalog_and_socket_use_bundled_events or replay_socket_rejects_unknown_replay_id or live_socket_requires_explicit_running_live_source'",
+      "result": "PASS - 3 passed. Actual FastAPI ASGI replay connection received connected, initial race_snapshot, and sourced race_update frames; invalid replay id and live mode without active recorder were rejected with close code 1008."
+    },
+    "stale_state_probe": "PASS - unit contract confirms stale=true overrides LIVE provenance and the resulting status is STALE.",
+    "missing_backend_probe": "PASS - URL builder returns null for empty backend configuration and does not create a connection URL; live capture unavailable is verified by ASGI close code 1008.",
+    "dirty_worktree_probe": "PASS - pre-existing broad dirty/untracked state was inspected and preserved. No backend source was modified by this task.",
+    "misleading_success_output_probe": "PASS - test output explicitly reported contract verification; tsc/ESLint exited 0; pytest reported 18 unit/integration tests passed. No checks were inferred from an unrelated command.",
+    "cleanup": "No API/web server or browser was started for this task. Verified ports 8000 and 3000 had no listening process after ASGI tests; no temporary browser/server process remained.",
+    "lsp": "Unavailable: TypeScript LSP server is not installed and prior installation was declined; the required tsc and ESLint checks passed instead."
+  },
+  "loc_review": {
+    "apps/web/lib/useRaceSocket.ts": 158,
+    "apps/web/lib/raceSocketProtocol.ts": 201,
+    "apps/web/lib/useRaceSnapshot.ts": 196,
+    "tests/unit/test_race_socket.ts": 105,
+    "result": "All touched TypeScript files are below the 250 pure-LOC healthy threshold."
+  },
+  "reui_mcp": "Not connected in this process; no ReUI MCP tools were used or claimed."
+}

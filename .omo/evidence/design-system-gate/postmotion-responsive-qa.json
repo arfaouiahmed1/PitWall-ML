@@ -1,0 +1,29 @@
+{
+  "route": "/design-system",
+  "captures": [
+    {
+      "width": 375,
+      "height": 844,
+      "name": "showcase-postmotion-375x844.png",
+      "title": "PitWall ML component showcase",
+      "horizontalOverflow": false,
+      "errorOverlay": false
+    },
+    {
+      "width": 768,
+      "height": 1024,
+      "name": "showcase-postmotion-768x1024.png",
+      "title": "PitWall ML component showcase",
+      "horizontalOverflow": false,
+      "errorOverlay": false
+    },
+    {
+      "width": 1440,
+      "height": 1024,
+      "name": "showcase-postmotion-1440x1024.png",
+      "title": "PitWall ML component showcase",
+      "horizontalOverflow": false,
+      "errorOverlay": false
+    }
+  ]
+}

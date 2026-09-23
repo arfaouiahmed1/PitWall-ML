@@ -1,0 +1,56 @@
+{
+  "task": 20,
+  "title": "Parameterized Performance Radar Chart - Review Finding Resolution",
+  "reviewFinding": {
+    "issue": "Zero-width/non-finite axis ranges yield NaN SVG coordinates in apps/web/components/charts/PerformanceRadarChart.tsx.",
+    "resolution": "Implemented Zod PerformanceRadarAxisSchema requiring finite bounds and maximum > minimum. Exported parsePerformanceRadarAxis, normalizePerformanceRadarAxes, and updated buildPerformanceRadarModel and pointFor to safely exclude or reject invalid axes, clamp safe ranges, and explicitly transition chart state to partial or unavailable without emitting NaN SVG coordinates or attributes."
+  },
+  "changedFiles": [
+    "apps/web/components/charts/PerformanceRadarChart.tsx",
+    "tests/unit/test_performance_radar_chart.ts"
+  ],
+  "behavior": {
+    "axisValidation": "PerformanceRadarAxisSchema and parsePerformanceRadarAxis validate that minimum and maximum are finite numbers and that maximum is strictly greater than minimum. Equal bounds, reversed bounds, and non-finite bounds are rejected (returns null).",
+    "axisExclusion": "buildPerformanceRadarModel safely excludes invalid axes from model.axes and records their keys in series missingAxes.",
+    "explicitState": "When axes contain invalid dimensions, chart transitions to 'partial' (if valid points exist) or 'unavailable' (if all axes are invalid or no points plotted).",
+    "safeGeometry": "pointFor calculates safeRange = max(axis.maximum - axis.minimum, 1) and clamps ratio, ensuring x and y are always finite numbers. pointList filters out non-finite points.",
+    "domSafety": "Serialized models and rendered SVG markup contain zero NaN values and zero em-dash characters."
+  },
+  "verification": {
+    "focusedTest": {
+      "command": "npx tsx --tsconfig apps/web/tsconfig.json tests/unit/test_performance_radar_chart.ts",
+      "result": "passed (Performance radar chart contracts verified.)",
+      "coverage": [
+        "two series valid vectors",
+        "missing value dimension omission",
+        "invalid metric values beyond scale or non-finite",
+        "unavailable state on empty series",
+        "equal bounds (max <= min) rejection and exclusion",
+        "reversed bounds (max < min) rejection and exclusion",
+        "non-finite bounds (NaN, +/-Infinity) rejection and exclusion",
+        "valid bounds parsing and multi-axis modeling",
+        "Zod schema boundary parse validation",
+        "HTML rendering of partial chart with omission disclosure",
+        "HTML rendering of all-invalid axes with unavailable status and zero SVG markup",
+        "zero NaN SVG coordinates in model and rendered DOM"
+      ]
+    },
+    "typecheck": {
+      "command": "node apps/web/node_modules/typescript/bin/tsc --noEmit --project apps/web/tsconfig.json",
+      "result": "passed (exit code 0, 0 errors)"
+    },
+    "lint": {
+      "command": "node node_modules/eslint/bin/eslint.js components/charts/PerformanceRadarChart.tsx (workdir: apps/web)",
+      "result": "passed (exit code 0, 0 warnings, 0 errors)"
+    },
+    "regressionTests": {
+      "test_model_charts": "passed ($env:NODE_PATH='apps/web/node_modules'; npx tsx --tsconfig apps/web/tsconfig.json tests/unit/test_model_charts.ts)",
+      "test_circuits_registry": "passed (npx tsx --tsconfig apps/web/tsconfig.json tests/unit/test_circuits_registry.ts)",
+      "test_api_docs_openapi": "passed (npx tsx --tsconfig apps/web/tsconfig.json tests/unit/test_api_docs_openapi.ts)"
+    }
+  },
+  "probes": {
+    "browser_test": "Unavailable. Chromium distribution 'chrome' is not found at C:\\Users\\ahmed\\AppData\\Local\\Google\\Chrome\\Application\\chrome.exe. Headless static DOM and SVG markup verification used instead.",
+    "loc_audit": "apps/web/components/charts/PerformanceRadarChart.tsx pure LOC: 207, total lines: 231 (within 250 LOC limit)."
+  }
+}

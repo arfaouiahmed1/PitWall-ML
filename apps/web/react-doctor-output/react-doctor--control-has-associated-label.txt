@@ -1,0 +1,21 @@
+Rule: react-doctor/control-has-associated-label
+Severity: warning
+Category: Accessibility
+Count: 9
+
+Blind users can't tell what this control does because its name is missing or only a symbol, so add visible text, `aria-label`, or `aria-labelledby`.
+
+Suggestion: Give every interactive control a label screen readers can read.
+
+Curl with no cache & follow the canonical fix and false positive check recipe before fixing: https://react.doctor/docs/rules/react-doctor/control-has-associated-label
+
+Files:
+  app/circuit/page.tsx:45
+  app/drivers/page.tsx:58
+  app/drivers/page.tsx:62
+  app/page.tsx:257
+  app/strategy/page.tsx:186
+  app/strategy/page.tsx:196
+  app/strategy/page.tsx:201
+  app/strategy/page.tsx:227
+  components/StrategyBattle.tsx:118

@@ -66,3 +66,33 @@ groups:
         for: 10m
         labels: { severity: warning }
         annotations: { summary: "Hard compound MAE >5.0s — subgroup regression" }
+
+      - alert: DatabaseConnectionFailed
+        expr: database_connected == 0
+        for: 1m
+        labels: { severity: critical }
+        annotations: { summary: "Relational database connection failed — storage degraded" }
+
+      - alert: ModelUnavailable
+        expr: model_loaded == 0
+        for: 1m
+        labels: { severity: critical }
+        annotations: { summary: "Pace ML model is not loaded — serving degraded" }
+
+      - alert: StaleIngestion
+        expr: live_recorder_stale == 1
+        for: 2m
+        labels: { severity: warning }
+        annotations: { summary: "Live race ingestion data is stale" }
+
+      - alert: ParquetStorageBufferHigh
+        expr: parquet_buffered_events > 400
+        for: 2m
+        labels: { severity: warning }
+        annotations: { summary: "Parquet buffer high (>400 events) — potential disk I/O stall" }
+
+      - alert: HighEndpointErrorRate
+        expr: rate(http_requests_total{status=~"5.."}[5m]) / rate(http_requests_total[5m]) > 0.05
+        for: 2m
+        labels: { severity: critical }
+        annotations: { summary: "HTTP 5xx error rate > 5%" }

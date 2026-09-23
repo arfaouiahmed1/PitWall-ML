@@ -24,7 +24,6 @@ const nextConfig = {
   basePath: basePath || undefined,
   assetPrefix: basePath ? `${basePath}/` : undefined,
   trailingSlash: isExport ? true : undefined,
-  eslint: { ignoreDuringBuilds: true },
   typescript: { ignoreBuildErrors: false },
   // Expose commit info to client for dashboard footer
   env: {

@@ -1,0 +1,52 @@
+Rule: react-doctor/no-high-complexity-react-function
+Severity: warning
+Category: Maintainability
+Count: 14
+
+`MonitoringPage` has cyclomatic complexity 25, cognitive complexity 29, and maximum nesting depth 4, so its React logic is hard to understand and change. Extract independent branches into components or hooks.
+
+`RacePage` has cyclomatic complexity 76, cognitive complexity 92, and maximum nesting depth 3, so its React logic is hard to understand and change. Extract independent branches into components or hooks.
+
+`StrategyPage` has cyclomatic complexity 14, cognitive complexity 25, and maximum nesting depth 3, so its React logic is hard to understand and change. Extract independent branches into components or hooks.
+
+`CircuitMap` has cyclomatic complexity 29, cognitive complexity 25, and maximum nesting depth 2, so its React logic is hard to understand and change. Extract independent branches into components or hooks.
+
+`RaceTableRow` has cyclomatic complexity 13, cognitive complexity 18, and maximum nesting depth 3, so its React logic is hard to understand and change. Extract independent branches into components or hooks.
+
+`SiteHeader` has cyclomatic complexity 46, cognitive complexity 52, and maximum nesting depth 3, so its React logic is hard to understand and change. Extract independent branches into components or hooks.
+
+`StrategyBattle` has cyclomatic complexity 35, cognitive complexity 49, and maximum nesting depth 3, so its React logic is hard to understand and change. Extract independent branches into components or hooks.
+
+`WeatherWidget` has cyclomatic complexity 35, cognitive complexity 34, and maximum nesting depth 2, so its React logic is hard to understand and change. Extract independent branches into components or hooks.
+
+`GapTrajectoryChart` has cyclomatic complexity 24, cognitive complexity 29, and maximum nesting depth 4, so its React logic is hard to understand and change. Extract independent branches into components or hooks.
+
+`TelemetryTraceChart` has cyclomatic complexity 16, cognitive complexity 13, and maximum nesting depth 1, so its React logic is hard to understand and change. Extract independent branches into components or hooks.
+
+`TelemetryReadoutStrip` has cyclomatic complexity 27, cognitive complexity 30, and maximum nesting depth 2, so its React logic is hard to understand and change. Extract independent branches into components or hooks.
+
+`TelemetryUnavailableCard` has cyclomatic complexity 13, cognitive complexity 78, and maximum nesting depth 12, so its React logic is hard to understand and change. Extract independent branches into components or hooks.
+
+`RaceTableRow` has cyclomatic complexity 37, cognitive complexity 48, and maximum nesting depth 3, so its React logic is hard to understand and change. Extract independent branches into components or hooks.
+
+`TyreStintBadge` has cyclomatic complexity 17, cognitive complexity 19, and maximum nesting depth 3, so its React logic is hard to understand and change. Extract independent branches into components or hooks.
+
+Suggestion: Extract independent render branches and state logic into focused components or hooks until the control flow is easy to follow.
+
+Curl with no cache & follow the canonical fix and false positive check recipe before fixing: https://react.doctor/docs/rules/react-doctor/no-high-complexity-react-function
+
+Files:
+  app/monitoring/page.tsx:104
+  app/page.tsx:30
+  app/strategy/page.tsx:86
+  components/CircuitMap.tsx:75
+  components/RaceTableRow.tsx:39
+  components/SiteHeader.tsx:81
+  components/StrategyBattle.tsx:38
+  components/WeatherWidget.tsx:38
+  components/charts/GapTrajectoryChart.tsx:19
+  components/charts/TelemetryTraceChart.tsx:45
+  components/charts/telemetry/TelemetryReadoutStrip.tsx:13
+  components/charts/telemetry/TelemetryUnavailableCard.tsx:12
+  components/table/RaceTableRow.tsx:15
+  components/table/TyreStintBadge.tsx:26

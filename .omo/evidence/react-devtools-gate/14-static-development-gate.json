@@ -1,0 +1,10 @@
+{
+  "reactGrabDevelopmentGate": true,
+  "reactScanDevelopmentGate": true,
+  "reactDoctorRuntimeReference": false,
+  "devDependencies": [
+    "react-doctor",
+    "react-grab",
+    "react-scan"
+  ]
+}

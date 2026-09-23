@@ -1,0 +1,10 @@
+locator.evaluate: Timeout 30000ms exceeded.
+Call log:
+  - waiting for getByRole('button', { name: 'default', exact: true })
+
+    at [stdin]:8:37 {
+  log: [
+    "  - waiting for getByRole('button', { name: 'default', exact: true })"
+  ],
+  name: 'TimeoutError'
+}

@@ -1,0 +1,50 @@
+{
+  "task": "Todo 23 - modularize leaderboard table with ReUI data-grid architecture",
+  "runtime_requested": "antigravity-gemini-3.8-flash",
+  "runtime_evidence": "The active OpenCode runtime reports antigravity-gemini-3.8-flash.",
+  "baseline": {
+    "monolith": "RaceTable.tsx was a 514-line monolith containing synthetic modulo lap time calculations (79.2 + tyreAge * 0.05), hardcoded sector deltas, fake tyre wear formulas (Math.max(6, 100 - tyreAge * 3.2 ...)), and simulated fallback drivers.",
+    "baseline_tests": "tests/unit/test_race_table.ts created with baseline checks asserting zero synthetic math, no em-dashes, and exact q10/q50/q90 binding.",
+    "worktree": "Dirty files from active waves preserved; modifications strictly scoped to RaceTable.tsx, table subcomponents, test_race_table.ts, and visual QA scripts."
+  },
+  "red_tests": [
+    "Added assertions prohibiting 79.2+ formula and DRIVER_FALLBACK / shapTop3 synthesis.",
+    "Initial test run failed on the presence of synthetic math in RaceTable.tsx."
+  ],
+  "implementation": {
+    "subcomponents": [
+      "apps/web/components/table/TyreStintBadge.tsx: Renders compound pill, lap age, and authentic wear ring (or N/A / '-' without formula).",
+      "apps/web/components/table/DriverPaceSparkline.tsx: Formats q50 pace, interval ±half, confidence bar, and exact q10 / q50 / q90 quantiles.",
+      "apps/web/components/table/RaceTableRow.tsx: Modular ReUI TableRow with position badges, driver details, gap/DRS indicators, and expandable telemetry drawer.",
+      "apps/web/components/table/types.ts: Shared typed data contracts."
+    ],
+    "race_table": "RaceTable.tsx refactored to 195 lines, implementing ReUI DataGrid patterns with column sorting (POS, GAP, PACE), sticky headers, and expandable rows.",
+    "truthfulness": "All synthetic math eliminated. Missing pace renders '-', missing gap renders '-', missing tyre renders 'N/A', empty table displays 'No timing rows available'. Zero em-dashes across all subcomponents."
+  },
+  "verification": {
+    "unit_test": {
+      "command": "npx tsx --tsconfig apps/web/tsconfig.json tests/unit/test_race_table.ts",
+      "result": "PASS - RaceTable contract tests verified successfully."
+    },
+    "typecheck": {
+      "command": "cd apps/web && npx tsc --noEmit",
+      "result": "PASS - exit 0, no diagnostics."
+    },
+    "eslint": {
+      "command": "cd apps/web && npx eslint components/RaceTable.tsx components/table/*.tsx",
+      "result": "PASS - exit 0, no warnings or errors."
+    },
+    "visual_qa_edge": {
+      "command": "npx tsx --tsconfig apps/web/tsconfig.json scripts/visual_qa_race_table.ts",
+      "result": "PASS - Edge screenshot captured to .omo/evidence/task-23-race-table-edge.png (106417 bytes)."
+    }
+  },
+  "loc_review": {
+    "apps/web/components/RaceTable.tsx": 195,
+    "apps/web/components/table/RaceTableRow.tsx": 241,
+    "apps/web/components/table/DriverPaceSparkline.tsx": 79,
+    "apps/web/components/table/TyreStintBadge.tsx": 97,
+    "apps/web/components/table/types.ts": 55,
+    "result": "All modules are strictly under 250 pure LOC."
+  }
+}

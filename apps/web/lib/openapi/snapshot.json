@@ -1,0 +1,1961 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "PitWall ML API",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/health": {
+      "get": {
+        "summary": "Health",
+        "operationId": "health_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Health Health Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/metrics": {
+      "get": {
+        "summary": "Metrics",
+        "operationId": "metrics_metrics_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Metrics Metrics Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/race/state": {
+      "get": {
+        "summary": "Get Race State",
+        "operationId": "get_race_state_race_state_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Get Race State Race State Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/live/start": {
+      "post": {
+        "tags": [
+          "Live Ingestion"
+        ],
+        "summary": "Start Live Capture",
+        "description": "Start one OpenF1 recorder and route its events into Bronze Parquet storage.",
+        "operationId": "start_live_capture_live_start_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/LiveStartRequest"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Payload"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LiveStartResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/live/stop": {
+      "post": {
+        "tags": [
+          "Live Ingestion"
+        ],
+        "summary": "Stop Live Capture",
+        "description": "Stop the active recorder and consolidate its partitions into events.parquet.",
+        "operationId": "stop_live_capture_live_stop_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LiveStopResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/live/status": {
+      "get": {
+        "tags": [
+          "Live Ingestion"
+        ],
+        "summary": "Live Capture Status",
+        "description": "Return the active live-capture session and its in-memory persistence state.",
+        "operationId": "live_capture_status_live_status_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LiveStatusResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/race/sessions": {
+      "get": {
+        "summary": "Get Replay Sessions",
+        "operationId": "get_replay_sessions_race_sessions_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "additionalProperties": true,
+                    "type": "object"
+                  },
+                  "type": "array",
+                  "title": "Response Get Replay Sessions Race Sessions Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/predictions/pace": {
+      "get": {
+        "summary": "Get Pace Predictions",
+        "description": "Return current pace predictions for all drivers in state.\n\nUses the quantile model when available.",
+        "operationId": "get_pace_predictions_predictions_pace_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "additionalProperties": true,
+                    "type": "object"
+                  },
+                  "type": "array",
+                  "title": "Response Get Pace Predictions Predictions Pace Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/predictions/tyre": {
+      "get": {
+        "summary": "Get Tyre Predictions",
+        "description": "Tyre degradation per driver (predicted delta vs rolling median).",
+        "operationId": "get_tyre_predictions_predictions_tyre_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "additionalProperties": true,
+                    "type": "object"
+                  },
+                  "type": "array",
+                  "title": "Response Get Tyre Predictions Predictions Tyre Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/predictions/pit": {
+      "get": {
+        "summary": "Get Pit Predictions",
+        "description": "Pit hazard P(pit in next 3 laps) per driver.",
+        "operationId": "get_pit_predictions_predictions_pit_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "additionalProperties": true,
+                    "type": "object"
+                  },
+                  "type": "array",
+                  "title": "Response Get Pit Predictions Predictions Pit Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/predictions/undercut": {
+      "get": {
+        "tags": [
+          "Predictions"
+        ],
+        "summary": "Evaluate opponent undercut and overcut threat",
+        "description": "Assess whether a trailing rival poses an undercut threat, or a leading rival is vulnerable to an overcut, using OpponentPitModel. Accepts optional query parameters or falls back to live race_state.",
+        "operationId": "get_undercut_prediction_predictions_undercut_get",
+        "parameters": [
+          {
+            "name": "driver_number",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Driver number to evaluate threat for",
+              "title": "Driver Number"
+            },
+            "description": "Driver number to evaluate threat for"
+          },
+          {
+            "name": "rival_number",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Trailing rival driver number",
+              "title": "Rival Number"
+            },
+            "description": "Trailing rival driver number"
+          },
+          {
+            "name": "gap_s",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Gap to rival in seconds (positive if driver ahead of rival)",
+              "title": "Gap S"
+            },
+            "description": "Gap to rival in seconds (positive if driver ahead of rival)"
+          },
+          {
+            "name": "driver_compound",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Tyre compound of the driver (SOFT, MEDIUM, HARD)",
+              "title": "Driver Compound"
+            },
+            "description": "Tyre compound of the driver (SOFT, MEDIUM, HARD)"
+          },
+          {
+            "name": "rival_compound",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Tyre compound of the rival (SOFT, MEDIUM, HARD)",
+              "title": "Rival Compound"
+            },
+            "description": "Tyre compound of the rival (SOFT, MEDIUM, HARD)"
+          },
+          {
+            "name": "driver_tyre_age",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Tyre age of driver in laps",
+              "title": "Driver Tyre Age"
+            },
+            "description": "Tyre age of driver in laps"
+          },
+          {
+            "name": "rival_tyre_age",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Tyre age of rival in laps",
+              "title": "Rival Tyre Age"
+            },
+            "description": "Tyre age of rival in laps"
+          },
+          {
+            "name": "tyre_age_delta",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Difference in tyre age (rival_age - driver_age)",
+              "title": "Tyre Age Delta"
+            },
+            "description": "Difference in tyre age (rival_age - driver_age)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UndercutThreat"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/predictions/safety-car": {
+      "get": {
+        "tags": [
+          "Predictions"
+        ],
+        "summary": "Predict safety car and neutralization hazard",
+        "description": "Estimate Safety Car / Virtual Safety Car hazard for the upcoming laps using SafetyCarHazardModel. Accepts circuit and race-context query parameters; unknown circuits fall back to a medium risk prior.",
+        "operationId": "get_safety_car_prediction_predictions_safety_car_get",
+        "parameters": [
+          {
+            "name": "circuit_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Circuit identifier (e.g. monaco, singapore, jeddah)",
+              "title": "Circuit Id"
+            },
+            "description": "Circuit identifier (e.g. monaco, singapore, jeddah)"
+          },
+          {
+            "name": "current_lap",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "Current lap number (1-indexed)",
+              "default": 1,
+              "title": "Current Lap"
+            },
+            "description": "Current lap number (1-indexed)"
+          },
+          {
+            "name": "total_laps",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "Total scheduled race laps",
+              "default": 66,
+              "title": "Total Laps"
+            },
+            "description": "Total scheduled race laps"
+          },
+          {
+            "name": "is_wet",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "description": "True when the track is wet or rain is falling",
+              "default": false,
+              "title": "Is Wet"
+            },
+            "description": "True when the track is wet or rain is falling"
+          },
+          {
+            "name": "recent_incident_count",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Number of recent yellow-flag incidents",
+              "default": 0,
+              "title": "Recent Incident Count"
+            },
+            "description": "Number of recent yellow-flag incidents"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SafetyCarPrediction"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/race/snapshot": {
+      "get": {
+        "summary": "Get Race Snapshot",
+        "operationId": "get_race_snapshot_race_snapshot_get",
+        "parameters": [
+          {
+            "name": "source",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "replay",
+              "title": "Source"
+            }
+          },
+          {
+            "name": "replay_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Replay Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Get Race Snapshot Race Snapshot Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/drivers": {
+      "get": {
+        "summary": "Get Drivers",
+        "operationId": "get_drivers_drivers_get",
+        "parameters": [
+          {
+            "name": "source",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "replay",
+              "title": "Source"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Get Drivers Drivers Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/drivers/{driver_number}/telemetry": {
+      "get": {
+        "summary": "Get Driver Telemetry",
+        "operationId": "get_driver_telemetry_drivers__driver_number__telemetry_get",
+        "parameters": [
+          {
+            "name": "driver_number",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Driver Number"
+            }
+          },
+          {
+            "name": "source",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "live",
+              "title": "Source"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Get Driver Telemetry Drivers  Driver Number  Telemetry Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/benchmarks/challengers": {
+      "get": {
+        "summary": "Challenger Benchmark",
+        "operationId": "challenger_benchmark_benchmarks_challengers_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Challenger Benchmark Benchmarks Challengers Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/models/info": {
+      "get": {
+        "summary": "Models Info",
+        "operationId": "models_info_models_info_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Models Info Models Info Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/models/shap": {
+      "get": {
+        "summary": "Models Shap",
+        "operationId": "models_shap_models_shap_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Models Shap Models Shap Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/registry/promotion": {
+      "get": {
+        "summary": "Registry Promotion",
+        "operationId": "registry_promotion_registry_promotion_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Registry Promotion Registry Promotion Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/weather/latest": {
+      "get": {
+        "tags": [
+          "Weather"
+        ],
+        "summary": "Get Latest Weather",
+        "description": "Return the most recent persisted weather observation from the database.",
+        "operationId": "get_latest_weather_weather_latest_get",
+        "parameters": [
+          {
+            "name": "session_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Session Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Get Latest Weather Weather Latest Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/weather/history": {
+      "get": {
+        "tags": [
+          "Weather"
+        ],
+        "summary": "Get Weather History",
+        "description": "Return historical persisted weather observations for a session.",
+        "operationId": "get_weather_history_weather_history_get",
+        "parameters": [
+          {
+            "name": "session_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Session Id"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 50,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Get Weather History Weather History Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/monitoring/era-drift": {
+      "get": {
+        "tags": [
+          "Monitoring"
+        ],
+        "summary": "Monitoring Era Drift",
+        "description": "Return the module-cached era-drift analysis without request-time computation.",
+        "operationId": "monitoring_era_drift_monitoring_era_drift_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EraDriftResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/circuits": {
+      "get": {
+        "tags": [
+          "Circuits"
+        ],
+        "summary": "List Circuits",
+        "description": "List unique circuit configurations available in the backend registry.",
+        "operationId": "list_circuits_circuits_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CircuitListResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/circuits/{circuit_id}": {
+      "get": {
+        "tags": [
+          "Circuits"
+        ],
+        "summary": "Circuit Detail",
+        "description": "Return the configured track details for a registered circuit or HTTP 404.",
+        "operationId": "circuit_detail_circuits__circuit_id__get",
+        "parameters": [
+          {
+            "name": "circuit_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Circuit Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CircuitResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Circuit is not registered"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/monitoring/drift": {
+      "get": {
+        "summary": "Monitoring Drift",
+        "description": "Evidently drift on last 3 vs first 3 races (3-race window).",
+        "operationId": "monitoring_drift_monitoring_drift_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Monitoring Drift Monitoring Drift Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/monitoring/overview": {
+      "get": {
+        "summary": "Monitoring Overview",
+        "description": "Aggregated health for Grafana + frontend monitoring page.",
+        "operationId": "monitoring_overview_monitoring_overview_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Monitoring Overview Monitoring Overview Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/simulate": {
+      "post": {
+        "summary": "Simulate",
+        "description": "Monte Carlo race outcome from current state.",
+        "operationId": "simulate_simulate_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "additionalProperties": true,
+                    "type": "object"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Payload"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Simulate Simulate Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/whatif": {
+      "post": {
+        "summary": "Whatif",
+        "description": "Evaluate a tactical what-if strategy scenario vs baseline.",
+        "operationId": "whatif_whatif_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WhatIfRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WhatIfResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/replay/status": {
+      "get": {
+        "summary": "Replay Status",
+        "operationId": "replay_status_replay_status_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Replay Status Replay Status Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "CircuitListResponse": {
+        "properties": {
+          "count": {
+            "type": "integer",
+            "title": "Count"
+          },
+          "circuits": {
+            "items": {
+              "$ref": "#/components/schemas/CircuitResponse"
+            },
+            "type": "array",
+            "title": "Circuits"
+          }
+        },
+        "type": "object",
+        "required": [
+          "count",
+          "circuits"
+        ],
+        "title": "CircuitListResponse"
+      },
+      "CircuitResponse": {
+        "properties": {
+          "circuit_key": {
+            "type": "string",
+            "title": "Circuit Key"
+          },
+          "circuit_short_name": {
+            "type": "string",
+            "title": "Circuit Short Name"
+          },
+          "circuit_name": {
+            "type": "string",
+            "title": "Circuit Name"
+          },
+          "country": {
+            "type": "string",
+            "title": "Country"
+          },
+          "total_laps": {
+            "type": "integer",
+            "title": "Total Laps"
+          },
+          "segments": {
+            "items": {
+              "$ref": "#/components/schemas/CircuitSegmentResponse"
+            },
+            "type": "array",
+            "title": "Segments"
+          }
+        },
+        "type": "object",
+        "required": [
+          "circuit_key",
+          "circuit_short_name",
+          "circuit_name",
+          "country",
+          "total_laps",
+          "segments"
+        ],
+        "title": "CircuitResponse"
+      },
+      "CircuitSegmentResponse": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "seg_type": {
+            "type": "string",
+            "title": "Seg Type"
+          },
+          "start_pct": {
+            "type": "number",
+            "title": "Start Pct"
+          },
+          "end_pct": {
+            "type": "number",
+            "title": "End Pct"
+          },
+          "length_m": {
+            "type": "number",
+            "title": "Length M"
+          },
+          "key_accel_zone": {
+            "type": "boolean",
+            "title": "Key Accel Zone"
+          },
+          "overtake_value": {
+            "type": "number",
+            "title": "Overtake Value"
+          },
+          "downforce_demand": {
+            "type": "number",
+            "title": "Downforce Demand"
+          },
+          "regen_potential": {
+            "type": "number",
+            "title": "Regen Potential"
+          },
+          "max_speed_kmh": {
+            "type": "number",
+            "title": "Max Speed Kmh"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "seg_type",
+          "start_pct",
+          "end_pct",
+          "length_m",
+          "key_accel_zone",
+          "overtake_value",
+          "downforce_demand",
+          "regen_potential",
+          "max_speed_kmh"
+        ],
+        "title": "CircuitSegmentResponse"
+      },
+      "EraDriftMetric": {
+        "properties": {
+          "feature": {
+            "type": "string",
+            "title": "Feature"
+          },
+          "ks_statistic": {
+            "type": "number",
+            "title": "Ks Statistic"
+          },
+          "ks_pvalue": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ks Pvalue"
+          },
+          "wasserstein": {
+            "type": "number",
+            "title": "Wasserstein"
+          },
+          "psi": {
+            "type": "number",
+            "title": "Psi"
+          },
+          "js_divergence": {
+            "type": "number",
+            "title": "Js Divergence"
+          },
+          "drifted": {
+            "type": "boolean",
+            "title": "Drifted"
+          },
+          "severity": {
+            "type": "string",
+            "title": "Severity"
+          },
+          "reference_mean": {
+            "type": "number",
+            "title": "Reference Mean"
+          },
+          "current_mean": {
+            "type": "number",
+            "title": "Current Mean"
+          },
+          "reference_std": {
+            "type": "number",
+            "title": "Reference Std"
+          },
+          "current_std": {
+            "type": "number",
+            "title": "Current Std"
+          },
+          "relative_shift_pct": {
+            "type": "number",
+            "title": "Relative Shift Pct"
+          }
+        },
+        "type": "object",
+        "required": [
+          "feature",
+          "ks_statistic",
+          "ks_pvalue",
+          "wasserstein",
+          "psi",
+          "js_divergence",
+          "drifted",
+          "severity",
+          "reference_mean",
+          "current_mean",
+          "reference_std",
+          "current_std",
+          "relative_shift_pct"
+        ],
+        "title": "EraDriftMetric"
+      },
+      "EraDriftResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "available",
+              "no_data",
+              "unavailable"
+            ],
+            "title": "Status"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "reference_era": {
+            "type": "string",
+            "title": "Reference Era"
+          },
+          "current_era": {
+            "type": "string",
+            "title": "Current Era"
+          },
+          "n_reference_sessions": {
+            "type": "integer",
+            "title": "N Reference Sessions"
+          },
+          "n_current_sessions": {
+            "type": "integer",
+            "title": "N Current Sessions"
+          },
+          "results": {
+            "items": {
+              "$ref": "#/components/schemas/EraDriftMetric"
+            },
+            "type": "array",
+            "title": "Results"
+          },
+          "metric_count": {
+            "type": "integer",
+            "title": "Metric Count"
+          },
+          "overall_drift_ratio": {
+            "type": "number",
+            "title": "Overall Drift Ratio"
+          },
+          "max_severity": {
+            "type": "string",
+            "title": "Max Severity"
+          },
+          "broken_features": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Broken Features"
+          },
+          "source_fingerprint": {
+            "type": "string",
+            "title": "Source Fingerprint"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "reference_era",
+          "current_era",
+          "n_reference_sessions",
+          "n_current_sessions",
+          "results",
+          "metric_count",
+          "overall_drift_ratio",
+          "max_severity",
+          "broken_features",
+          "source_fingerprint"
+        ],
+        "title": "EraDriftResponse"
+      },
+      "GapTrajectoryPoint": {
+        "properties": {
+          "lap": {
+            "type": "integer",
+            "title": "Lap"
+          },
+          "baseline": {
+            "type": "number",
+            "title": "Baseline"
+          },
+          "whatif": {
+            "type": "number",
+            "title": "Whatif"
+          }
+        },
+        "type": "object",
+        "required": [
+          "lap",
+          "baseline",
+          "whatif"
+        ],
+        "title": "GapTrajectoryPoint"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "LiveStartRequest": {
+        "properties": {
+          "session_key": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "title": "Session Key",
+            "default": "latest"
+          }
+        },
+        "type": "object",
+        "title": "LiveStartRequest",
+        "description": "Parameters for starting an OpenF1 live capture session."
+      },
+      "LiveStartResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "running",
+              "already_running"
+            ],
+            "title": "Status"
+          },
+          "session_key": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "title": "Session Key"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "session_key"
+        ],
+        "title": "LiveStartResponse"
+      },
+      "LiveStatusResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "idle",
+              "running"
+            ],
+            "title": "Status"
+          },
+          "session_key": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Session Key"
+          },
+          "event_count": {
+            "type": "integer",
+            "title": "Event Count"
+          },
+          "buffered_events": {
+            "type": "integer",
+            "title": "Buffered Events"
+          },
+          "latency_ms": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latency Ms"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "session_key",
+          "event_count",
+          "buffered_events",
+          "latency_ms"
+        ],
+        "title": "LiveStatusResponse"
+      },
+      "LiveStopResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "const": "stopped",
+            "title": "Status"
+          },
+          "events_captured": {
+            "type": "integer",
+            "title": "Events Captured"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "events_captured"
+        ],
+        "title": "LiveStopResponse"
+      },
+      "SafetyCarPrediction": {
+        "properties": {
+          "p_sc_next_1": {
+            "type": "number",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "P Sc Next 1",
+            "description": "Probability of a Safety Car deployment on the next lap"
+          },
+          "p_vsc_next_1": {
+            "type": "number",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "P Vsc Next 1",
+            "description": "Probability of a Virtual Safety Car deployment on the next lap"
+          },
+          "p_neutralization_next_3": {
+            "type": "number",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "P Neutralization Next 3",
+            "description": "Probability of any neutralization (SC or VSC) within the next 3 laps"
+          },
+          "circuit_risk_tier": {
+            "type": "string",
+            "title": "Circuit Risk Tier",
+            "description": "Circuit baseline risk tier (LOW, MEDIUM, HIGH, VERY_HIGH)"
+          },
+          "risk_factors": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Risk Factors",
+            "description": "Active risk factor tags (e.g. LAP_1_START_CHAOS, WET_TRACK_CONDITIONS)"
+          }
+        },
+        "type": "object",
+        "required": [
+          "p_sc_next_1",
+          "p_vsc_next_1",
+          "p_neutralization_next_3",
+          "circuit_risk_tier"
+        ],
+        "title": "SafetyCarPrediction",
+        "description": "Safety car / VSC neutralization hazard over upcoming laps."
+      },
+      "UndercutThreat": {
+        "properties": {
+          "driver_number": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Driver Number",
+            "description": "Driver number evaluated"
+          },
+          "rival_number": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rival Number",
+            "description": "Trailing rival driver number"
+          },
+          "gap_s": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gap S",
+            "description": "Gap to rival in seconds (positive if driver ahead)"
+          },
+          "is_undercut_threat": {
+            "type": "boolean",
+            "title": "Is Undercut Threat",
+            "description": "True if rival poses an immediate undercut threat",
+            "default": false
+          },
+          "is_overcut_threat": {
+            "type": "boolean",
+            "title": "Is Overcut Threat",
+            "description": "True if driver is vulnerable to an overcut or can execute one",
+            "default": false
+          },
+          "rival_pit_probability_3l": {
+            "type": "number",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Rival Pit Probability 3L",
+            "description": "Estimated probability rival pits in next 3 laps",
+            "default": 0.0
+          },
+          "tyre_age_delta": {
+            "type": "integer",
+            "title": "Tyre Age Delta",
+            "description": "Difference in tyre age (rival_age - driver_age)",
+            "default": 0
+          },
+          "estimated_delta_at_pit_exit_s": {
+            "type": "number",
+            "title": "Estimated Delta At Pit Exit S",
+            "description": "Estimated delta at pit exit after fresh tyre advantage (s)",
+            "default": 0.0
+          },
+          "recommended_action": {
+            "type": "string",
+            "title": "Recommended Action",
+            "description": "Recommended tactical action: COVER_UNDERCUT, EXTEND_OVERCUT, or HOLD",
+            "default": "HOLD"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason",
+            "description": "Status or explanation reason if defaulted or unpopulated"
+          },
+          "model_version": {
+            "type": "string",
+            "title": "Model Version",
+            "description": "Active model version identifier",
+            "default": "unknown"
+          }
+        },
+        "type": "object",
+        "title": "UndercutThreat",
+        "description": "Assessment of rival undercut/overcut threat."
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      },
+      "WhatIfRequest": {
+        "properties": {
+          "driver_number": {
+            "type": "integer",
+            "title": "Driver Number",
+            "description": "Driver number to apply strategy to"
+          },
+          "target_pit_lap": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Target Pit Lap",
+            "description": "Lap on which driver pits in what-if scenario"
+          },
+          "target_compound": {
+            "type": "string",
+            "title": "Target Compound",
+            "description": "Compound to switch to at pit (SOFT/MEDIUM/HARD/I/W)",
+            "default": "HARD"
+          },
+          "push_pace_delta_s": {
+            "type": "number",
+            "maximum": 0.5,
+            "minimum": -0.5,
+            "title": "Push Pace Delta S",
+            "description": "Pace delta vs baseline (-0.5s push to +0.5s management)",
+            "default": 0.0
+          },
+          "remaining_laps": {
+            "type": "integer",
+            "maximum": 100.0,
+            "minimum": 1.0,
+            "title": "Remaining Laps",
+            "description": "Laps remaining in race from current lap",
+            "default": 30
+          },
+          "current_lap": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Current Lap",
+            "description": "Current lap number (for horizon validation)",
+            "default": 1
+          },
+          "simulations": {
+            "type": "integer",
+            "maximum": 10000.0,
+            "minimum": 10.0,
+            "title": "Simulations",
+            "description": "Monte Carlo simulations to run",
+            "default": 1000
+          }
+        },
+        "type": "object",
+        "required": [
+          "driver_number",
+          "target_pit_lap"
+        ],
+        "title": "WhatIfRequest",
+        "description": "Interactive strategy what-if request.\n\nMirrors spec: driver_number, target_pit_lap, target_compound,\npush_pace_delta_s, remaining_laps, current_lap, simulations.\n\npush_pace_delta_s: negative = push faster (tire wear trade-off), positive = management/conserve."
+      },
+      "WhatIfResponse": {
+        "properties": {
+          "driver_number": {
+            "type": "integer",
+            "title": "Driver Number"
+          },
+          "target_pit_lap": {
+            "type": "integer",
+            "title": "Target Pit Lap"
+          },
+          "target_compound": {
+            "type": "string",
+            "title": "Target Compound"
+          },
+          "push_pace_delta_s": {
+            "type": "number",
+            "title": "Push Pace Delta S"
+          },
+          "re_entry_position_dist": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "type": "object",
+            "title": "Re Entry Position Dist",
+            "description": "Projected re-entry position distribution (pos -> prob)"
+          },
+          "position_distribution": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "number"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Position Distribution",
+            "description": "Alias of re_entry_position_dist for backwards compat"
+          },
+          "time_delta_s": {
+            "type": "number",
+            "title": "Time Delta S",
+            "description": "Net race time delta vs baseline plan (seconds, negative = faster)"
+          },
+          "win_prob_delta": {
+            "type": "number",
+            "title": "Win Prob Delta",
+            "description": "Win probability delta (what-if P(win) - baseline P(win))"
+          },
+          "cliff_risk": {
+            "type": "number",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Cliff Risk",
+            "description": "Tire degradation cliff risk index 0..1"
+          },
+          "gap_trajectory": {
+            "items": {
+              "$ref": "#/components/schemas/GapTrajectoryPoint"
+            },
+            "type": "array",
+            "title": "Gap Trajectory"
+          },
+          "baseline_win_prob": {
+            "type": "number",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Baseline Win Prob",
+            "default": 0.0
+          },
+          "whatif_win_prob": {
+            "type": "number",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Whatif Win Prob",
+            "default": 0.0
+          },
+          "baseline_expected_position": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Baseline Expected Position"
+          },
+          "whatif_expected_position": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Whatif Expected Position"
+          },
+          "baseline_p_podium": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Baseline P Podium"
+          },
+          "whatif_p_podium": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Whatif P Podium"
+          },
+          "n_simulations": {
+            "type": "integer",
+            "title": "N Simulations",
+            "default": 1000
+          },
+          "model_version": {
+            "type": "string",
+            "title": "Model Version",
+            "default": "unknown"
+          }
+        },
+        "type": "object",
+        "required": [
+          "driver_number",
+          "target_pit_lap",
+          "target_compound",
+          "push_pace_delta_s",
+          "time_delta_s",
+          "win_prob_delta",
+          "cliff_risk"
+        ],
+        "title": "WhatIfResponse",
+        "description": "Response for POST /whatif - strategy scenario delta vs baseline."
+      }
+    }
+  }
+}

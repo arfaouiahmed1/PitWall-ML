@@ -36,16 +36,23 @@ class ReplaySession:
     season: int | None
     event: str
     session_type: str
+    is_live: bool = False
+    custom_label: str | None = None
 
     @property
     def label(self) -> str:
+        if self.custom_label is not None:
+            return self.custom_label
+        if self.is_live:
+            return "[LIVE-RECORDED]"
         season = str(self.season) if self.season is not None else "Historical"
         return f"{season} {self.event.replace('_', ' ')} · {self.session_type.replace('_', ' ')}"
 
 
 def _catalog_id(relative_path: Path, occupied: set[str]) -> str:
-    raw = "-".join(relative_path.parts).lower()
-    base = re.sub(r"[^a-z0-9]+", "-", raw).strip("-")
+    parts = [p for p in relative_path.parts if p and p != "."]
+    raw = "-".join(parts).lower() if parts else "session"
+    base = re.sub(r"[^a-z0-9]+", "-", raw).strip("-") or "session"
     candidate = base
     suffix = 2
     while candidate in occupied:
@@ -64,8 +71,15 @@ def discover_replay_sessions(root: Path | str) -> dict[str, ReplaySession]:
 
     sessions: dict[str, ReplaySession] = {}
     occupied: set[str] = set()
+    discovered_paths: set[Path] = set()
+
+    # 1. Historical curated sessions with laps.parquet
     for lap_file in sorted(replay_root.rglob("laps.parquet")):
         session_path = lap_file.parent
+        if session_path in discovered_paths:
+            continue
+        discovered_paths.add(session_path)
+
         relative = session_path.relative_to(replay_root)
         parts = {
             key: value
@@ -87,7 +101,71 @@ def discover_replay_sessions(root: Path | str) -> dict[str, ReplaySession]:
             season=season,
             event=event,
             session_type=session_type,
+            is_live=False,
         )
+
+    # 2. Live sessions with events.parquet
+    for event_file in sorted(replay_root.rglob("events.parquet")):
+        session_path = event_file.parent
+        if session_path in discovered_paths:
+            continue
+        discovered_paths.add(session_path)
+
+        relative = session_path.relative_to(replay_root)
+        parts = {
+            key: value
+            for part in relative.parts
+            if "=" in part
+            for key, value in [part.split("=", 1)]
+        }
+        event = parts.get("event") or session_path.name
+        session_type = parts.get("session") or parts.get("session_type") or "live"
+        season_raw = parts.get("season") or parts.get("year")
+        try:
+            season = int(season_raw) if season_raw is not None else None
+        except ValueError:
+            season = None
+        replay_id = _catalog_id(relative, occupied)
+        sessions[replay_id] = ReplaySession(
+            id=replay_id,
+            path=session_path,
+            season=season,
+            event=event,
+            session_type=session_type,
+            is_live=True,
+        )
+
+    # 3. Live sessions with part-*.parquet (unfinalized partitions)
+    for part_file in sorted(replay_root.rglob("part-*.parquet")):
+        session_path = part_file.parent
+        if session_path in discovered_paths:
+            continue
+        discovered_paths.add(session_path)
+
+        relative = session_path.relative_to(replay_root)
+        parts = {
+            key: value
+            for part in relative.parts
+            if "=" in part
+            for key, value in [part.split("=", 1)]
+        }
+        event = parts.get("event") or session_path.name
+        session_type = parts.get("session") or parts.get("session_type") or "live"
+        season_raw = parts.get("season") or parts.get("year")
+        try:
+            season = int(season_raw) if season_raw is not None else None
+        except ValueError:
+            season = None
+        replay_id = _catalog_id(relative, occupied)
+        sessions[replay_id] = ReplaySession(
+            id=replay_id,
+            path=session_path,
+            season=season,
+            event=event,
+            session_type=session_type,
+            is_live=True,
+        )
+
     return sessions
 
 
@@ -144,6 +222,14 @@ class ParquetReplaySource:
             return []
         return sorted(path.rglob(filename))
 
+    def _files_matching(self, pattern: str) -> list[Path]:
+        path = Path(self.config.bronze_path)
+        if path.is_file() and path.match(pattern):
+            return [path]
+        if not path.is_dir():
+            return []
+        return sorted(path.rglob(pattern))
+
     @staticmethod
     def _int(value: Any) -> int | None:
         try:
@@ -160,7 +246,7 @@ class ParquetReplaySource:
 
     @staticmethod
     def _event_time(row: dict[str, Any], ordinal: int) -> datetime:
-        timestamp = row.get("LapStartDate") or row.get("date_start") or row.get("event_ts")
+        timestamp = row.get("event_ts") or row.get("LapStartDate") or row.get("date_start")
         if isinstance(timestamp, datetime):
             return timestamp.replace(tzinfo=timestamp.tzinfo or UTC)
         elapsed = row.get("Time")
@@ -173,11 +259,21 @@ class ParquetReplaySource:
         for file in files:
             for ordinal, row in enumerate(pl.read_parquet(file).to_dicts()):
                 try:
-                    payload = row.get("payload", {})
+                    payload = (
+                        row.get("payload")
+                        if row.get("payload") is not None
+                        else row.get("payload_json", {})
+                    )
                     if isinstance(payload, str):
                         payload = json.loads(payload)
                     if not isinstance(payload, dict):
                         continue
+                    event_ts = self._event_time(row, ordinal)
+                    ingest_ts_raw = row.get("ingest_ts")
+                    if isinstance(ingest_ts_raw, datetime):
+                        ingest_ts = ingest_ts_raw.replace(tzinfo=ingest_ts_raw.tzinfo or UTC)
+                    else:
+                        ingest_ts = event_ts
                     events.append(
                         RaceEvent(
                             source=str(row.get("source", "parquet_replay")),
@@ -185,15 +281,17 @@ class ParquetReplaySource:
                             meeting_key=row.get("meeting_key"),
                             session_key=row.get("session_key"),
                             driver_number=self._int(row.get("driver_number")),
-                            event_ts=self._event_time(row, ordinal),
-                            ingest_ts=self._event_time(row, ordinal),
+                            event_ts=event_ts,
+                            ingest_ts=ingest_ts,
                             source_id=row.get("source_id"),
+                            source_key=row.get("source_key"),
                             schema_version=self._int(row.get("schema_version")) or 1,
                             payload=payload,
                         )
                     )
                 except (TypeError, ValueError, json.JSONDecodeError):
                     continue
+        events.sort(key=lambda e: e.event_ts)
         return events
 
     def _load_lap_events(self, files: list[Path]) -> list[RaceEvent]:
@@ -248,6 +346,8 @@ class ParquetReplaySource:
 
     def _load_events(self) -> list[RaceEvent]:
         serialized_files = self._files_named("events.parquet")
+        if not serialized_files:
+            serialized_files = self._files_matching("part-*.parquet")
         if serialized_files:
             events = self._load_serialized_events(serialized_files)
         else:

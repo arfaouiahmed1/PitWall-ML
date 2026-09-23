@@ -1,0 +1,44 @@
+{
+  "task": "Todo 37 - Harden CORS, API Mutation Authentication, and Runtime Security",
+  "acceptance_criteria": {
+    "cors_allowlist": "Exact origins enforced in apps/api/pitwall_api/settings.py and main.py; wildcard '*' rejected in production.",
+    "websocket_origin": "Explicit Origin validation in /ws/race; unauthorized/hostile origins rejected with code 1008.",
+    "live_mutation_auth": "Constant-time X-Pitwall-API-Key comparison via secrets.compare_digest protects /live/start and /live/stop; 401 when missing, 403 when invalid, 200 when valid.",
+    "production_fail_closed": "ServingSettings.from_env() raises RuntimeError in production if PITWALL_LIVE_API_KEY is missing or wildcard origins are passed.",
+    "security_headers": "X-Content-Type-Options: nosniff, X-Frame-Options: SAMEORIGIN, Referrer-Policy: strict-origin-when-cross-origin, Permissions-Policy.",
+    "compose_secrets": "compose.yaml requires POSTGRES_PASSWORD and GRAFANA_ADMIN_PASSWORD; compose.dev.yaml and .env.development provide documented dev profile."
+  },
+  "verification_commands": [
+    {
+      "command": "uv run pytest tests/unit/test_security_cors.py",
+      "exit_code": 0,
+      "result": "12 passed in 2.48s"
+    },
+    {
+      "command": "uv run ruff check apps/api/pitwall_api/settings.py apps/api/pitwall_api/main.py tests/unit/test_security_cors.py",
+      "exit_code": 0,
+      "result": "All checks passed"
+    },
+    {
+      "command": "npx tsx tests/unit/test_api_docs_openapi.ts",
+      "exit_code": 0,
+      "result": "All OpenAPI snapshot and api-docs requirements verified successfully (no schema drift)"
+    },
+    {
+      "command": "docker compose config (without env)",
+      "exit_code": 1,
+      "result": "Fails closed: POSTGRES_PASSWORD is required"
+    },
+    {
+      "command": "docker compose --env-file .env.development config",
+      "exit_code": 0,
+      "result": "Cleanly resolves with local development profile"
+    }
+  ],
+  "probes": {
+    "stale_state": "All tests executed against freshly loaded in-memory state and ASGI transports with isolated settings patches.",
+    "dirty_worktree": "Only settings.py, main.py, compose.yaml, compose.dev.yaml, .env.example, and test_security_cors.py updated; existing worktree preserved.",
+    "misleading_success_output": "All commands executed with real output codes, captured assertion passes, and zero simulated exit values."
+  },
+  "cleanup_receipt": "No leftover background containers, test database artifacts, or untracked temporary files created."
+}

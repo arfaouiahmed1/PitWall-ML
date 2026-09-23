@@ -1,0 +1,39 @@
+{
+  "task": "Todo 38 - Verify Persistent Runtime State and MLOps Readiness",
+  "acceptance_criteria": {
+    "persistence_across_restart": "Live weather, event logs, laps, and Parquet data persist across engine restarts; verified by test_relational_data_persists_across_engine_restart with SQLite and PostgreSQL compatibility.",
+    "alembic_migrations": "Alembic migrations configured in src/pitwall/storage/migrations with async env.py, dual dialect support (SQLite batch mode + asyncpg), verified upgrade head -> downgrade base -> upgrade head lifecycle.",
+    "schema_models": "LiveSession, LiveDriverLap, LiveStint, LiveHazardLog, LiveWeatherRecord, and LiveEventRecord defined in src/pitwall/storage/models.py with timezone-aware UTC timestamps.",
+    "truthful_health_reporting": "GET /health reports overall status (ok/degraded), database connection (connected/error), model status (loaded/unloaded), live recorder staleness, and parquet buffer size. Fault injection properly transitions status to degraded.",
+    "no_fake_zeros": "GET /monitoring/overview reports drift_ratio as None (not 0.0) when drift analysis is unavailable or missing reference data.",
+    "prometheus_grafana_alerts": "monitoring/alerts.yml updated with rules for DatabaseConnectionFailed, ModelUnavailable, StaleIngestion, ParquetStorageBufferHigh, and HighEndpointErrorRate."
+  },
+  "verification_commands": [
+    {
+      "command": "uv run pytest tests/unit/test_mlops_persistence.py",
+      "exit_code": 0,
+      "result": "5 passed in 8.86s"
+    },
+    {
+      "command": "uv run alembic upgrade head",
+      "exit_code": 0,
+      "result": "Alembic migrations at head (5357a6487f66)"
+    },
+    {
+      "command": "uv run ruff check tests/unit/test_mlops_persistence.py apps/api/pitwall_api/main.py src/pitwall/storage/db.py src/pitwall/storage/models.py src/pitwall/monitoring/metrics.py",
+      "exit_code": 0,
+      "result": "All checks passed"
+    },
+    {
+      "command": "npx tsx tests/unit/test_api_docs_openapi.ts",
+      "exit_code": 0,
+      "result": "All OpenAPI snapshot and api-docs requirements verified successfully (OpenAPI snapshot synchronized)"
+    }
+  ],
+  "probes": {
+    "stale_state": "All tests executed against newly initialized database fixtures and verified across explicit engine closures.",
+    "dirty_worktree": "Modifications limited to storage models, db helpers, alembic migrations, alerts, main.py health/monitoring, and test suites.",
+    "misleading_success_output": "All commands verified with exit code 0 and actual tool outputs."
+  },
+  "cleanup_receipt": "Test database files created in tmp_path were automatically cleaned up; alembic migration version verified."
+}

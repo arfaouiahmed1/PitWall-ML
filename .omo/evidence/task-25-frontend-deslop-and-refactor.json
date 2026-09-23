@@ -1,0 +1,45 @@
+{
+  "task": "Todo 25 - bind track dominance console to validated sector telemetry",
+  "runtime_requested": "antigravity-gemini-3.8-flash",
+  "runtime_evidence": "The active OpenCode runtime reports antigravity-gemini-3.8-flash.",
+  "baseline": {
+    "component": "TrackDominance.tsx contained MOCK_ROWS (VER, NOR, LEC, RUS, HAM, PIA, ANT) and fell back to them when rows was empty. apps/web/app/page.tsx used ASCII character code hashing `code.charCodeAt(0) % 5` to fabricate sector times.",
+    "baseline_tests": "tests/unit/test_track_dominance.ts created with baseline checks asserting zero MOCK_ROWS, zero charCodeAt hashing, and explicit awaiting state when sector times are unavailable.",
+    "worktree": "Dirty worktree state from other active waves preserved; modifications strictly scoped to TrackDominance.tsx, dominance subcomponents, page.tsx dominance wiring, test_track_dominance.ts, and visual QA scripts."
+  },
+  "red_tests": [
+    "Added assertion prohibiting MOCK_ROWS in TrackDominance.tsx and charCodeAt in page.tsx.",
+    "Initial test run failed on the presence of MOCK_ROWS in TrackDominance.tsx."
+  ],
+  "implementation": {
+    "removed_mock_rows": "Completely removed MOCK_ROWS from TrackDominance.tsx. When rows are empty or sector data is unavailable, the component renders an explicit 'SECTOR TIMING UNAVAILABLE - Awaiting live sector timing from race events' banner.",
+    "removed_ascii_hashing": "Removed `code.charCodeAt(0) % 5` ASCII hashing from apps/web/app/page.tsx. Track dominance rows are now computed strictly from genuine row.sectorTimes deltas against the leader.",
+    "modularization": "Extracted TrackDominanceBenchmarks.tsx and TrackDominanceRow.tsx into apps/web/components/dominance/, keeping all modules under 150 pure LOC.",
+    "zero_slop": "Zero em-dashes across all components; strict adherence to truth-based rendering."
+  },
+  "verification": {
+    "unit_test": {
+      "command": "npx tsx --tsconfig apps/web/tsconfig.json tests/unit/test_track_dominance.ts",
+      "result": "PASS - TrackDominance contract tests verified successfully."
+    },
+    "typecheck": {
+      "command": "cd apps/web && npx tsc --noEmit",
+      "result": "PASS - exit 0, no diagnostics."
+    },
+    "eslint": {
+      "command": "cd apps/web && npx eslint components/TrackDominance.tsx components/dominance/*.tsx app/page.tsx",
+      "result": "PASS - exit 0, no warnings or errors."
+    },
+    "visual_qa_edge": {
+      "command": "npx tsx --tsconfig apps/web/tsconfig.json scripts/visual_qa_track_dominance.ts",
+      "result": "PASS - Edge screenshot captured to .omo/evidence/task-25-track-dominance-edge.png (49208 bytes)."
+    }
+  },
+  "loc_review": {
+    "apps/web/components/TrackDominance.tsx": 145,
+    "apps/web/components/dominance/TrackDominanceBenchmarks.tsx": 48,
+    "apps/web/components/dominance/TrackDominanceRow.tsx": 118,
+    "apps/web/components/dominance/types.ts": 85,
+    "result": "All touched modules are strictly under 250 pure LOC."
+  }
+}

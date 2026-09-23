@@ -1,0 +1,13 @@
+Rule: react-doctor/iframe-missing-sandbox
+Severity: warning
+Category: Security
+Count: 1
+
+Combining `allow-scripts` & `allow-same-origin` lets the iframe remove its own sandbox, defeating the protection.
+
+Suggestion: Add `sandbox=""` or a curated value so embedded pages cannot get full access to your site by default.
+
+Curl with no cache & follow the canonical fix and false positive check recipe before fixing: https://react.doctor/docs/rules/react-doctor/iframe-missing-sandbox
+
+Files:
+  app/api-docs/page.tsx:78

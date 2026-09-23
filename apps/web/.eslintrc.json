@@ -1,3 +1,71 @@
 {
-  "extends": "next/core-web-vitals"
+  "extends": "next/core-web-vitals",
+  "rules": {
+    "no-restricted-imports": [
+      "error",
+      {
+        "patterns": [
+          {
+            "group": ["@radix-ui/*"],
+            "message": "Import UI elements through the local @/components/ui/* primitives instead of Radix directly."
+          }
+        ]
+      }
+    ],
+    "no-restricted-syntax": [
+      "error",
+      {
+        "selector": "JSXText[value=/[—–]/]",
+        "message": "Em-dashes are banned by anti-slop guidelines. Use ASCII hyphen '-' or 'N/A' instead."
+      },
+      {
+        "selector": "TemplateElement[value.raw=/[—–]/]",
+        "message": "Em-dashes are banned by anti-slop guidelines. Use ASCII hyphen '-' or 'N/A' instead."
+      },
+      {
+        "selector": "BinaryExpression[operator=\"%\"] > MemberExpression[property.name=\"driver_number\"]",
+        "message": "Do not use modulo arithmetic on driver numbers. Use live telemetry or deterministic position data instead."
+      },
+      {
+        "selector": "BinaryExpression[operator=\"%\"] > MemberExpression[computed=true][property.value=\"driver_number\"]",
+        "message": "Do not use modulo arithmetic on driver numbers. Use live telemetry or deterministic position data instead."
+      }
+    ]
+  },
+  "overrides": [
+    {
+      "files": ["components/ui/**/*.{ts,tsx}"],
+      "rules": {
+        "no-restricted-imports": "off"
+      }
+    },
+    {
+      "files": ["app/**/page.tsx"],
+      "rules": {
+        "no-restricted-syntax": [
+          "error",
+          {
+            "selector": "JSXText[value=/[—–]/]",
+            "message": "Em-dashes are banned by anti-slop guidelines. Use ASCII hyphen '-' or 'N/A' instead."
+          },
+          {
+            "selector": "TemplateElement[value.raw=/[—–]/]",
+            "message": "Em-dashes are banned by anti-slop guidelines. Use ASCII hyphen '-' or 'N/A' instead."
+          },
+          {
+            "selector": "BinaryExpression[operator=\"%\"] > MemberExpression[property.name=\"driver_number\"]",
+            "message": "Do not use modulo arithmetic on driver numbers. Use live telemetry or deterministic position data instead."
+          },
+          {
+            "selector": "BinaryExpression[operator=\"%\"] > MemberExpression[computed=true][property.value=\"driver_number\"]",
+            "message": "Do not use modulo arithmetic on driver numbers. Use live telemetry or deterministic position data instead."
+          },
+          {
+            "selector": "VariableDeclarator[id.name=/MOCK/i]",
+            "message": "Hardcoded mock constants are banned in page files. Fetch live data or use an explicitly typed offline fixture."
+          }
+        ]
+      }
+    }
+  ]
 }

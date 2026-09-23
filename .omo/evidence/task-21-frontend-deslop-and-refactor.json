@@ -1,0 +1,52 @@
+{
+  "timestamp": "2026-09-22T21:56:03Z",
+  "components": [
+    "apps/web/components/charts/FeatureWaterfallChart.tsx",
+    "apps/web/components/charts/CalibrationCurveChart.tsx"
+  ],
+  "contracts": {
+    "localShap": "Signed contributions plus baseline render cumulatively.",
+    "globalImportance": "Global values render as rankings sorted descending by importance; stable sort preserves source order for ties. They are never local lap-time deltas.",
+    "calibration": "Only supplied empirical nominal/observed points render. The 80% target appears only for a supplied nominal 0.8 measurement."
+  },
+  "testCommand": "From apps/web: $env:NODE_PATH='node_modules'; npx tsx ../../tests/unit/test_model_charts.ts",
+  "testResult": "passed after adding a deliberately unsorted global importance regression fixture; the test first failed specifically on descending rank order, then passed after renderer sorting.",
+  "testCoverage": [
+    "positive and negative signed contributions",
+    "empty local contribution state",
+    "global ranking labeling and descending magnitude order (90, 47, 12 from deliberately unsorted input)",
+    "extreme and non-finite input filtering",
+    "empirical point-only calibration",
+    "conditional 80% target display",
+    "empty calibration state without NaN"
+  ],
+  "typecheck": {
+    "command": "From apps/web: npx tsc --noEmit",
+    "result": "passed (exit code 0; no diagnostics)"
+  },
+  "componentLint": {
+    "command": "From apps/web: npx eslint components/charts/FeatureWaterfallChart.tsx components/charts/CalibrationCurveChart.tsx",
+    "result": "passed (exit code 0; no diagnostics)"
+  },
+  "repositoryLint": {
+    "command": "cd apps/web && npm run lint",
+    "result": "blocked by pre-existing app/page.tsx driver-number modulo ESLint error and unrelated warnings"
+  },
+  "build": {
+    "command": "cd apps/web && npm run build",
+    "result": "application compiled; final lint gate blocked by the same pre-existing app/page.tsx error"
+  },
+  "browserArtifact": ".omo/evidence/task-21-models-page.png",
+  "browserBaseline": "The existing models page visibly renders fabricated local waterfall and calibration values. Todo 21 intentionally does not integrate or edit that page; Todo 27 owns consumers.",
+  "probes": {
+    "browser": "Blocked: Playwright could not initialize because Chrome is absent at the configured Windows path. No browser visual QA is claimed.",
+    "stale_state": "Baseline artifact was first captured from a stale server on port 3000 and showed the Track Limits 404. Repeated against the server started from apps/web on port 3001, which rendered the models route.",
+    "dirty_worktree": "Detected existing concurrent modified and untracked work across the repository. This task edited only apps/web/components/charts/FeatureWaterfallChart.tsx, tests/unit/test_model_charts.ts, and this evidence record. CalibrationCurveChart was reviewed and left unchanged; Todo 27 models page was not edited.",
+    "misleading_success_output": "Full lint/build did not silently pass. Both report the known app/page.tsx modulo rule failure; component-scoped lint and strict typecheck pass."
+  },
+  "pureLoc": {
+    "FeatureWaterfallChart": 127,
+    "CalibrationCurveChart": 59,
+    "test_model_charts": 63
+  }
+}

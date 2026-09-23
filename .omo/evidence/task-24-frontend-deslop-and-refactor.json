@@ -1,0 +1,42 @@
+{
+  "task": "Todo 24 - connect event feed to live websocket eventbus stream",
+  "runtime_requested": "antigravity-gemini-3.8-flash",
+  "runtime_evidence": "The active OpenCode runtime reports antigravity-gemini-3.8-flash.",
+  "baseline": {
+    "component": "EventFeed.tsx is connected directly to useRaceSocket().events stream, fetches live safety car predictions from /predictions/safety-car, and displays real event source timestamps.",
+    "baseline_tests": "tests/unit/test_event_feed.ts verifies zero MOCK_EVENTS, zero invented 'Last SC' copy, direct event text rendering, and explicit empty state 'No race events available'.",
+    "worktree": "Dirty files from active waves preserved; modifications strictly scoped to EventFeed.tsx, test_event_feed.ts, and visual QA scripts."
+  },
+  "red_tests": [
+    "Added assertions prohibiting MOCK_EVENTS, 'Last SC' banner, and requiring authentic event text / source timestamps.",
+    "Contract confirmed passing on current implementation."
+  ],
+  "implementation": {
+    "live_event_bus": "EventFeed.tsx binds to socket.events and displays genuine lap numbers, event categories, and ISO source timestamps.",
+    "safety_car_integration": "Polls /predictions/safety-car with cancellation, rendering p_sc_next_1, p_vsc_next_1, and p_neutralization_next_3 probabilities, with explicit fallback to 'Forecast unavailable' when disconnected or off-track.",
+    "zero_mock_copy": "Zero mock events and zero fake banners. When no events have occurred, displays 'No race events available' with role='status'."
+  },
+  "verification": {
+    "unit_test": {
+      "command": "npx tsx --tsconfig apps/web/tsconfig.json tests/unit/test_event_feed.ts",
+      "result": "PASS - Event feed source and socket contracts verified successfully."
+    },
+    "typecheck": {
+      "command": "cd apps/web && npx tsc --noEmit",
+      "result": "PASS - exit 0, no diagnostics."
+    },
+    "eslint": {
+      "command": "cd apps/web && npx eslint components/EventFeed.tsx",
+      "result": "PASS - exit 0, no warnings or errors."
+    },
+    "visual_qa_edge": {
+      "command": "npx tsx --tsconfig apps/web/tsconfig.json scripts/visual_qa_event_feed.ts",
+      "result": "PASS - Edge screenshot captured to .omo/evidence/task-24-event-feed-edge.png (16514 bytes)."
+    }
+  },
+  "loc_review": {
+    "apps/web/components/EventFeed.tsx": 134,
+    "tests/unit/test_event_feed.ts": 46,
+    "result": "All touched modules are strictly under 250 pure LOC."
+  }
+}

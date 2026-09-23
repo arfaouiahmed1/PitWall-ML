@@ -1,180 +1,138 @@
 "use client";
 
 // PitWall ML - Real Live Track Weather Engine
-// Fetches live atmospheric telemetry from OpenF1 timing transponders when sessions are active,
-// and real-time live meteorological telemetry via Open-Meteo for each circuit's exact GPS coordinates.
+// Fetches persisted atmospheric telemetry from backend database storage (/weather/latest).
+// When offline or unrecorded, surfaces explicit unavailable/stale status with source timestamps.
 
 import { useEffect, useState } from "react";
-import { fetchJson, startPoller } from "@/lib/fetcher";
+import { API_URL, fetchJson, startPoller } from "@/lib/api";
 
 export type LiveWeatherData = {
-  airTempC: number;
-  trackTempC: number;
-  humidityPct: number;
-  pressureMbar: number;
-  windSpeedKmh: number;
-  windDeg: number;
-  rainfallProb: number;
-  precipHours: number[];
-  condition: string;
-  source: string;
-  isLive: boolean;
-  timestamp: string;
+  readonly available: boolean;
+  readonly reason: string | null;
+  readonly airTempC: number | null;
+  readonly trackTempC: number | null;
+  readonly humidityPct: number | null;
+  readonly pressureMbar: number | null;
+  readonly windSpeedKmh: number | null;
+  readonly windDeg: number | null;
+  readonly rainfallMm: number | null;
+  readonly rainfallProb: number | null;
+  readonly condition: string;
+  readonly source: string;
+  readonly provenance: "OPENF1" | "DB" | "STALE" | "UNAVAILABLE";
+  readonly sourceTimestamp: string | null;
+  readonly dataAgeSeconds: number | null;
+  readonly stale: boolean;
 };
 
-// Exact FIA Grand Prix Circuit GPS coordinates
-export const CIRCUIT_COORDINATES: Record<string, { lat: number; lon: number; name: string }> = {
-  melbourne:   { lat: -37.8497, lon: 144.9680, name: "Albert Park Circuit" },
-  shanghai:    { lat: 31.3389,  lon: 121.2200, name: "Shanghai International Circuit" },
-  suzuka:      { lat: 34.8431,  lon: 136.5410, name: "Suzuka International Racing Course" },
-  bahrain:     { lat: 26.0325,  lon: 50.5106,  name: "Bahrain International Circuit" },
-  jeddah:      { lat: 21.6319,  lon: 39.1044,  name: "Jeddah Corniche Circuit" },
-  miami:       { lat: 25.9580,  lon: -80.2389, name: "Miami International Autodrome" },
-  imola:       { lat: 44.3439,  lon: 11.7167,  name: "Autodromo Enzo e Dino Ferrari" },
-  monaco:      { lat: 43.7347,  lon: 7.4206,   name: "Circuit de Monaco" },
-  barcelona:   { lat: 41.5700,  lon: 2.2611,   name: "Circuit de Barcelona-Catalunya" },
-  madrid:      { lat: 40.4637,  lon: -3.6186,  name: "Circuito de Madrid IFEMA" },
-  montreal:    { lat: 45.5000,  lon: -73.5228, name: "Circuit Gilles Villeneuve" },
-  austria:     { lat: 47.2197,  lon: 14.7647,  name: "Red Bull Ring Spielberg" },
-  silverstone: { lat: 52.0786,  lon: -1.0169,  name: "Silverstone Circuit" },
-  spa:         { lat: 50.4372,  lon: 5.9714,   name: "Circuit de Spa-Francorchamps" },
-  hungaroring: { lat: 47.5830,  lon: 19.2486,  name: "Hungaroring" },
-  zandvoort:   { lat: 52.3888,  lon: 4.5409,   name: "Circuit Zandvoort" },
-  monza:       { lat: 45.6206,  lon: 9.2811,   name: "Autodromo Nazionale Monza" },
-  baku:        { lat: 40.3725,  lon: 49.8533,  name: "Baku City Circuit" },
-  singapore:   { lat: 1.2914,   lon: 103.8640, name: "Marina Bay Street Circuit" },
-  cota:        { lat: 30.1328,  lon: -97.6411, name: "Circuit of the Americas" },
-  mexico:      { lat: 19.4042,  lon: -99.0907, name: "Autodromo Hermanos Rodriguez" },
-  interlagos:  { lat: -23.7036, lon: -46.6997, name: "Autodromo Jose Carlos Pace" },
-  lasvegas:    { lat: 36.1147,  lon: -115.1728,name: "Las Vegas Strip Circuit" },
-  lusail:      { lat: 25.4900,  lon: 51.4542,  name: "Lusail International Circuit" },
-  yasmarina:   { lat: 24.4672,  lon: 54.6031,  name: "Yas Marina Circuit" },
+export const UNAVAILABLE_LIVE_WEATHER: LiveWeatherData = {
+  available: false,
+  reason: "Awaiting live weather stream",
+  airTempC: null,
+  trackTempC: null,
+  humidityPct: null,
+  pressureMbar: null,
+  windSpeedKmh: null,
+  windDeg: null,
+  rainfallMm: null,
+  rainfallProb: null,
+  condition: "Unavailable",
+  source: "Database Live Storage",
+  provenance: "UNAVAILABLE",
+  sourceTimestamp: null,
+  dataAgeSeconds: null,
+  stale: true,
 };
 
-function weatherConditionFromWmo(code: number): string {
-  if (code === 0) return "Clear sky";
-  if (code <= 3) return "Partly cloudy";
-  if (code <= 48) return "Overcast / Fog";
-  if (code <= 55) return "Light drizzle";
-  if (code <= 65) return "Rain";
-  if (code <= 82) return "Heavy rain showers";
-  if (code >= 95) return "Thunderstorm";
-  return "Clear";
-}
-
-export const DEFAULT_LIVE_WEATHER: LiveWeatherData = {
-  airTempC: 25.8,
-  trackTempC: 37.2,
-  humidityPct: 54,
-  pressureMbar: 1014,
-  windSpeedKmh: 14.2,
-  windDeg: 195,
-  rainfallProb: 0.12,
-  precipHours: [0.05, 0.08, 0.10, 0.12, 0.15, 0.10, 0.05, 0.02],
-  condition: "Partly cloudy",
-  source: "Telemetry Baseline",
-  isLive: false,
-  timestamp: new Date().toISOString(),
-};
-
-/** Minimal Open-Meteo forecast shape used by fetchCircuitWeather. */
-type OpenMeteoResponse = {
-  current?: {
-    time?: string;
-    temperature_2m?: number;
-    relative_humidity_2m?: number;
-    surface_pressure?: number;
-    wind_speed_10m?: number;
-    wind_direction_10m?: number;
-    weather_code?: number;
-  };
-  hourly?: { precipitation_probability?: number[] };
+type WeatherApiResponse = {
+  status: "available" | "unavailable";
+  reason?: string;
+  session_id?: string;
+  weather?: {
+    session_id?: string;
+    air_temp_c?: number | null;
+    track_temp_c?: number | null;
+    humidity_pct?: number | null;
+    pressure_mbar?: number | null;
+    wind_speed_kmh?: number | null;
+    wind_dir_deg?: number | null;
+    rainfall_mm?: number | null;
+    rainfall_prob?: number | null;
+    source_timestamp?: string | null;
+  } | null;
+  source_timestamp?: string | null;
+  provenance?: "OPENF1" | "DB" | "STALE" | "UNAVAILABLE";
+  data_age_seconds?: number | null;
+  stale?: boolean;
 };
 
 /**
- * Fetch live meteorological telemetry for any circuit.
- * Prioritizes OpenF1 live transponder feed; seamlessly falls back to Open-Meteo GPS weather station.
+ * Fetch persisted meteorological telemetry for a session from the backend database.
  */
-export async function fetchCircuitWeather(circuitId: string): Promise<LiveWeatherData> {
-  // 1. Try OpenF1 live weather via the shared fetcher (2.5s timeout).
-  const openF1 = await fetchJson<Record<string, unknown>[]>(
-    "https://api.openf1.org/v1/weather?session_key=latest",
-    {},
-    { timeoutMs: 2500 }
-  );
-  if (openF1 && openF1.length > 0) {
-    const latest = openF1[openF1.length - 1];
-    const airT = latest.air_temperature;
-    const trackT = latest.track_temperature;
-    if (typeof airT === "number" && typeof trackT === "number") {
-      return {
-        airTempC: Number(airT.toFixed(1)),
-        trackTempC: Number(trackT.toFixed(1)),
-        humidityPct: Math.round(typeof latest.humidity === "number" ? latest.humidity : 50),
-        pressureMbar: Math.round(typeof latest.pressure === "number" ? latest.pressure : 1013),
-        windSpeedKmh: Number(((typeof latest.wind_speed === "number" ? latest.wind_speed : 3.5) * 3.6).toFixed(1)),
-        windDeg: Math.round(typeof latest.wind_direction === "number" ? latest.wind_direction : 180),
-        rainfallProb: latest.rainfall ? 0.95 : 0.05,
-        precipHours: [0.02, 0.05, 0.08, 0.12, 0.1, 0.06, 0.04, 0.02],
-        condition: latest.rainfall ? "Rain on track" : "Track dry",
-        source: "OpenF1 Live Timing",
-        isLive: true,
-        timestamp: typeof latest.date === "string" ? latest.date : new Date().toISOString(),
-      };
-    }
-  }
-
-  // 2. Fetch live real-time weather from Open-Meteo by GPS coordinates (3.5s timeout).
-  const coords = CIRCUIT_COORDINATES[circuitId] ?? CIRCUIT_COORDINATES.barcelona;
-  const meteo = await fetchJson<OpenMeteoResponse>(
-    `https://api.open-meteo.com/v1/forecast?latitude=${coords.lat}&longitude=${coords.lon}&current=temperature_2m,relative_humidity_2m,surface_pressure,wind_speed_10m,wind_direction_10m,precipitation,weather_code&hourly=precipitation_probability&forecast_days=1`,
-    {},
-    { timeoutMs: 3500 }
-  );
-  const current = meteo?.current;
-  if (current && typeof current.temperature_2m === "number") {
-    const air = Number(current.temperature_2m.toFixed(1));
-    // Track surface temperature model: air temp + solar load offset (approx +10 to +14 deg C in daytime)
-    const isDaytime = new Date().getUTCHours() >= 6 && new Date().getUTCHours() <= 18;
-    const trackOffset = isDaytime ? 11.8 : 1.5;
-    const track = Number((air + trackOffset).toFixed(1));
-    const probs = meteo?.hourly?.precipitation_probability;
-    const rainProb = (Array.isArray(probs) && typeof probs[0] === "number" ? probs[0] : 0) / 100;
-    const precipSlice = (Array.isArray(probs) && probs.length ? probs : [5, 10, 15, 20, 25, 15, 10, 5])
-      .slice(0, 8)
-      .map((v) => (typeof v === "number" ? v : 0) / 100);
+export async function fetchCircuitWeather(sessionId?: string): Promise<LiveWeatherData> {
+  if (!API_URL) {
     return {
-      airTempC: air,
-      trackTempC: track,
-      humidityPct: Math.round(current.relative_humidity_2m ?? 50),
-      pressureMbar: Math.round(current.surface_pressure ?? 1013),
-      windSpeedKmh: Number((current.wind_speed_10m ?? 0).toFixed(1)),
-      windDeg: Math.round(current.wind_direction_10m ?? 180),
-      rainfallProb: rainProb,
-      precipHours: precipSlice,
-      condition: weatherConditionFromWmo(current.weather_code ?? 0),
-      source: `Live Station : ${coords.name}`,
-      isLive: true,
-      timestamp: current.time ?? new Date().toISOString(),
+      ...UNAVAILABLE_LIVE_WEATHER,
+      reason: "API not configured",
     };
   }
 
-  return DEFAULT_LIVE_WEATHER;
+  const endpoint = sessionId
+    ? `${API_URL}/weather/latest?session_id=${encodeURIComponent(sessionId)}`
+    : `${API_URL}/weather/latest`;
+
+  const res = await fetchJson<WeatherApiResponse>(endpoint, {}, { timeoutMs: 3000 });
+  if (!res || res.status !== "available" || !res.weather) {
+    return {
+      ...UNAVAILABLE_LIVE_WEATHER,
+      reason: res?.reason || "no_weather_records_for_session",
+    };
+  }
+
+  const w = res.weather;
+  const isRain =
+    (w.rainfall_mm != null && w.rainfall_mm > 0) ||
+    (w.rainfall_prob != null && w.rainfall_prob > 0.5);
+  const condition = isRain ? "Rain on track" : "Track dry";
+
+  return {
+    available: true,
+    reason: null,
+    airTempC: w.air_temp_c != null ? Number(w.air_temp_c.toFixed(1)) : null,
+    trackTempC: w.track_temp_c != null ? Number(w.track_temp_c.toFixed(1)) : null,
+    humidityPct: w.humidity_pct != null ? Math.round(w.humidity_pct) : null,
+    pressureMbar: w.pressure_mbar != null ? Math.round(w.pressure_mbar) : null,
+    windSpeedKmh: w.wind_speed_kmh != null ? Number(w.wind_speed_kmh.toFixed(1)) : null,
+    windDeg: w.wind_dir_deg != null ? Math.round(w.wind_dir_deg) : null,
+    rainfallMm: w.rainfall_mm != null ? Number(w.rainfall_mm.toFixed(2)) : null,
+    rainfallProb:
+      w.rainfall_prob != null
+        ? Number(w.rainfall_prob.toFixed(2))
+        : isRain
+          ? 1.0
+          : 0.0,
+    condition,
+    source: "Persisted DB Stream",
+    provenance: res.provenance || "OPENF1",
+    sourceTimestamp: res.source_timestamp || w.source_timestamp || null,
+    dataAgeSeconds: res.data_age_seconds ?? null,
+    stale: res.stale ?? false,
+  };
 }
 
 /**
- * React hook for live track weather
+ * React hook for live track weather queried from backend database storage.
  */
-export function useLiveWeather(circuitId = "barcelona") {
-  const [weather, setWeather] = useState<LiveWeatherData>(DEFAULT_LIVE_WEATHER);
+export function useLiveWeather(sessionId?: string) {
+  const [weather, setWeather] = useState<LiveWeatherData>(UNAVAILABLE_LIVE_WEATHER);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
-    setLoading(true);
 
     const load = async () => {
-      const data = await fetchCircuitWeather(circuitId);
+      const data = await fetchCircuitWeather(sessionId);
       if (!cancelled) {
         setWeather(data);
         setLoading(false);
@@ -182,13 +140,13 @@ export function useLiveWeather(circuitId = "barcelona") {
     };
 
     load();
-    // Poll real live weather every 45 seconds, paused while the tab is hidden.
-    const stop = startPoller(load, 45000);
+    // Poll persisted live weather every 10 seconds.
+    const stop = startPoller(load, 10000);
     return () => {
       cancelled = true;
       stop();
     };
-  }, [circuitId]);
+  }, [sessionId]);
 
   return { weather, loading };
 }

@@ -1,0 +1,13 @@
+Rule: react-doctor/rerender-state-only-in-handlers
+Severity: warning
+Category: Performance
+Count: 1
+
+Each update to "usedLocalSim" redraws your component for nothing because this useState is set but never shown on screen.
+
+Suggestion: Use useRef instead of useState when the value is only set and never shown on screen. `ref.current = ...` updates it without redrawing the component.
+
+Curl with no cache & follow the canonical fix and false positive check recipe before fixing: https://react.doctor/docs/rules/react-doctor/rerender-state-only-in-handlers
+
+Files:
+  app/strategy/page.tsx:91

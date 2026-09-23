@@ -70,28 +70,39 @@ export default function RacePage() {
     setSpeed(s);
   };
 
-  const baseRows: RaceRow[] = snapshot.rows.length > 0 ? snapshot.rows : [];
+  const baseRows: RaceRow[] = useMemo(() => (snapshot.rows.length > 0 ? snapshot.rows : []), [snapshot.rows]);
 
   const dots: DriverDot[] = useMemo(() => {
     return baseRows.slice(0, 10).map((row) => {
       const gapNum = row.gap === "LEADER" ? 0 : Number((row.gap ?? "0").replace("+", "")) || 0;
-      // leader near 0.88 progress, others spaced back
-      const progress = Math.max(0, Math.min(0.99, 0.88 - gapNum * 0.018 - (row.driver_number % 7) * 0.003));
+      const progress = Math.max(0, Math.min(0.99, 0.88 - gapNum * 0.018));
       return { driverNumber: row.driver_number, code: row.code ?? String(row.driver_number), color: row.color ?? "#243447", progress };
     });
   }, [baseRows]);
 
   const dominanceRows: DominanceRow[] = useMemo(() => {
-    return baseRows.slice(0, 5).map((row) => {
-      const total = row.gap === "LEADER" ? 0 : Number((row.gap ?? "0").replace("+", "")) || 0;
-      const code = row.code ?? String(row.driver_number);
-      const color = row.color ?? "#243447";
-      // split total gap across sectors with slight variance
-      const s1 = total * (0.32 + ((code.charCodeAt(0) % 5) - 2) * 0.018);
-      const s2 = total * (0.41 + ((code.charCodeAt(1) % 5) - 2) * 0.018);
-      const s3 = Math.max(0, total - s1 - s2);
-      return { code, color, s1: Number(s1.toFixed(2)), s2: Number(s2.toFixed(2)), s3: Number(s3.toFixed(2)), total: Number(total.toFixed(2)) };
-    });
+    const leader = baseRows.find((r) => r.position === 1) ?? baseRows[0];
+    if (!leader?.sectorTimes) return [];
+
+    const result: DominanceRow[] = [];
+    for (const row of baseRows.slice(0, 10)) {
+      if (!row.sectorTimes) continue;
+      const s1 = Number((row.sectorTimes.s1 - leader.sectorTimes.s1).toFixed(3));
+      const s2 = Number((row.sectorTimes.s2 - leader.sectorTimes.s2).toFixed(3));
+      const s3 = Number((row.sectorTimes.s3 - leader.sectorTimes.s3).toFixed(3));
+      const total = Number((s1 + s2 + s3).toFixed(3));
+      result.push({
+        code: row.code ?? String(row.driver_number),
+        driverNumber: row.driver_number,
+        color: row.color ?? "#243447",
+        team: row.team,
+        s1,
+        s2,
+        s3,
+        total,
+      });
+    }
+    return result;
   }, [baseRows]);
 
   const battlePair = useMemo(() => {

@@ -1,0 +1,13 @@
+Rule: react-doctor/rendering-script-defer-async
+Severity: warning
+Category: Performance
+Count: 1
+
+This blocks the page from loading until the script downloads because <script src> has no defer or async, so add defer for scripts that need the page, or async for standalone ones
+
+Suggestion: Add `defer` for scripts that need the page, or `async` for standalone ones like analytics. In Next.js, use `<Script strategy="afterInteractive" />`
+
+Curl with no cache & follow the canonical fix and false positive check recipe before fixing: https://react.doctor/docs/rules/react-doctor/rendering-script-defer-async
+
+Files:
+  app/layout.tsx:32

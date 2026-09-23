@@ -1,0 +1,57 @@
+{
+  "route": "/design-system",
+  "externalDevelopmentInstrumentationStubbed": true,
+  "captures": [
+    {
+      "width": 375,
+      "height": 844,
+      "name": "showcase-rendered-375x844.png",
+      "title": "PitWall ML component showcase",
+      "bodyHasContent": true,
+      "horizontalOverflow": false,
+      "errorOverlay": false,
+      "errors": []
+    },
+    {
+      "width": 768,
+      "height": 1024,
+      "name": "showcase-rendered-768x1024.png",
+      "title": "PitWall ML component showcase",
+      "bodyHasContent": true,
+      "horizontalOverflow": false,
+      "errorOverlay": false,
+      "errors": []
+    },
+    {
+      "width": 1440,
+      "height": 1024,
+      "name": "showcase-rendered-1440x1024.png",
+      "title": "PitWall ML component showcase",
+      "bodyHasContent": true,
+      "horizontalOverflow": false,
+      "errorOverlay": false,
+      "errors": []
+    }
+  ],
+  "interactions": {
+    "keyboardFocus": {
+      "focusedName": "Open control guidance",
+      "outlineStyle": "solid"
+    },
+    "dialog": {
+      "visible": true,
+      "closedWithEscape": true
+    },
+    "menu": {
+      "visible": true,
+      "disabledItem": true
+    },
+    "empty": {
+      "visible": true
+    },
+    "error": {
+      "visible": true
+    }
+  },
+  "consoleErrors": []
+}

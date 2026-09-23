@@ -1,0 +1,21 @@
+Usage: next build [directory] [options]
+
+Creates an optimized production build of your application. The output displays
+information about each route.
+
+Arguments:
+  [directory]                              A directory on which to build the application. If no directory is provided, the current directory will be used.
+
+Options:
+  -d, --debug                              Enables a more verbose build output.
+  --debug-prerender                        Enables debug mode for prerendering. Not for production use!
+  --no-lint                                Disables linting.
+  --no-mangling                            Disables mangling.
+  --profile                                Enables production profiling for React.
+  --experimental-app-only                  Builds only App Router routes.
+  --turbo                                  Starts development mode using Turbopack.
+  --turbopack                              Starts development mode using Turbopack.
+  --experimental-build-mode [mode]         Uses an experimental build mode. (choices: "compile", "generate", "generate-env", default: "default")
+  --experimental-debug-memory-usage        Enables memory profiling features to debug memory consumption.
+  --experimental-upload-trace, <traceUrl>  Reports a subset of the debugging trace to a remote HTTP URL. Includes sensitive data.
+  -h, --help                               Displays this message.

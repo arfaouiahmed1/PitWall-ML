@@ -1,0 +1,6 @@
+{
+  "command": "npx --no-install next build --help",
+  "exitCode": 0,
+  "supportsDistDir": false,
+  "result": "Next 15.5.21 build CLI does not support --dist-dir"
+}

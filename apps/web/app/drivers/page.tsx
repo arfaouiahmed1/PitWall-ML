@@ -5,49 +5,7 @@ import { DRIVER_FALLBACK, useDrivers } from "@/lib/drivers";
 import { TelemetryOverlay } from "@/components/TelemetryOverlay";
 import { CarTopView } from "@/components/CarRenders";
 import { DriverAvatar } from "@/components/DriverAvatar";
-type Radar = { highSpeed: number; lowSpeed: number; traction: number; tyreConservation: number; energyEfficiency: number; reliability: number };
-const RADAR_MOCK: Record<number, Radar> = {
-  1: { highSpeed: 96, lowSpeed: 88, traction: 91, tyreConservation: 84, energyEfficiency: 78, reliability: 93 },
-  4: { highSpeed: 92, lowSpeed: 94, traction: 88, tyreConservation: 90, energyEfficiency: 86, reliability: 89 },
-  16: { highSpeed: 89, lowSpeed: 91, traction: 85, tyreConservation: 82, energyEfficiency: 80, reliability: 84 },
-  63: { highSpeed: 90, lowSpeed: 87, traction: 86, tyreConservation: 88, energyEfficiency: 88, reliability: 90 },
-  44: { highSpeed: 88, lowSpeed: 92, traction: 90, tyreConservation: 93, energyEfficiency: 82, reliability: 91 },
-  81: { highSpeed: 91, lowSpeed: 90, traction: 87, tyreConservation: 86, energyEfficiency: 84, reliability: 88 },
-  55: { highSpeed: 87, lowSpeed: 85, traction: 84, tyreConservation: 80, energyEfficiency: 79, reliability: 82 },
-  12: { highSpeed: 85, lowSpeed: 83, traction: 82, tyreConservation: 78, energyEfficiency: 81, reliability: 80 },
-};
-
-function RadarChart({ radar, color }: { radar: Radar; color: string }) {
-  const keys: (keyof Radar)[] = ["highSpeed", "lowSpeed", "traction", "tyreConservation", "energyEfficiency", "reliability"];
-  const labels: Record<string, string> = { highSpeed: "High Spd", lowSpeed: "Low Spd", traction: "Traction", tyreConservation: "Tyre", energyEfficiency: "Energy", reliability: "Reliability" };
-  const cx = 80, cy = 80, r = 62;
-  const angle = (i: number) => (Math.PI * 2 * i) / keys.length - Math.PI / 2;
-  const point = (value: number, i: number) => {
-    const a = angle(i);
-    const rad = (value / 100) * r;
-    return `${cx + Math.cos(a) * rad},${cy + Math.sin(a) * rad}`;
-  };
-  const polygon = keys.map((k, i) => point(radar[k], i)).join(" ");
-  const gridLevels = [20, 40, 60, 80, 100];
-  return (
-    <svg viewBox="0 0 160 160" className="w-full h-[160px]">
-      {gridLevels.map((lvl) => (
-        <polygon key={lvl} points={keys.map((_, i) => point(lvl, i)).join(" ")} fill="none" stroke="#1e293b" strokeWidth={0.8} opacity={0.7} />
-      ))}
-      {keys.map((_, i) => {
-        const a = angle(i);
-        return <line key={i} x1={cx} y1={cy} x2={cx + Math.cos(a) * r} y2={cy + Math.sin(a) * r} stroke="#1e293b" strokeWidth={0.8} />;
-      })}
-      <polygon points={polygon} fill={color} fillOpacity={0.22} stroke={color} strokeWidth={2} />
-      {keys.map((k, i) => {
-        const a = angle(i);
-        const x = cx + Math.cos(a) * (r + 14);
-        const y = cy + Math.sin(a) * (r + 14);
-        return <text key={k} x={x} y={y} fontSize={6.5} textAnchor="middle" dominantBaseline="middle" fill="#8b9bb4">{labels[k]}</text>;
-      })}
-    </svg>
-  );
-}
+import { PerformanceRadarChart } from "@/components/charts/PerformanceRadarChart";
 
 export default function DriversPage() {
   const liveDrivers = useDrivers();
@@ -64,14 +22,12 @@ export default function DriversPage() {
 
   const infoA = all.find((x) => x.num === a)?.info ?? DRIVER_FALLBACK[a];
   const infoB = all.find((x) => x.num === b)?.info ?? DRIVER_FALLBACK[b];
-  const radarA = RADAR_MOCK[a] ?? { highSpeed: 82, lowSpeed: 82, traction: 82, tyreConservation: 82, energyEfficiency: 82, reliability: 82 };
-  const radarB = RADAR_MOCK[b] ?? { highSpeed: 78, lowSpeed: 78, traction: 78, tyreConservation: 78, energyEfficiency: 78, reliability: 78 };
 
   return (
     <div className="space-y-6">
       <div className="rounded-xl bg-pitwall-card border border-pitwall-border p-6">
         <h1 className="text-xl font-black tracking-tight">DRIVER TELEMETRY • HEAD-TO-HEAD</h1>
-        <p className="text-xs text-pitwall-muted mt-1">Dual-driver speed • throttle • brake • gear • DRS / X-Mode overlay + PerformanceVector radar. Click a driver card to open detail.</p>
+        <p className="text-xs text-pitwall-muted mt-1">Compare timestamped source telemetry. Driver identity and car imagery are roster references; team-car profiles are not driver measurements.</p>
       </div>
 
       <div className="grid grid-cols-12 gap-4">
@@ -115,8 +71,8 @@ export default function DriversPage() {
 
           <div className="grid grid-cols-2 gap-4">
             {[
-              { info: infoA, radar: radarA, label: "A" },
-              { info: infoB, radar: radarB, label: "B" },
+              { info: infoA, label: "A" },
+              { info: infoB, label: "B" },
             ].map((x) => (
               <div key={x.label} className="rounded-xl bg-pitwall-card border border-pitwall-border p-4">
                 <div className="flex items-center gap-3">
@@ -128,12 +84,7 @@ export default function DriversPage() {
                   <span className="ml-auto text-[10px] px-2 py-1 rounded-full bg-pitwall-bg border border-pitwall-border font-mono">{x.label}</span>
                 </div>
                 <div className="mt-3 bg-pitwall-bg rounded-lg border border-pitwall-border p-2">
-                  <RadarChart radar={x.radar} color={x.info?.color ?? "#ff8000"} />
-                </div>
-                <div className="mt-2 grid grid-cols-3 gap-2 text-[10px] font-mono">
-                  <div className="bg-pitwall-bg border border-pitwall-border rounded px-2 py-1 text-center"><div className="text-pitwall-muted">High Spd</div><div className="font-bold">{x.radar.highSpeed}</div></div>
-                  <div className="bg-pitwall-bg border border-pitwall-border rounded px-2 py-1 text-center"><div className="text-pitwall-muted">Tyre</div><div className="font-bold">{x.radar.tyreConservation}</div></div>
-                  <div className="bg-pitwall-bg border border-pitwall-border rounded px-2 py-1 text-center"><div className="text-pitwall-muted">Energy</div><div className="font-bold">{x.radar.energyEfficiency}</div></div>
+                  <PerformanceRadarChart series={[]} title={`${x.info?.team ?? "Team"} team-level car profile`} />
                 </div>
                 <Link href={`/drivers/${x.label === "A" ? a : b}`} className="mt-3 block text-center text-xs py-2 rounded-lg bg-pitwall-border text-pitwall-muted border border-pitwall-edge hover:text-white">View detail →</Link>
               </div>
@@ -142,31 +93,7 @@ export default function DriversPage() {
 
           <div className="rounded-xl bg-pitwall-card border border-pitwall-border p-4">
             <div className="text-[11px] tracking-widest text-pitwall-muted font-bold">CORNER DELTA ANALYSIS</div>
-            <div className="mt-3 grid grid-cols-3 gap-3 text-xs">
-              <div className="bg-pitwall-bg border border-pitwall-border rounded-lg p-3">
-                <div className="text-pitwall-muted text-[10px]">SPEED AT APEX</div>
-                <div className="font-mono font-bold mt-1">
-                  {infoA?.code} {138 + Math.round((radarA.lowSpeed - radarB.lowSpeed) * 0.5)} km/h vs {infoB?.code} 138 km/h • Δ {radarA.lowSpeed >= radarB.lowSpeed ? "+" : ""}{Math.round((radarA.lowSpeed - radarB.lowSpeed) * 0.5)}
-                </div>
-                <div className="text-[10px] text-pitwall-green">
-                  {radarA.lowSpeed >= radarB.lowSpeed ? `${infoA?.code} carries more apex speed` : `${infoB?.code} carries more apex speed`}
-                </div>
-              </div>
-              <div className="bg-pitwall-bg border border-pitwall-border rounded-lg p-3">
-                <div className="text-pitwall-muted text-[10px]">BRAKING POINT</div>
-                <div className="font-mono font-bold mt-1">
-                  {radarB.traction >= radarA.traction ? infoB?.code : infoA?.code} {Math.max(2, Math.abs(Math.round((radarB.traction - radarA.traction) * 0.4)))}m later
-                </div>
-                <div className="text-[10px] text-pitwall-danger">later braking, higher entry risk</div>
-              </div>
-              <div className="bg-pitwall-bg border border-pitwall-border rounded-lg p-3">
-                <div className="text-pitwall-muted text-[10px]">EXIT ACCELERATION</div>
-                <div className="font-mono font-bold mt-1">
-                  {radarA.traction >= radarB.traction ? infoA?.code : infoB?.code} +{Math.max(0.04, Math.abs((radarA.traction - radarB.traction) * 0.015)).toFixed(2)}s advantage
-                </div>
-                <div className="text-[10px] text-pitwall-muted">traction + X-Mode deployment</div>
-              </div>
-            </div>
+            <p className="mt-3 text-xs text-pitwall-muted">Measured corner deltas are unavailable until the driver telemetry source is connected.</p>
           </div>
         </div>
       </div>

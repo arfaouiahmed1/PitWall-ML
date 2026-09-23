@@ -1,0 +1,56 @@
+
+[·] React Scan v0.5.7
+
+  Detecting project...
+
+  Framework:       Next.js
+  Router:          App Router
+  Package manager: npm
+
+
+File: app\layout.tsx
+────────────────────────────────────────────────────────────
+      <html lang="en" className="dark">
+        <head>
+          {process.env.NODE_ENV === "development" && (
++           <script src="https://unpkg.com/react-scan/dist/auto.global.js" crossOrigin="anonymous" />
++         )}
++ 
++         {process.env.NODE_ENV === "development" && (
+            <Script
+              src="//unpkg.com/react-grab/dist/index.global.js"
+              crossOrigin="anonymous"
+────────────────────────────────────────────────────────────
+
+  Auto-detection may not be 100% accurate.
+  Please verify the changes before committing.
+
+
+  Installing react-scan...
+
+  Running: npm install -D react-scan
+
+
+changed 103 packages, and audited 556 packages in 1m
+
+189 packages are looking for funding
+  run `npm fund` for details
+
+4 vulnerabilities (3 high, 1 critical)
+
+To address issues that do not require attention, run:
+  npm audit fix
+
+To address all issues, run:
+  npm audit fix --force
+
+Run `npm audit` for details.
+npm warn allow-scripts 3 packages have install scripts not yet covered by allowScripts:
+npm warn allow-scripts   esbuild@0.28.2 (postinstall: node install.js)
+npm warn allow-scripts   sharp@0.34.5 (install: node install/check.js || npm run build)
+npm warn allow-scripts   unrs-resolver@1.12.2 (postinstall: node postinstall.js)
+npm warn allow-scripts
+npm warn allow-scripts Run `npm approve-scripts --allow-scripts-pending` to review, or `npm approve-scripts <pkg>` to allow.
+
+  Updated app\layout.tsx
+[?25l[2K[1G? Install React Doctor? » (Y/n)

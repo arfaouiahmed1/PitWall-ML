@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import time
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Any
@@ -31,7 +32,8 @@ def _timestamp(value: Any) -> datetime | None:
     if not isinstance(value, str):
         return None
     try:
-        return datetime.fromisoformat(value.replace("Z", "+00:00"))
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+        return parsed.replace(tzinfo=UTC) if parsed.tzinfo is None else parsed.astimezone(UTC)
     except ValueError:
         return None
 
@@ -69,12 +71,21 @@ class OpenF1Snapshot:
     race_state: dict[str, Any] | None
     rows: list[dict[str, Any]]
     drivers: list[dict[str, Any]]
+    received_at: str | None = None
+    data_age_seconds: float | None = None
+    stale: bool = False
 
     def as_response(self) -> dict[str, Any]:
         return {
+            "source": "openf1",
+            "source_provenance": "OPENF1",
             "provenance": self.provenance,
             "reason": self.reason,
             "observed_at": self.observed_at,
+            "source_timestamp": self.observed_at,
+            "received_at": self.received_at,
+            "data_age_seconds": self.data_age_seconds,
+            "stale": self.stale,
             "source_id": self.source_id,
             "race_state": self.race_state,
             "rows": self.rows,
@@ -90,9 +101,17 @@ class OpenF1Snapshot:
 class OpenF1SnapshotProvider:
     """Fetch public timing data once per TTL without exposing OpenF1 to the client."""
 
-    def __init__(self, cache_ttl_seconds: int, base_url: str = OPENF1_BASE_URL) -> None:
+    def __init__(
+        self,
+        cache_ttl_seconds: int,
+        base_url: str = OPENF1_BASE_URL,
+        stale_after_seconds: float = 10.0,
+        clock: Callable[[], datetime] = lambda: datetime.now(UTC),
+    ) -> None:
         self.cache_ttl_seconds = cache_ttl_seconds
         self.base_url = base_url.rstrip("/")
+        self.stale_after_seconds = stale_after_seconds
+        self.clock = clock
         self._cache: OpenF1Snapshot | None = None
         self._cache_until = 0.0
         self._lock = asyncio.Lock()
@@ -122,6 +141,7 @@ class OpenF1SnapshotProvider:
                         self._get(client, "drivers"),
                     )
             except httpx.HTTPError:
+                received_at = self.clock().astimezone(UTC).isoformat()
                 return OpenF1Snapshot(
                     provenance="UNAVAILABLE",
                     reason="openf1_request_failed",
@@ -130,9 +150,10 @@ class OpenF1SnapshotProvider:
                     race_state=None,
                     rows=[],
                     drivers=[],
+                    received_at=received_at,
                 )
 
-            now = datetime.now(UTC)
+            now = self.clock().astimezone(UTC)
             session = sessions[-1] if sessions else None
             if not session or not _session_is_active(session, now):
                 return OpenF1Snapshot(
@@ -143,9 +164,21 @@ class OpenF1SnapshotProvider:
                     race_state=None,
                     rows=[],
                     drivers=[],
+                    received_at=now.isoformat(),
                 )
 
             positions_by_driver = _latest_by_driver(positions, "date")
+            if not positions:
+                return OpenF1Snapshot(
+                    provenance="UNAVAILABLE",
+                    reason="position_data_unavailable",
+                    observed_at=None,
+                    source_id=str(session.get("session_key")),
+                    race_state=None,
+                    rows=[],
+                    drivers=[],
+                    received_at=now.isoformat(),
+                )
             intervals_by_driver = _latest_by_driver(intervals, "date")
             laps_by_driver = _latest_by_driver(laps, "date_start")
             stints_by_driver = _latest_by_driver(stints, "date_start")
@@ -154,6 +187,18 @@ class OpenF1SnapshotProvider:
                 for driver in drivers
                 if (driver_number := _as_int(driver.get("driver_number"))) is not None
             }
+            timestamped_positions = [(row, _timestamp(row.get("date"))) for row in positions]
+            if positions and any(timestamp is None for _, timestamp in timestamped_positions):
+                return OpenF1Snapshot(
+                    provenance="UNAVAILABLE",
+                    reason="invalid_source_timestamp",
+                    observed_at=None,
+                    source_id=str(session.get("session_key")),
+                    race_state=None,
+                    rows=[],
+                    drivers=[],
+                    received_at=now.isoformat(),
+                )
             rows: list[dict[str, Any]] = []
             for driver_number, position in sorted(
                 positions_by_driver.items(),
@@ -163,6 +208,9 @@ class OpenF1SnapshotProvider:
                 lap = laps_by_driver.get(driver_number, {})
                 stint = stints_by_driver.get(driver_number, {})
                 driver = drivers_by_number.get(driver_number, {})
+                position_timestamp = _timestamp(position.get("date"))
+                if position_timestamp is None:
+                    continue
                 rows.append(
                     {
                         "driver_number": driver_number,
@@ -176,17 +224,28 @@ class OpenF1SnapshotProvider:
                         "team_name": driver.get("team_name"),
                         "name": driver.get("full_name"),
                         "code": driver.get("name_acronym"),
+                        "observed_at": position_timestamp.isoformat(),
+                        "received_at": now.isoformat(),
+                        "data_age_seconds": (now - position_timestamp).total_seconds(),
+                        "stale": (now - position_timestamp).total_seconds()
+                        > self.stale_after_seconds,
+                        "source_id": str(session.get("session_key")),
+                        "provenance": "OPENF1",
                     }
                 )
             max_lap = max((row["lap_number"] or 0 for row in rows), default=0)
-            observed_at = (
-                max((str(row.get("date", "")) for row in positions), default=None)
-                or now.isoformat()
+            observed_time = max(
+                (timestamp for _, timestamp in timestamped_positions if timestamp is not None),
+                default=None,
             )
+            age_seconds = (
+                (now - observed_time).total_seconds() if observed_time is not None else None
+            )
+            stale = age_seconds is None or age_seconds > self.stale_after_seconds
             snapshot = OpenF1Snapshot(
-                provenance="LIVE",
-                reason=None,
-                observed_at=observed_at,
+                provenance="STALE" if stale else "LIVE",
+                reason="source_data_stale" if stale else None,
+                observed_at=observed_time.isoformat() if observed_time is not None else None,
                 source_id=str(session.get("session_key")),
                 race_state={
                     "session_id": str(session.get("session_key")),
@@ -205,6 +264,9 @@ class OpenF1SnapshotProvider:
                     }
                     for driver_number, driver in sorted(drivers_by_number.items())
                 ],
+                received_at=now.isoformat(),
+                data_age_seconds=age_seconds,
+                stale=stale,
             )
             self._cache = snapshot
             self._cache_until = time.monotonic() + self.cache_ttl_seconds
@@ -214,10 +276,18 @@ class OpenF1SnapshotProvider:
         snapshot = await self.snapshot()
         if snapshot.provenance != "LIVE":
             return {
+                "source": "openf1",
+                "source_provenance": "OPENF1",
                 "provenance": snapshot.provenance,
                 "reason": snapshot.reason,
                 "driver_number": driver_number,
                 "points": [],
+                "observed_at": snapshot.observed_at,
+                "source_timestamp": snapshot.observed_at,
+                "received_at": snapshot.received_at,
+                "source_id": snapshot.source_id,
+                "data_age_seconds": snapshot.data_age_seconds,
+                "stale": snapshot.stale,
             }
         try:
             async with httpx.AsyncClient(timeout=10) as client:
@@ -229,33 +299,77 @@ class OpenF1SnapshotProvider:
                 samples = response.json()
         except httpx.HTTPError:
             return {
+                "source": "openf1",
+                "source_provenance": "OPENF1",
                 "provenance": "STALE",
                 "reason": "openf1_telemetry_request_failed",
                 "driver_number": driver_number,
                 "points": [],
+                "observed_at": snapshot.observed_at,
+                "source_timestamp": snapshot.observed_at,
+                "received_at": self.clock().astimezone(UTC).isoformat(),
+                "source_id": snapshot.source_id,
+                "data_age_seconds": snapshot.data_age_seconds,
+                "stale": True,
             }
         if not isinstance(samples, list) or not samples:
             return {
+                "source": "openf1",
+                "source_provenance": "OPENF1",
                 "provenance": "UNAVAILABLE",
                 "reason": "telemetry_unavailable",
                 "driver_number": driver_number,
                 "points": [],
+                "observed_at": None,
+                "source_timestamp": None,
+                "received_at": self.clock().astimezone(UTC).isoformat(),
+                "source_id": snapshot.source_id,
+                "data_age_seconds": None,
+                "stale": True,
             }
+        parsed_samples = [(sample, _timestamp(sample.get("date"))) for sample in samples[-250:]]
+        if any(timestamp is None for _, timestamp in parsed_samples):
+            return {
+                "source": "openf1",
+                "source_provenance": "OPENF1",
+                "provenance": "UNAVAILABLE",
+                "reason": "invalid_source_timestamp",
+                "driver_number": driver_number,
+                "points": [],
+                "observed_at": None,
+                "source_timestamp": None,
+                "received_at": self.clock().astimezone(UTC).isoformat(),
+                "source_id": snapshot.source_id,
+                "data_age_seconds": None,
+                "stale": True,
+            }
+        received_at = self.clock().astimezone(UTC)
+        observed_time = max(timestamp for _, timestamp in parsed_samples if timestamp is not None)
+        age_seconds = (received_at - observed_time).total_seconds()
+        stale = age_seconds > self.stale_after_seconds
         points = [
             {
-                "timestamp": sample.get("date"),
+                "timestamp": timestamp.isoformat(),
                 "speed": _as_float(sample.get("speed")),
                 "throttle": _as_float(sample.get("throttle")),
                 "brake": _as_float(sample.get("brake")),
                 "gear": _as_int(sample.get("n_gear")),
                 "drs": _as_int(sample.get("drs")),
             }
-            for sample in samples[-250:]
+            for sample, timestamp in parsed_samples
+            if timestamp is not None
         ]
         return {
-            "provenance": "LIVE",
-            "reason": None,
+            "source": "openf1",
+            "source_provenance": "OPENF1",
+            "provenance": "STALE" if stale else "LIVE",
+            "reason": "source_data_stale" if stale else None,
             "driver_number": driver_number,
             "points": points,
-            "observed_at": snapshot.observed_at,
+            "observed_at": observed_time.isoformat(),
+            "source_timestamp": observed_time.isoformat(),
+            "received_at": received_at.isoformat(),
+            "source_id": snapshot.source_id,
+            "data_age_seconds": age_seconds,
+            "stale": stale,
         }

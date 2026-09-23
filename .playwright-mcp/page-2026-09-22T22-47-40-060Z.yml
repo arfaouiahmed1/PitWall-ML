@@ -1,0 +1,544 @@
+- generic [active] [ref=f8e1]:
+  - banner [ref=f8e2]:
+    - generic [ref=f8e3]:
+      - generic [ref=f8e4]:
+        - link "PW PITWALLML" [ref=f8e5] [cursor=pointer]:
+          - /url: /
+          - generic [ref=f8e6]: PW
+          - generic [ref=f8e7]: PITWALLML
+        - generic [ref=f8e8]: 2025/26 season
+      - generic [ref=f8e9]:
+        - 'status "Session status: OFFLINE" [ref=f8e10]':
+          - generic [ref=f8e12]: OFFLINE
+        - status "Lap -, total laps unavailable" [ref=f8e13]:
+          - generic [ref=f8e14]: LAP
+          - generic [ref=f8e15]: "-"
+          - text: /
+          - generic [ref=f8e16]: N/A
+        - 'status "Track flag: GREEN" [ref=f8e17]': GREEN
+    - navigation "Desktop Navigation" [ref=f8e19]:
+      - generic [ref=f8e20]:
+        - link "Race Cockpit" [ref=f8e21] [cursor=pointer]:
+          - /url: /
+        - link "Strategy Sandbox" [ref=f8e22] [cursor=pointer]:
+          - /url: /strategy
+        - link "Driver Telemetry" [ref=f8e23] [cursor=pointer]:
+          - /url: /drivers
+        - link "Circuit & Schedule" [ref=f8e24] [cursor=pointer]:
+          - /url: /circuit
+        - link "Model Intelligence" [ref=f8e25] [cursor=pointer]:
+          - /url: /models
+        - link "MLOps & Drift" [ref=f8e26] [cursor=pointer]:
+          - /url: /monitoring
+        - link "API DOCS" [ref=f8e27] [cursor=pointer]:
+          - /url: /api-docs
+  - main [ref=f8e29]:
+    - generic [ref=f8e30]:
+      - generic [ref=f8e31]:
+        - generic [ref=f8e32]:
+          - generic [ref=f8e33]:
+            - generic [ref=f8e35]: REPLAY
+            - generic [ref=f8e36]: Race
+          - generic [aria-hidden] [ref=f8e37]: →
+        - generic [ref=f8e38]:
+          - generic [ref=f8e39]:
+            - generic [ref=f8e41]: FLAG null
+            - generic [ref=f8e42]: Caution
+          - generic [aria-hidden] [ref=f8e43]: →
+        - generic [ref=f8e44]:
+          - generic [ref=f8e45]:
+            - generic [ref=f8e47]: POLLING
+            - generic [ref=f8e48]: API snapshot
+          - generic [aria-hidden] [ref=f8e49]: →
+        - generic [ref=f8e51]:
+          - generic [ref=f8e53]: LAP 1/66
+          - generic [ref=f8e54]: barcelona
+      - generic [ref=f8e55]:
+        - generic [ref=f8e56]:
+          - generic [ref=f8e58]: GREEN FLAG
+          - generic [ref=f8e59]: "Grand Prix : Replay simulation : telemetry active"
+        - generic [ref=f8e60]:
+          - group "Session mode" [ref=f8e61]:
+            - button "REPLAY" [pressed] [ref=f8e62] [cursor=pointer]
+            - button "LIVE" [ref=f8e63] [cursor=pointer]
+            - button "OFF-TRACK" [ref=f8e64] [cursor=pointer]
+          - generic [ref=f8e65]:
+            - generic [ref=f8e66]: ● REPLAY SIM
+            - generic [ref=f8e67]: LOCAL
+      - generic [ref=f8e68]:
+        - generic [ref=f8e69]:
+          - generic [ref=f8e70]:
+            - generic [ref=f8e71]: "HISTORICAL REPLAY :"
+            - combobox [ref=f8e72]:
+              - option "2024 Circuit de Barcelona-Catalunya (66 Laps)" [selected]
+              - option "2024 Autodromo Nazionale Monza (53 Laps)"
+              - option "2024 Circuit de Spa-Francorchamps (44 Laps)"
+              - option "2024 Silverstone Circuit (52 Laps)"
+              - option "2024 Circuit de Monaco (78 Laps)"
+          - generic [ref=f8e73]:
+            - generic [ref=f8e74]: LAP 1 / 66
+            - generic [ref=f8e75]: Circuit-Adaptive Dual-Paradigm Router @champion • Ingested Replay
+          - generic [ref=f8e76]:
+            - generic [ref=f8e77]: DRS • X-MODE ARMED
+            - generic [ref=f8e78]: PIT HAZARD ≤5L
+            - generic [ref=f8e79]: Hover driver row for SHAP + sparkline
+        - group "Replay speed" [ref=f8e80]:
+          - button "1x" [ref=f8e81] [cursor=pointer]
+          - button "5x" [ref=f8e82] [cursor=pointer]
+          - button "20x" [pressed] [ref=f8e83] [cursor=pointer]
+          - button "MAX" [ref=f8e84] [cursor=pointer]
+          - group "Simulation" [ref=f8e85]:
+            - button "Pause" [ref=f8e86] [cursor=pointer]
+            - button "Resume" [pressed] [ref=f8e87] [cursor=pointer]
+      - generic [ref=f8e88]:
+        - generic [ref=f8e89]: "Replaying Race : predictions run through the same dual-paradigm pipeline as live timing."
+        - generic [ref=f8e92]:
+          - generic [ref=f8e93]: "Macro MAE: 0.363s • Coverage: 78.0% • p95: 6.5ms"
+          - 'status "MOCK: pinned benchmark snapshot" [ref=f8e94]':
+            - text: MOCK
+            - generic [ref=f8e96]: pinned benchmark snapshot
+      - generic [ref=f8e97]:
+        - generic [ref=f8e99]:
+          - generic [ref=f8e100]:
+            - generic [ref=f8e101]:
+              - 'heading "RACE LEADERBOARD : LIVE PREDICTIONS" [level=2] [ref=f8e103]'
+              - generic [ref=f8e104]: q10-q50-q90 • Monte Carlo 1k
+            - generic [ref=f8e105]:
+              - generic [ref=f8e106]: hover row → SHAP + sparkline
+              - 'status "LIVE: model pace" [ref=f8e107]':
+                - text: LIVE
+                - generic [ref=f8e109]: model pace
+          - table [ref=f8e111]:
+            - caption [ref=f8e112]: Race leaderboard with pace forecasts and pit hazards
+            - rowgroup [ref=f8e113]:
+              - row [ref=f8e114]:
+                - columnheader "POS" [ref=f8e115]
+                - columnheader "DRIVER" [ref=f8e116]
+                - columnheader "GAP / DRS" [ref=f8e117]
+                - columnheader "TYRE" [ref=f8e118]
+                - columnheader "PACE q50 ± interval" [ref=f8e119]
+                - columnheader "SECTORS" [ref=f8e120]
+                - columnheader "PIT TIMELINE" [ref=f8e121]
+                - columnheader "PIT HAZARD" [ref=f8e122]
+                - columnheader "FINISHING DIST" [ref=f8e123]
+            - rowgroup [ref=f8e124]:
+              - row [ref=f8e125]:
+                - cell "No timing rows - replay data loading." [ref=f8e126]
+          - generic [ref=f8e127]:
+            - generic [ref=f8e128]:
+              - generic [ref=f8e129]: Fresh
+              - generic [ref=f8e131]: Graining
+              - generic [ref=f8e133]: Cliff
+              - generic [ref=f8e135]: •
+              - generic [ref=f8e136]:
+                - generic [ref=f8e137]: ▲ closing
+                - generic [ref=f8e138]: ▼ dropping
+                - text: (±0.1s/lap)
+            - generic [ref=f8e139]: 80% conformal interval • hazard = P(pit in N laps) • DRS if gap <1.0s
+        - generic [ref=f8e140]:
+          - generic [ref=f8e141]:
+            - generic [ref=f8e142]:
+              - generic [ref=f8e143]:
+                - heading "CIRCUIT MAP" [level=3] [ref=f8e145]
+                - generic [ref=f8e146]: SOURCE-DERIVED TRACK LINE • LIVE TELEMETRY
+                - generic [ref=f8e147]: LAP 1
+              - generic [ref=f8e148]: STATUS UNAVAILABLE
+            - generic [ref=f8e151]:
+              - generic [ref=f8e152]:
+                - generic [ref=f8e153]: CIRCUIT
+                - generic [ref=f8e154]: Circuit de Barcelona-Catalunya
+                - generic [ref=f8e155]: Barcelona • 4.655 km
+              - generic [ref=f8e156]:
+                - generic [ref=f8e157]: OVERLAYS
+                - generic [ref=f8e158]: Unavailable
+                - generic [ref=f8e159]: Source overlay data unavailable
+              - generic [ref=f8e160]:
+                - generic [ref=f8e161]: CONDITIONS
+                - generic [ref=f8e162]: Track 37.2°C • Air 25.8°C
+                - generic [ref=f8e163]: Partly cloudy
+            - generic [ref=f8e165]:
+              - generic [ref=f8e166]:
+                - img "Circuit de Barcelona-Catalunya circuit telemetry map" [ref=f8e167]
+                - generic [ref=f8e172]: "Map source: bacinger/f1-circuits (MIT)."
+              - status [ref=f8e173]: "Driver positions unavailable: no timestamped position source supplied."
+              - generic [ref=f8e174]:
+                - generic [ref=f8e175]:
+                  - generic [ref=f8e176]: "Map source: bacinger/f1-circuits"
+                  - generic [ref=f8e177]: "Turns / sectors / DRS / speed traps: unavailable"
+                - generic [ref=f8e178]: Unofficial source-derived geometry
+            - generic [ref=f8e179]:
+              - generic [ref=f8e180]:
+                - text: "TRACK: STATUS UNAVAILABLE"
+                - generic [ref=f8e182]: ": Circuit de Barcelona-Catalunya (status unavailable)"
+              - generic [ref=f8e183]: 4.655 km • overlay data unavailable
+          - generic [ref=f8e184]:
+            - generic [ref=f8e185]:
+              - generic [ref=f8e186]:
+                - heading "TRACK WEATHER" [level=3] [ref=f8e188]
+                - generic [ref=f8e189]: Telemetry Baseline
+              - generic [ref=f8e190]: Partly cloudy
+            - generic [ref=f8e191]:
+              - generic [ref=f8e194]:
+                - generic [ref=f8e195]: TRACK TEMP
+                - generic [ref=f8e196]: 37.2°C
+                - generic [ref=f8e199]:
+                  - generic [ref=f8e200]: 20°C
+                  - generic [ref=f8e201]: 50°C
+              - generic [ref=f8e204]:
+                - generic [ref=f8e205]: AIR TEMP
+                - generic [ref=f8e206]: 25.8°C
+                - generic [ref=f8e209]:
+                  - generic [ref=f8e210]: 12°C
+                  - generic [ref=f8e211]: 36°C
+              - generic [ref=f8e212]:
+                - generic [ref=f8e213]: HUMIDITY
+                - generic [ref=f8e214]:
+                  - generic [ref=f8e215]: "54"
+                  - generic [ref=f8e216]: "%"
+                - generic [ref=f8e217]:
+                  - generic [ref=f8e218]: RH
+                  - generic [ref=f8e223]: Dry
+              - generic [ref=f8e224]:
+                - generic [ref=f8e225]: PRESSURE
+                - generic [ref=f8e226]:
+                  - generic [ref=f8e227]: "1014"
+                  - generic [ref=f8e228]: mbar
+                - generic [ref=f8e229]: Normal
+              - generic [ref=f8e234]:
+                - generic [ref=f8e235]: WIND
+                - generic [ref=f8e236]:
+                  - generic [ref=f8e237]:
+                    - generic [ref=f8e238]: "N"
+                    - generic [ref=f8e239]: S
+                    - generic [ref=f8e240]: W
+                    - generic [ref=f8e241]: E
+                  - generic [ref=f8e245]:
+                    - generic [ref=f8e246]: 14.2 km/h
+                    - generic [ref=f8e247]: S • 195°
+                    - generic [ref=f8e248]: Moderate
+              - generic [ref=f8e249]:
+                - generic [ref=f8e250]: RAIN PROB
+                - generic [ref=f8e251]:
+                  - generic [ref=f8e252]: "12"
+                  - generic [ref=f8e253]: "%"
+                  - generic [ref=f8e254]: Low
+                - generic [ref=f8e255]:
+                  - generic [ref=f8e256]: +0h
+                  - generic [ref=f8e259]: +1h
+                  - generic [ref=f8e262]: +2h
+                  - generic [ref=f8e265]: +3h
+                  - generic [ref=f8e268]: +4h
+                  - generic [ref=f8e271]: +5h
+                  - generic [ref=f8e274]: +6h
+                  - generic [ref=f8e277]: +7h
+                - generic [ref=f8e280]: next 8h • radar
+            - generic [ref=f8e281]:
+              - generic [ref=f8e282]: Wind arrow shows origin • Track temp drives tyre warm-up model (Hard + cold = graining).
+              - generic [ref=f8e283]: Δ track 11.4°C • Humidity 54%
+      - generic [ref=f8e284]:
+        - generic [ref=f8e286]:
+          - generic [ref=f8e287]:
+            - generic [ref=f8e288]:
+              - heading "TRACK DOMINANCE" [level=3] [ref=f8e290]
+              - generic [ref=f8e291]: SECTOR DELTAS
+            - generic [ref=f8e292]:
+              - generic [ref=f8e293]: REF
+              - generic [ref=f8e294]: VER
+              - generic [ref=f8e295]: •
+              - generic [ref=f8e296]: GAP (s)
+          - generic [ref=f8e297]:
+            - generic [ref=f8e298]:
+              - generic [ref=f8e299]: S1
+              - generic [ref=f8e302]:
+                - generic [ref=f8e303]: RUS
+                - generic [ref=f8e304]: "-0.025"
+            - generic [ref=f8e305]:
+              - generic [ref=f8e306]: S2
+              - generic [ref=f8e309]:
+                - generic [ref=f8e310]: NOR
+                - generic [ref=f8e311]: "-0.018"
+            - generic [ref=f8e312]:
+              - generic [ref=f8e313]: S3
+              - generic [ref=f8e316]:
+                - generic [ref=f8e317]: LEC
+                - generic [ref=f8e318]: "-0.022"
+          - table [ref=f8e320]:
+            - rowgroup [ref=f8e321]:
+              - row [ref=f8e322]:
+                - columnheader "DRIVER" [ref=f8e323]
+                - columnheader "S1" [ref=f8e324]
+                - columnheader "S2" [ref=f8e325]
+                - columnheader "S3" [ref=f8e326]
+                - columnheader "TOTAL Δ" [ref=f8e327]
+                - columnheader "SECTORS" [ref=f8e328]
+            - rowgroup [ref=f8e329]:
+              - row [ref=f8e330]:
+                - 'cell "VER P1 #1 Red Bull" [ref=f8e331]':
+                  - generic [ref=f8e334]:
+                    - generic [ref=f8e335]:
+                      - generic [ref=f8e336]: VER
+                      - generic [ref=f8e337]: P1
+                    - generic [ref=f8e338]: "#1 Red Bull"
+                - cell "0.000" [ref=f8e339]
+                - cell "0.000" [ref=f8e341]
+                - cell "0.000" [ref=f8e343]
+                - cell "0.000" [ref=f8e345]
+                - cell [ref=f8e347]:
+                  - generic [ref=f8e348]:
+                    - 'generic "VER S1: 0.000 (Fastest / Benchmark)" [ref=f8e349]'
+                    - 'generic "VER S2: 0.000 (Fastest / Benchmark)" [ref=f8e351]'
+                    - 'generic "VER S3: 0.000 (Fastest / Benchmark)" [ref=f8e353]'
+              - row [ref=f8e357]:
+                - 'cell "NOR #4 McLaren" [ref=f8e358]':
+                  - generic [ref=f8e361]:
+                    - generic [ref=f8e362]: NOR
+                    - generic [ref=f8e364]: "#4 McLaren"
+                - cell "+0.042" [ref=f8e365]
+                - cell "-0.018" [ref=f8e367]
+                - cell "+0.031" [ref=f8e369]
+                - cell "+0.055" [ref=f8e371]
+                - cell [ref=f8e373]:
+                  - generic [ref=f8e374]:
+                    - 'generic "NOR S1: +0.042 (Normal Delta)" [ref=f8e375]'
+                    - 'generic "NOR S2: -0.018 (Fastest / Benchmark)" [ref=f8e377]'
+                    - 'generic "NOR S3: +0.031 (Normal Delta)" [ref=f8e379]'
+              - row [ref=f8e383]:
+                - 'cell "LEC #16 Ferrari" [ref=f8e384]':
+                  - generic [ref=f8e387]:
+                    - generic [ref=f8e388]: LEC
+                    - generic [ref=f8e390]: "#16 Ferrari"
+                - cell "+0.110" [ref=f8e391]
+                - cell "+0.040" [ref=f8e393]
+                - cell "-0.022" [ref=f8e395]
+                - cell "+0.128" [ref=f8e397]
+                - cell [ref=f8e399]:
+                  - generic [ref=f8e400]:
+                    - 'generic "LEC S1: +0.110 (Normal Delta)" [ref=f8e401]'
+                    - 'generic "LEC S2: +0.040 (Normal Delta)" [ref=f8e403]'
+                    - 'generic "LEC S3: -0.022 (Fastest / Benchmark)" [ref=f8e405]'
+              - row [ref=f8e409]:
+                - 'cell "RUS #63 Mercedes" [ref=f8e410]':
+                  - generic [ref=f8e413]:
+                    - generic [ref=f8e414]: RUS
+                    - generic [ref=f8e416]: "#63 Mercedes"
+                - cell "-0.025" [ref=f8e417]
+                - cell "+0.098" [ref=f8e419]
+                - cell "+0.052" [ref=f8e421]
+                - cell "+0.125" [ref=f8e423]
+                - cell [ref=f8e425]:
+                  - generic [ref=f8e426]:
+                    - 'generic "RUS S1: -0.025 (Fastest / Benchmark)" [ref=f8e427]'
+                    - 'generic "RUS S2: +0.098 (Normal Delta)" [ref=f8e429]'
+                    - 'generic "RUS S3: +0.052 (Normal Delta)" [ref=f8e431]'
+              - row [ref=f8e435]:
+                - 'cell "HAM #44 Ferrari" [ref=f8e436]':
+                  - generic [ref=f8e439]:
+                    - generic [ref=f8e440]: HAM
+                    - generic [ref=f8e442]: "#44 Ferrari"
+                - cell "+0.067" [ref=f8e443]
+                - cell "+0.021" [ref=f8e445]
+                - cell "+0.089" [ref=f8e447]
+                - cell "+0.177" [ref=f8e449]
+                - cell [ref=f8e451]:
+                  - generic [ref=f8e452]:
+                    - 'generic "HAM S1: +0.067 (Normal Delta)" [ref=f8e453]'
+                    - 'generic "HAM S2: +0.021 (Normal Delta)" [ref=f8e455]'
+                    - 'generic "HAM S3: +0.089 (Normal Delta)" [ref=f8e457]'
+              - row [ref=f8e461]:
+                - 'cell "PIA #81 McLaren" [ref=f8e462]':
+                  - generic [ref=f8e465]:
+                    - generic [ref=f8e466]: PIA
+                    - generic [ref=f8e468]: "#81 McLaren"
+                - cell "+0.020" [ref=f8e469]
+                - cell "+0.015" [ref=f8e471]
+                - cell "+0.020" [ref=f8e473]
+                - cell "+0.055" [ref=f8e475]
+                - cell [ref=f8e477]:
+                  - generic [ref=f8e478]:
+                    - 'generic "PIA S1: +0.020 (Normal Delta)" [ref=f8e479]'
+                    - 'generic "PIA S2: +0.015 (Normal Delta)" [ref=f8e481]'
+                    - 'generic "PIA S3: +0.020 (Normal Delta)" [ref=f8e483]'
+              - row [ref=f8e487]:
+                - 'cell "ANT #12 Mercedes" [ref=f8e488]':
+                  - generic [ref=f8e491]:
+                    - generic [ref=f8e492]: ANT
+                    - generic [ref=f8e494]: "#12 Mercedes"
+                - cell "+0.140" [ref=f8e495]
+                - cell "+0.060" [ref=f8e497]
+                - cell "+0.030" [ref=f8e499]
+                - cell "+0.230" [ref=f8e501]
+                - cell [ref=f8e503]:
+                  - generic [ref=f8e504]:
+                    - 'generic "ANT S1: +0.140 (Severe Loss (>+0.12s))" [ref=f8e505]'
+                    - 'generic "ANT S2: +0.060 (Normal Delta)" [ref=f8e507]'
+                    - 'generic "ANT S3: +0.030 (Normal Delta)" [ref=f8e509]'
+          - generic [ref=f8e513]:
+            - generic [ref=f8e514]:
+              - generic [ref=f8e515]: Fastest / Benchmark
+              - generic [ref=f8e517]: Faster (<0.000)
+              - generic [ref=f8e519]: Normal (≤+0.12s)
+              - generic [ref=f8e521]: Loss (>+0.12s)
+            - generic [ref=f8e523]: FIA Timing Telemetry
+        - generic [ref=f8e525]:
+          - generic [ref=f8e526]:
+            - generic [ref=f8e527]:
+              - heading "STRATEGY BATTLE" [level=3] [ref=f8e529]
+              - generic [ref=f8e530]: OVERCUT vs UNDERCUT
+            - generic [ref=f8e531]: pit window • Monte Carlo 1k
+          - generic [ref=f8e532]:
+            - generic [ref=f8e533]:
+              - generic [ref=f8e534]: NOR
+              - generic [ref=f8e535]:
+                - generic [ref=f8e536]:
+                  - text: NOR
+                  - generic [ref=f8e537]: "#4"
+                - generic [ref=f8e538]:
+                  - text: McLaren •
+                  - generic [ref=f8e539]:
+                    - generic [ref=f8e540]: H
+                    - text: age 11
+            - generic [ref=f8e541]:
+              - generic [ref=f8e542]: VS
+              - generic [ref=f8e543]: 28 laps left
+            - generic [ref=f8e544]:
+              - generic [ref=f8e545]:
+                - generic [ref=f8e546]:
+                  - text: VER
+                  - generic [ref=f8e547]: "#1"
+                - generic [ref=f8e548]:
+                  - text: Red Bull •
+                  - generic [ref=f8e549]:
+                    - generic [ref=f8e550]: M
+                    - text: age 18
+              - generic [ref=f8e551]: VER
+          - generic [ref=f8e552]:
+            - generic [ref=f8e553]:
+              - generic [ref=f8e554]:
+                - generic [ref=f8e555]: "TARGET PIT LAP : NOR"
+                - generic [ref=f8e556]: Lap 24
+              - slider [ref=f8e557]: "24"
+              - generic [ref=f8e558]:
+                - generic [ref=f8e559]: "Lap 18 : early undercut"
+                - generic [ref=f8e560]: "Lap 34 : overcut"
+            - generic [ref=f8e561]:
+              - generic [ref=f8e562]: PIT WINDOW Δ
+              - generic [ref=f8e563]: +0.90s
+              - generic [ref=f8e564]: "Nose-to-tail : DRS battle"
+          - generic [ref=f8e565]:
+            - generic [ref=f8e566]:
+              - generic [ref=f8e567]:
+                - generic [ref=f8e568]: FRESH TYRE ADVANTAGE CURVE
+                - generic [ref=f8e569]: Δ vs old tyre • s/lap
+              - img [ref=f8e570]:
+                - generic [ref=f8e571]: 0.88s
+                - generic [ref=f8e572]: 0s
+                - generic [ref=f8e573]: "+0"
+                - generic [ref=f8e574]: +18 laps
+              - generic [ref=f8e584]:
+                - generic [ref=f8e585]: Tyre delta (H→M)
+                - generic [ref=f8e587]: peak +0.88s lap +1 • cliff ~12 laps
+            - generic [ref=f8e588]:
+              - generic [ref=f8e589]: OVERTAKE WINDOW
+              - generic [ref=f8e590]:
+                - generic [ref=f8e591]: 0.18%
+                - generic [ref=f8e592]: prob
+                - generic [ref=f8e593]: OVERCUT SAFER
+              - generic [ref=f8e596]:
+                - generic [ref=f8e597]:
+                  - generic [ref=f8e598]: RE-ENTRY
+                  - generic [ref=f8e599]: "-0.16s"
+                  - generic [ref=f8e600]: vs VER
+                - generic [ref=f8e601]:
+                  - generic [ref=f8e602]: DRS
+                  - generic [ref=f8e603]: READY
+                  - generic [ref=f8e604]: if <1.0s
+                - generic [ref=f8e605]:
+                  - generic [ref=f8e606]: CLIFF RISK
+                  - generic [ref=f8e607]: LOW
+                  - generic [ref=f8e608]: age 11
+              - generic [ref=f8e609]:
+                - text: Pit on lap 24 → rejoin
+                - generic [ref=f8e610]: "-0.16s"
+                - text: "to VER. Stay out : overcut preserves clean air."
+          - generic [ref=f8e611]:
+            - generic [ref=f8e612]: "Model: pit hazard + tyre deg + Monte Carlo 1k sims • X-Mode gain applied on DRS straights."
+            - generic [ref=f8e613]: pit loss 21.0s
+        - generic [ref=f8e615]:
+          - generic [ref=f8e616]:
+            - generic [ref=f8e617]:
+              - heading "LIVE EVENT FEED" [level=3] [ref=f8e619]
+              - generic [ref=f8e620]: RACE CONTROL • TIME LOST
+            - generic [ref=f8e621]:
+              - generic [ref=f8e622]: 8 events
+              - 'status "MOCK: illustrative events" [ref=f8e623]':
+                - text: MOCK
+                - generic [ref=f8e625]: illustrative events
+          - generic [ref=f8e626]:
+            - generic [ref=f8e628]: GREEN
+            - generic [ref=f8e629]: •
+            - generic [ref=f8e630]: "Last SC: Lap 28 • Time lost ~18.4s"
+            - generic [ref=f8e631]: auto-scroll • newest first
+          - generic [ref=f8e632]:
+            - generic [ref=f8e633]:
+              - generic [ref=f8e634]:
+                - generic [ref=f8e635]: L31
+                - generic [ref=f8e636]: FL
+                - generic [ref=f8e637]: "#4"
+                - generic [ref=f8e638]: Fastest lap
+              - generic [ref=f8e639]: 1:19.31 • +0.22 vs predicted
+            - generic [ref=f8e640]:
+              - generic [ref=f8e641]:
+                - generic [ref=f8e642]: L31
+                - generic [ref=f8e643]: PIT
+                - generic [ref=f8e644]: "#16"
+                - generic [ref=f8e645]: "Pit stop : MED → HARD"
+              - generic [ref=f8e646]: "Box, box : 2.34s • age 21"
+            - generic [ref=f8e647]:
+              - generic [ref=f8e648]:
+                - generic [ref=f8e649]: L32
+                - generic [ref=f8e650]: DELTA
+                - generic [ref=f8e651]: "#63"
+                - generic [ref=f8e652]: Anomalous lap delta
+              - generic [ref=f8e653]: "+1.42s : traffic / lift & coast"
+            - generic [ref=f8e654]:
+              - generic [ref=f8e655]:
+                - generic [ref=f8e656]: L32
+                - generic [ref=f8e657]: PASS
+                - generic [ref=f8e658]: "#81"
+                - generic [ref=f8e659]: "Overtake : PIA → P5"
+              - generic [ref=f8e660]: DRS on main straight vs HAM
+            - generic [ref=f8e661]:
+              - generic [ref=f8e662]:
+                - generic [ref=f8e663]: L33
+                - generic [ref=f8e664]: FLAG
+                - generic [ref=f8e665]: "Yellow flag : Sector 2"
+              - generic [ref=f8e666]: "Turn 9 : debris • delta +2.1s"
+            - generic [ref=f8e667]:
+              - generic [ref=f8e668]:
+                - generic [ref=f8e669]: L33
+                - generic [ref=f8e670]: FLAG
+                - generic [ref=f8e671]: Green flag
+              - generic [ref=f8e672]: "Racing resumes : gaps frozen"
+            - generic [ref=f8e673]:
+              - generic [ref=f8e674]:
+                - generic [ref=f8e675]: L34
+                - generic [ref=f8e676]: PIT
+                - generic [ref=f8e677]: "#44"
+                - generic [ref=f8e678]: "Pit stop : HARD → MED"
+              - generic [ref=f8e679]: Undercut attempt • 2.18s
+            - generic [ref=f8e680]:
+              - generic [ref=f8e681]:
+                - generic [ref=f8e682]: L35
+                - generic [ref=f8e683]: FLAG
+                - generic [ref=f8e684]: Safety Car deployed
+              - generic [ref=f8e685]: "Incident : field bunched"
+          - generic [ref=f8e686]:
+            - generic [ref=f8e687]: Green Yellow SC Anomaly
+            - generic [ref=f8e692]: Δ vs predicted • hazard pings
+      - generic [ref=f8e693]:
+        - heading "HOW REPLAY WORKS" [level=3] [ref=f8e694]
+        - paragraph [ref=f8e695]:
+          - text: Historical Bronze lap events stream through the same
+          - code [ref=f8e696]: RaceEvent → RaceState → FeatureBuilder → Model → WebSocket
+          - text: path as live data. It's a decent smoke test of the full pipeline without needing a live session.
+  - contentinfo [ref=f8e697]: PitWall ML • FastF1 • Polars • LightGBM • FastAPI • Next.js

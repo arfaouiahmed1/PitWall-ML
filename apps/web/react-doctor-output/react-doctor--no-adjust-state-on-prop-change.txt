@@ -1,0 +1,21 @@
+Rule: react-doctor/no-adjust-state-on-prop-change
+Severity: warning
+Category: Bugs
+Count: 9
+
+This effect adjusts state after a prop changes, so users briefly see the stale value.
+
+Suggestion: Remove the adjustment effect by deriving values during render, resetting the component with a key, or updating related state in the event that changes the prop. Avoid tracking the previous prop in more state, which preserves the duplication. See https://react.dev/learn/you-might-not-need-an-effect#adjusting-some-state-when-a-prop-changes
+
+Curl with no cache & follow the canonical fix and false positive check recipe before fixing: https://react.doctor/docs/rules/react-doctor/no-adjust-state-on-prop-change
+
+Files:
+  components/circuit/TrackGeometry.tsx:89
+  components/circuit/TrackGeometry.tsx:90
+  components/circuit/TrackGeometry.tsx:95
+  components/circuit/TrackGeometry.tsx:96
+  components/circuit/TrackGeometry.tsx:103
+  components/circuit/TrackGeometry.tsx:104
+  components/circuit/TrackGeometry.tsx:116
+  components/circuit/TrackGeometry.tsx:117
+  lib/useNow.ts:15

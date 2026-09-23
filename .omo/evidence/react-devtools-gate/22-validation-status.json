@@ -1,0 +1,9 @@
+{
+  "buildCommand": "npm run build",
+  "buildExitCode": 1,
+  "buildFailure": "app/monitoring/page.ts exports parseEraReport, which is invalid for a Next App Router page module",
+  "toolingFailureFixed": "Replaced react-scan initializer plain script with Next Script beforeInteractive",
+  "runtimeProductionLeakInspection": "blocked: build did not finish, so production artifacts are not trustworthy",
+  "sourceGateArtifact": "14-static-development-gate.json",
+  "doctorArtifact": "12-react-doctor-audit.json"
+}

@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="utf-8" />
+  <title>TrackDominance Visual QA - Task 25</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 24px;
+      background: #080c14;
+      color: #e2e8f0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace;
+    }
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 32px;
+    }
+    .panel {
+      background: #0f172a;
+      border: 1px solid #1e293b;
+      border-radius: 12px;
+      padding: 16px;
+      overflow: hidden;
+    }
+    h2 {
+      font-size: 14px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin: 0 0 12px 0;
+      color: #00d2be;
+    }
+    .desc {
+      font-size: 12px;
+      color: #94a3b8;
+      margin-bottom: 12px;
+    }
+    table { border-collapse: collapse; width: 100%; }
+    th, td { text-align: left; }
+    .bg-pitwall-bg { background-color: #080c14; }
+    .bg-pitwall-card { background-color: #0f172a; }
+    .bg-pitwall-border { background-color: #1e293b; }
+    .border-pitwall-border { border-color: #1e293b; }
+    .text-pitwall-muted { color: #64748b; }
+    .text-pitwall-fog { color: #94a3b8; }
+    .border { border-width: 1px; }
+    .border-b { border-bottom-width: 1px; }
+    .border-t { border-top-width: 1px; }
+    .rounded-xl { border-radius: 12px; }
+    .rounded { border-radius: 4px; }
+    .font-mono { font-family: monospace; }
+    .font-bold { font-weight: 700; }
+    .flex { display: flex; }
+    .flex-col { flex-direction: column; }
+    .items-center { align-items: center; }
+    .justify-between { justify-content: space-between; }
+    .gap-1 { gap: 4px; }
+    .gap-1\.5 { gap: 6px; }
+    .gap-2 { gap: 8px; }
+    .gap-3 { gap: 12px; }
+    .px-3 { padding-left: 12px; padding-right: 12px; }
+    .py-2 { padding-top: 8px; padding-bottom: 8px; }
+    .py-2\.5 { padding-top: 10px; padding-bottom: 10px; }
+    .px-4 { padding-left: 16px; padding-right: 16px; }
+    .px-1\.5 { padding-left: 6px; padding-right: 6px; }
+    .text-center { text-align: center; }
+    .overflow-hidden { overflow: hidden; }
+    .overflow-x-auto { overflow-x: auto; }
+    .grid { display: grid; }
+    .grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="panel">
+      <h2>1. TrackDominance - Truth-Based Sector Timing Deltas</h2>
+      <div class="desc">Rendered with genuine sector deltas (NOR benchmark, PIA / LEC / RUS rival deltas).</div>
+      <div class="rounded-xl overflow-hidden border border-pitwall-border bg-pitwall-card font-mono"><div class="flex items-center justify-between px-4 py-3 border-b border-pitwall-border bg-pitwall-bg"><div class="flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-purple-400"></span><h3 class="font-bold tracking-wider text-xs text-white">TRACK DOMINANCE</h3><span class="hidden sm:inline text-[10px] tracking-widest text-pitwall-muted">SECTOR DELTAS</span></div><div class="flex items-center gap-1.5 text-[10px] px-2 py-0.5 rounded bg-pitwall-card border border-pitwall-border text-pitwall-fog tabular-nums"><span class="text-pitwall-muted">REF</span><span class="font-bold text-white">NOR</span><span class="text-pitwall-muted">•</span><span>GAP (s)</span></div></div><div class="grid grid-cols-3 gap-2 px-3 py-2.5 bg-pitwall-bg/60 border-b border-pitwall-border text-[11px]"><div class="flex items-center justify-between px-2 py-1.5 rounded border border-purple-500/30 bg-purple-950/20"><div class="flex items-center gap-1.5 min-w-0"><span class="w-1.5 h-3 rounded-full shrink-0" style="background-color:#27f4d2"></span><span class="text-[10px] font-bold text-purple-300">S1</span></div><div class="flex items-center gap-1 tabular-nums"><span class="font-bold text-white">RUS</span><span class="text-purple-300 text-[10px]">-0.025</span></div></div><div class="flex items-center justify-between px-2 py-1.5 rounded border border-purple-500/30 bg-purple-950/20"><div class="flex items-center gap-1.5 min-w-0"><span class="w-1.5 h-3 rounded-full shrink-0" style="background-color:#ff8000"></span><span class="text-[10px] font-bold text-purple-300">S2</span></div><div class="flex items-center gap-1 tabular-nums"><span class="font-bold text-white">PIA</span><span class="text-purple-300 text-[10px]">-0.018</span></div></div><div class="flex items-center justify-between px-2 py-1.5 rounded border border-purple-500/30 bg-purple-950/20"><div class="flex items-center gap-1.5 min-w-0"><span class="w-1.5 h-3 rounded-full shrink-0" style="background-color:#e80020"></span><span class="text-[10px] font-bold text-purple-300">S3</span></div><div class="flex items-center gap-1 tabular-nums"><span class="font-bold text-white">LEC</span><span class="text-purple-300 text-[10px]">-0.022</span></div></div></div><div class="overflow-x-auto"><table class="w-full text-xs"><thead><tr class="text-[10px] tracking-wider text-pitwall-muted border-b border-pitwall-border bg-pitwall-bg/30"><th class="text-left px-3 py-2 font-bold">DRIVER</th><th class="text-center px-1.5 py-2 font-bold">S1</th><th class="text-center px-1.5 py-2 font-bold">S2</th><th class="text-center px-1.5 py-2 font-bold">S3</th><th class="text-center px-1.5 py-2 font-bold">TOTAL Δ</th><th class="text-left px-3 py-2 font-bold">SECTORS</th></tr></thead><tbody><tr class="border-b border-pitwall-border/60 bg-white/[0.02]"><td class="px-3 py-2.5"><div class="flex items-center gap-2"><span class="w-1 h-5 rounded-full shrink-0" style="background-color:#ff8000"></span><div class="flex flex-col min-w-0"><div class="flex items-center gap-1.5"><span class="font-bold text-xs text-white tracking-wide">NOR</span><span class="text-[8px] font-bold px-1 py-0.2 rounded bg-purple-950/60 text-purple-300 border border-purple-500/40 leading-tight">P1</span></div><span class="text-[9px] text-pitwall-muted truncate max-w-[85px]">#4 McLaren</span></div></div></td><td class="px-1.5 py-2 text-center"><span class="inline-flex min-w-[56px] justify-center px-1.5 py-1 rounded border font-bold text-[11px] tabular-nums bg-purple-950/40 text-purple-300 border-purple-500/40">0.000</span></td><td class="px-1.5 py-2 text-center"><span class="inline-flex min-w-[56px] justify-center px-1.5 py-1 rounded border font-bold text-[11px] tabular-nums bg-purple-950/40 text-purple-300 border-purple-500/40">0.000</span></td><td class="px-1.5 py-2 text-center"><span class="inline-flex min-w-[56px] justify-center px-1.5 py-1 rounded border font-bold text-[11px] tabular-nums bg-purple-950/40 text-purple-300 border-purple-500/40">0.000</span></td><td class="px-1.5 py-2 text-center"><span class="inline-flex min-w-[56px] justify-center px-1.5 py-1 rounded border font-bold text-[11px] tabular-nums bg-purple-950/40 text-purple-300 border-purple-500/40">0.000</span></td><td class="px-3 py-2"><div class="flex items-center gap-1.5"><div class="group/sec relative flex flex-col items-center" title="NOR S1: 0.000 (Fastest / Benchmark)"><span class="w-4 h-2 rounded-[2px] transition-transform group-hover/sec:scale-110 bg-[#a855f7]"></span></div><div class="group/sec relative flex flex-col items-center" title="NOR S2: 0.000 (Fastest / Benchmark)"><span class="w-4 h-2 rounded-[2px] transition-transform group-hover/sec:scale-110 bg-[#a855f7]"></span></div><div class="group/sec relative flex flex-col items-center" title="NOR S3: 0.000 (Fastest / Benchmark)"><span class="w-4 h-2 rounded-[2px] transition-transform group-hover/sec:scale-110 bg-[#a855f7]"></span></div><div class="hidden sm:block w-12 h-1.5 rounded-[1px] bg-pitwall-border ml-1 overflow-hidden"><div class="h-full bg-[#a855f7]" style="width:100%"></div></div></div></td></tr><tr class="border-b border-pitwall-border/60 hover:bg-pitwall-border/20"><td class="px-3 py-2.5"><div class="flex items-center gap-2"><span class="w-1 h-5 rounded-full shrink-0" style="background-color:#ff8000"></span><div class="flex flex-col min-w-0"><div class="flex items-center gap-1.5"><span class="font-bold text-xs text-white tracking-wide">PIA</span></div><span class="text-[9px] text-pitwall-muted truncate max-w-[85px]">#81 McLaren</span></div></div></td><td class="px-1.5 py-2 text-center"><span class="inline-flex min-w-[56px] justify-center px-1.5 py-1 rounded border font-bold text-[11px] tabular-nums bg-amber-950/40 text-amber-300 border-amber-500/40">+0.042</span></td><td class="px-1.5 py-2 text-center"><span class="inline-flex min-w-[56px] justify-center px-1.5 py-1 rounded border font-bold text-[11px] tabular-nums bg-purple-950/40 text-purple-300 border-purple-500/40">-0.018</span></td><td class="px-1.5 py-2 text-center"><span class="inline-flex min-w-[56px] justify-center px-1.5 py-1 rounded border font-bold text-[11px] tabular-nums bg-amber-950/40 text-amber-300 border-amber-500/40">+0.031</span></td><td class="px-1.5 py-2 text-center"><span class="inline-flex min-w-[56px] justify-center px-1.5 py-1 rounded border font-bold text-[11px] tabular-nums bg-amber-950/40 text-amber-300 border-amber-500/40">+0.055</span></td><td class="px-3 py-2"><div class="flex items-center gap-1.5"><div class="group/sec relative flex flex-col items-center" title="PIA S1: +0.042 (Normal Delta)"><span class="w-4 h-2 rounded-[2px] transition-transform group-hover/sec:scale-110 bg-[#f59e0b]"></span></div><div class="group/sec relative flex flex-col items-center" title="PIA S2: -0.018 (Fastest / Benchmark)"><span class="w-4 h-2 rounded-[2px] transition-transform group-hover/sec:scale-110 bg-[#a855f7]"></span></div><div class="group/sec relative flex flex-col items-center" title="PIA S3: +0.031 (Normal Delta)"><span class="w-4 h-2 rounded-[2px] transition-transform group-hover/sec:scale-110 bg-[#f59e0b]"></span></div><div class="hidden sm:block w-12 h-1.5 rounded-[1px] bg-pitwall-border ml-1 overflow-hidden"><div class="h-full bg-[#f59e0b]" style="width:22%"></div></div></div></td></tr><tr class="border-b border-pitwall-border/60 hover:bg-pitwall-border/20"><td class="px-3 py-2.5"><div class="flex items-center gap-2"><span class="w-1 h-5 rounded-full shrink-0" style="background-color:#e80020"></span><div class="flex flex-col min-w-0"><div class="flex items-center gap-1.5"><span class="font-bold text-xs text-white tracking-wide">LEC</span></div><span class="text-[9px] text-pitwall-muted truncate max-w-[85px]">#16 Ferrari</span></div></div></td><td class="px-1.5 py-2 text-center"><span class="inline-flex min-w-[56px] justify-center px-1.5 py-1 rounded border font-bold text-[11px] tabular-nums bg-amber-950/40 text-amber-300 border-amber-500/40">+0.110</span></td><td class="px-1.5 py-2 text-center"><span class="inline-flex min-w-[56px] justify-center px-1.5 py-1 rounded border font-bold text-[11px] tabular-nums bg-amber-950/40 text-amber-300 border-amber-500/40">+0.040</span></td><td class="px-1.5 py-2 text-center"><span class="inline-flex min-w-[56px] justify-center px-1.5 py-1 rounded border font-bold text-[11px] tabular-nums bg-purple-950/40 text-purple-300 border-purple-500/40">-0.022</span></td><td class="px-1.5 py-2 text-center"><span class="inline-flex min-w-[56px] justify-center px-1.5 py-1 rounded border font-bold text-[11px] tabular-nums bg-rose-950/40 text-rose-300 border-rose-500/40">+0.128</span></td><td class="px-3 py-2"><div class="flex items-center gap-1.5"><div class="group/sec relative flex flex-col items-center" title="LEC S1: +0.110 (Normal Delta)"><span class="w-4 h-2 rounded-[2px] transition-transform group-hover/sec:scale-110 bg-[#f59e0b]"></span></div><div class="group/sec relative flex flex-col items-center" title="LEC S2: +0.040 (Normal Delta)"><span class="w-4 h-2 rounded-[2px] transition-transform group-hover/sec:scale-110 bg-[#f59e0b]"></span></div><div class="group/sec relative flex flex-col items-center" title="LEC S3: -0.022 (Fastest / Benchmark)"><span class="w-4 h-2 rounded-[2px] transition-transform group-hover/sec:scale-110 bg-[#a855f7]"></span></div><div class="hidden sm:block w-12 h-1.5 rounded-[1px] bg-pitwall-border ml-1 overflow-hidden"><div class="h-full bg-[#ef4444]" style="width:51.2%"></div></div></div></td></tr><tr class="border-b border-pitwall-border/60 hover:bg-pitwall-border/20"><td class="px-3 py-2.5"><div class="flex items-center gap-2"><span class="w-1 h-5 rounded-full shrink-0" style="background-color:#27f4d2"></span><div class="flex flex-col min-w-0"><div class="flex items-center gap-1.5"><span class="font-bold text-xs text-white tracking-wide">RUS</span></div><span class="text-[9px] text-pitwall-muted truncate max-w-[85px]">#63 Mercedes</span></div></div></td><td class="px-1.5 py-2 text-center"><span class="inline-flex min-w-[56px] justify-center px-1.5 py-1 rounded border font-bold text-[11px] tabular-nums bg-purple-950/40 text-purple-300 border-purple-500/40">-0.025</span></td><td class="px-1.5 py-2 text-center"><span class="inline-flex min-w-[56px] justify-center px-1.5 py-1 rounded border font-bold text-[11px] tabular-nums bg-amber-950/40 text-amber-300 border-amber-500/40">+0.098</span></td><td class="px-1.5 py-2 text-center"><span class="inline-flex min-w-[56px] justify-center px-1.5 py-1 rounded border font-bold text-[11px] tabular-nums bg-amber-950/40 text-amber-300 border-amber-500/40">+0.052</span></td><td class="px-1.5 py-2 text-center"><span class="inline-flex min-w-[56px] justify-center px-1.5 py-1 rounded border font-bold text-[11px] tabular-nums bg-rose-950/40 text-rose-300 border-rose-500/40">+0.125</span></td><td class="px-3 py-2"><div class="flex items-center gap-1.5"><div class="group/sec relative flex flex-col items-center" title="RUS S1: -0.025 (Fastest / Benchmark)"><span class="w-4 h-2 rounded-[2px] transition-transform group-hover/sec:scale-110 bg-[#a855f7]"></span></div><div class="group/sec relative flex flex-col items-center" title="RUS S2: +0.098 (Normal Delta)"><span class="w-4 h-2 rounded-[2px] transition-transform group-hover/sec:scale-110 bg-[#f59e0b]"></span></div><div class="group/sec relative flex flex-col items-center" title="RUS S3: +0.052 (Normal Delta)"><span class="w-4 h-2 rounded-[2px] transition-transform group-hover/sec:scale-110 bg-[#f59e0b]"></span></div><div class="hidden sm:block w-12 h-1.5 rounded-[1px] bg-pitwall-border ml-1 overflow-hidden"><div class="h-full bg-[#ef4444]" style="width:50%"></div></div></div></td></tr></tbody></table></div><div class="px-4 py-2.5 border-t border-pitwall-border bg-pitwall-bg/60 flex flex-wrap items-center justify-between gap-2.5 text-[10px]"><div class="flex flex-wrap items-center gap-3"><span class="inline-flex items-center gap-1.5 text-purple-300"><span class="w-2.5 h-2.5 rounded-[2px] bg-[#a855f7]"></span>Fastest / Benchmark</span><span class="inline-flex items-center gap-1.5 text-emerald-300"><span class="w-2.5 h-2.5 rounded-[2px] bg-[#22c55e]"></span>Faster (&lt;0.000)</span><span class="inline-flex items-center gap-1.5 text-amber-300"><span class="w-2.5 h-2.5 rounded-[2px] bg-[#f59e0b]"></span>Normal (≤+0.12s)</span><span class="inline-flex items-center gap-1.5 text-rose-300"><span class="w-2.5 h-2.5 rounded-[2px] bg-[#ef4444]"></span>Loss (&gt;+0.12s)</span></div><span class="text-pitwall-muted text-[10px]">FIA Timing Telemetry</span></div></div>
+    </div>
+
+    <div class="panel">
+      <h2>2. TrackDominance - Explicit Awaiting State</h2>
+      <div class="desc">Rendered with 0 rows; shows 'SECTOR TIMING UNAVAILABLE' with zero mock drivers or fake benchmarks.</div>
+      <div class="rounded-xl overflow-hidden border border-pitwall-border bg-pitwall-card font-mono"><div class="flex items-center justify-between px-4 py-3 border-b border-pitwall-border bg-pitwall-bg"><div class="flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-purple-400"></span><h3 class="font-bold tracking-wider text-xs text-white">TRACK DOMINANCE</h3><span class="hidden sm:inline text-[10px] tracking-widest text-pitwall-muted">SECTOR DELTAS</span></div></div><div class="p-8 text-center text-xs font-mono text-pitwall-muted bg-pitwall-bg/40"><div class="font-bold text-sm text-white mb-1">SECTOR TIMING UNAVAILABLE</div><div>Awaiting live sector timing from race events.</div></div></div>
+    </div>
+  </div>
+</body>
+</html>

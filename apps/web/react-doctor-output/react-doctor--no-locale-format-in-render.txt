@@ -1,0 +1,20 @@
+Rule: react-doctor/no-locale-format-in-render
+Severity: warning
+Category: Bugs
+Count: 4
+
+This can cause a hydration mismatch because toLocaleDateString() formats with the server's locale and timezone during server rendering but the user's in the browser. Format it in a post-mount useEffect, or pass an explicit locale and timeZone.
+
+This can cause a hydration mismatch because toLocaleTimeString() (reached from JSX through "fmtTime") formats with the server's locale and timezone during server rendering but the user's in the browser. Format it in a post-mount useEffect, or pass an explicit locale and timeZone.
+
+This can cause a hydration mismatch because toLocaleDateString() (reached from JSX through "fmtDate") formats with the server's locale and timezone during server rendering but the user's in the browser. Format it in a post-mount useEffect, or pass an explicit locale and timeZone.
+
+Suggestion: Format locale/timezone-dependent values in a post-mount useEffect + state, or pass an explicit locale and timeZone so the server and the browser render the same text. Only runs on SSR-capable projects.
+
+Curl with no cache & follow the canonical fix and false positive check recipe before fixing: https://react.doctor/docs/rules/react-doctor/no-locale-format-in-render
+
+Files:
+  app/circuit/page.tsx:23
+  components/WeekendSchedule.tsx:36
+  components/WeekendSchedule.tsx:41
+  components/WeekendSchedule.tsx:157

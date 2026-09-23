@@ -1,59 +1,253 @@
-﻿{
-    "schema_version":  2,
-    "active_work_id":  "v4-advanced-d4f24c25",
-    "works":  {
-                  "v4-advanced-d4f24c25":  {
-                                               "work_id":  "v4-advanced-d4f24c25",
-                                               "active_plan":  "C:\\Users\\ahmed\\Desktop\\Personal Projects\\PitWall ML\\.omo\\plans\\v4-advanced.md",
-                                               "plan_name":  "v4-advanced",
-                                               "status":  "completed",
-                                               "started_at":  "2026-08-22T15:51:39.817Z",
-                                               "updated_at":  "2026-08-22T17:19:29.075Z",
-                                               "session_ids":  [
-                                                                   "opencode:ses_fde63c851fferAAYhcMFOeaG6j"
-                                                               ],
-                                               "session_origins":  {
-                                                                       "opencode:ses_fde63c851fferAAYhcMFOeaG6j":  "direct"
-                                                                   },
-                                               "agent":  "atlas",
-                                               "task_sessions":  {
-                                                                     "todo:1":  {
-                                                                                    "task_key":  "todo:1",
-                                                                                    "task_label":  "1",
-                                                                                    "task_title":  "**Parity table** mapping every service in `compose.yaml` â†’ free-tier cloud equivalent + constraint. Rows (read compose.yaml to confirm details): postgres (postgres:17-alpine) â†’ Render Postgres free / Neon free tier â€” constraint: ephemeral disk on Render free, Neon autosuspend; redis (redis:7-alpine) â†’ Upstash free tier â€” constraint: 10k cmds/day, REST-vs-RESP protocol note for Streams (XADD/XREADGROUP need RESP, Upstash supports it); mlflow (ghcr.io/mlflow/mlflow:v2.13.0 w/ postgres backend) â†’ options: (a) MLflow on Render Free w/ SQLite (loses multi-writer, fine for solo) or (b) skip hosted registry, promote via CI artifacts â€” constraint: no persistent artifact disk on free tiers; api (built from Dockerfile, uvicorn pitwall_api.main:app) â†’ Render Free web service from GHCR image `ghcr.io/arfaouiahmed1/pitwall-api:latest` (already published by .github/workflows/publish-api.yml) â€” constraint: spins down after 15m idle ~30s cold start, ephemeral FS means artifacts/ must be baked into image at build; prometheus (prom/prometheus:v2.53.1) + grafana (grafana/grafana:11.1.0, profile monitoring) â†’ Grafana Cloud free tier (hosted Prometheus w/ remote_write from local or Render) â€” constraint: scrape of localhost API needs public URL or Grafana Agent; web (apps/web Next.js static export) â†’ GitHub Pages â€” ALREADY LIVE at https://arfaouiahmed1.github.io/PitWall-ML/ via .github/workflows/deploy-pages.yml.",
-                                                                                    "session_id":  "opencode:ses_fd58839afffejl0GglbMcCUMMY",
-                                                                                    "agent":  "Sisyphus-Junior",
-                                                                                    "category":  "writing",
-                                                                                    "updated_at":  "2026-08-22T17:19:29.079Z",
-                                                                                    "started_at":  "2026-08-22T17:19:29.079Z",
-                                                                                    "status":  "running"
-                                                                                }
-                                                                 }
-                                           }
-              },
-    "active_plan":  "C:\\Users\\ahmed\\Desktop\\Personal Projects\\PitWall ML\\.omo\\plans\\v4-advanced.md",
-    "started_at":  "2026-08-22T15:51:39.817Z",
-    "status":  "completed",
-    "updated_at":  "2026-08-22T17:19:29.075Z",
-    "session_ids":  [
-                        "opencode:ses_fde63c851fferAAYhcMFOeaG6j"
-                    ],
-    "session_origins":  {
-                            "opencode:ses_fde63c851fferAAYhcMFOeaG6j":  "direct"
-                        },
-    "plan_name":  "v4-advanced",
-    "task_sessions":  {
-                          "todo:1":  {
-                                         "task_key":  "todo:1",
-                                         "task_label":  "1",
-                                         "task_title":  "**Parity table** mapping every service in `compose.yaml` â†’ free-tier cloud equivalent + constraint. Rows (read compose.yaml to confirm details): postgres (postgres:17-alpine) â†’ Render Postgres free / Neon free tier â€” constraint: ephemeral disk on Render free, Neon autosuspend; redis (redis:7-alpine) â†’ Upstash free tier â€” constraint: 10k cmds/day, REST-vs-RESP protocol note for Streams (XADD/XREADGROUP need RESP, Upstash supports it); mlflow (ghcr.io/mlflow/mlflow:v2.13.0 w/ postgres backend) â†’ options: (a) MLflow on Render Free w/ SQLite (loses multi-writer, fine for solo) or (b) skip hosted registry, promote via CI artifacts â€” constraint: no persistent artifact disk on free tiers; api (built from Dockerfile, uvicorn pitwall_api.main:app) â†’ Render Free web service from GHCR image `ghcr.io/arfaouiahmed1/pitwall-api:latest` (already published by .github/workflows/publish-api.yml) â€” constraint: spins down after 15m idle ~30s cold start, ephemeral FS means artifacts/ must be baked into image at build; prometheus (prom/prometheus:v2.53.1) + grafana (grafana/grafana:11.1.0, profile monitoring) â†’ Grafana Cloud free tier (hosted Prometheus w/ remote_write from local or Render) â€” constraint: scrape of localhost API needs public URL or Grafana Agent; web (apps/web Next.js static export) â†’ GitHub Pages â€” ALREADY LIVE at https://arfaouiahmed1.github.io/PitWall-ML/ via .github/workflows/deploy-pages.yml.",
-                                         "session_id":  "opencode:ses_fd58839afffejl0GglbMcCUMMY",
-                                         "agent":  "Sisyphus-Junior",
-                                         "category":  "writing",
-                                         "updated_at":  "2026-08-22T17:19:29.079Z",
-                                         "started_at":  "2026-08-22T17:19:29.079Z",
-                                         "status":  "running"
-                                     }
-                      },
-    "agent":  "atlas"
+{
+  "schema_version": 2,
+  "active_work_id": "frontend-deslop-and-refactor-bbdaea83",
+  "works": {
+    "frontend-deslop-and-refactor-bbdaea83": {
+      "work_id": "frontend-deslop-and-refactor-bbdaea83",
+      "active_plan": "C:\\Users\\ahmed\\Desktop\\Personal Projects\\PitWall ML\\.omo\\plans\\frontend-deslop-and-refactor.md",
+      "plan_name": "frontend-deslop-and-refactor",
+      "status": "active",
+      "started_at": "2026-09-22T14:33:51.608Z",
+      "updated_at": "2026-09-23T13:00:24.000Z",
+      "session_ids": [
+        "opencode:ses_f370a8cd4ffehCvddiDFcvYOLh",
+        "codex:01a0ce2c-ae9e-78e3-9272-29278b347fa4"
+      ],
+      "session_origins": {
+        "opencode:ses_f370a8cd4ffehCvddiDFcvYOLh": "direct",
+        "codex:01a0ce2c-ae9e-78e3-9272-29278b347fa4": "direct"
+      },
+      "agent": "atlas",
+      "task_sessions": {
+        "todo:1": {
+          "task_key": "todo:1",
+          "task_label": "1",
+          "task_title": "`no-restricted-imports` enforcing UI element imports from `@/components/ui/*`.",
+          "session_id": "opencode:ses_f36386e79ffeudNUiqBZUVW27Q",
+          "agent": "Sisyphus-Junior",
+          "category": "unspecified-high",
+          "started_at": "2026-09-22T15:21:38.466Z",
+          "ended_at": "2026-09-22T15:51:15.587Z",
+          "elapsed_ms": 1777121,
+          "status": "completed",
+          "updated_at": "2026-09-22T15:51:15.587Z"
+        },
+        "todo:2": {
+          "task_key": "todo:2",
+          "task_label": "2",
+          "task_title": "Implement Micro-Batched Bronze Parquet Writer with Replay Finalizer (`src/pitwall/storage/parquet_writer.py`)",
+          "session_id": "opencode:ses_f36462832ffeOd2Jd2cZXRWcAe",
+          "agent": "Sisyphus-Junior",
+          "category": "unspecified-high",
+          "updated_at": "2026-09-22T15:39:08.121Z",
+          "started_at": "2026-09-22T15:39:08.111Z",
+          "status": "completed",
+          "ended_at": "2026-09-22T15:39:08.121Z",
+          "elapsed_ms": 10
+        },
+        "todo:4": {
+          "task_key": "todo:4",
+          "task_label": "4",
+          "task_title": "Expose Live Ingestion Control Endpoints (`POST /live/start`, `POST /live/stop`, `GET /live/status`)",
+          "session_id": "opencode:ses_f363878f6ffeHMHKoclZtZNXfZ",
+          "agent": "Sisyphus-Junior",
+          "category": "unspecified-high",
+          "updated_at": "2026-09-22T15:52:49.392Z",
+          "started_at": "2026-09-22T15:52:00.865Z",
+          "status": "completed",
+          "ended_at": "2026-09-22T15:52:49.392Z",
+          "elapsed_ms": 48527
+        },
+        "todo:5": {
+          "task_key": "todo:5",
+          "task_label": "5",
+          "task_title": "Expose Opponent Pit Model Endpoint (`GET /predictions/undercut`)",
+          "session_id": "opencode:ses_f362d446affeGHovLpr1MvAvvC",
+          "agent": "Sisyphus-Junior",
+          "category": "unspecified-high",
+          "updated_at": "2026-09-22T16:02:57.767Z",
+          "started_at": "2026-09-22T16:02:57.756Z",
+          "status": "completed",
+          "ended_at": "2026-09-22T16:02:57.767Z",
+          "elapsed_ms": 11
+        },
+        "todo:6": {
+          "task_key": "todo:6",
+          "task_label": "6",
+          "task_title": "Expose Safety Car Hazard Model Endpoint (`GET /predictions/safety-car`)",
+          "session_id": "opencode:ses_f36231043ffekCsjHbIxftBKhR",
+          "agent": "Sisyphus-Junior",
+          "category": "unspecified-high",
+          "updated_at": "2026-09-22T16:11:58.166Z",
+          "started_at": "2026-09-22T16:11:58.166Z",
+          "status": "running"
+        },
+        "todo:7": {
+          "task_key": "todo:7",
+          "task_label": "7",
+          "task_title": "Expose Cached Era Drift Report (`GET /monitoring/era-drift`) & Circuit Endpoints",
+          "session_id": "opencode:ses_f352f84dcffeqUITY4Yfyt4MYD",
+          "agent": "general",
+          "started_at": "2026-09-22T19:20:15.372Z",
+          "status": "running",
+          "updated_at": "2026-09-22T20:33:11.390Z"
+        },
+        "todo:8": {
+          "task_key": "todo:8",
+          "task_label": "8",
+          "task_title": "Implement Singleton WebSocket Broadcaster (`apps/api/pitwall_api/broadcaster.py`)",
+          "session_id": "opencode:ses_f34eab4a7ffecRrwR1WekAtXUV",
+          "agent": "general",
+          "started_at": "2026-09-22T21:01:22.923Z",
+          "status": "running",
+          "updated_at": "2026-09-22T21:49:15.244Z"
+        },
+        "todo:9": {
+          "task_key": "todo:9",
+          "task_label": "9",
+          "task_title": "Refactor Web Cockpit WebSocket Engine (`apps/web/lib/useRaceSocket.ts`)",
+          "session_id": "opencode:ses_f34c0b659ffeF8fLlqz1XP54O5",
+          "agent": "Sisyphus-Junior",
+          "category": "visual-engineering",
+          "started_at": "2026-09-22T21:56:23.349Z",
+          "status": "completed",
+          "updated_at": "2026-09-23T01:58:40.425Z",
+          "ended_at": "2026-09-23T01:58:40.425Z",
+          "elapsed_ms": 14537076
+        },
+        "todo:22": {
+          "task_key": "todo:22",
+          "task_label": "22",
+          "task_title": "Deslop and Refactor Main Cockpit Page (`apps/web/app/page.tsx`)",
+          "session_id": "opencode:ses_f3231263bffeIUCoX9xbHXAiSB",
+          "agent": "general",
+          "started_at": "2026-09-23T02:39:01.217Z",
+          "status": "running",
+          "updated_at": "2026-09-23T10:35:15.449Z"
+        }
+      }
+    }
+  },
+  "active_plan": "C:\\Users\\ahmed\\Desktop\\Personal Projects\\PitWall ML\\.omo\\plans\\frontend-deslop-and-refactor.md",
+  "started_at": "2026-09-22T14:33:51.608Z",
+  "status": "active",
+  "updated_at": "2026-09-23T13:00:24.000Z",
+  "session_ids": [
+    "opencode:ses_f370a8cd4ffehCvddiDFcvYOLh",
+    "codex:01a0ce2c-ae9e-78e3-9272-29278b347fa4"
+  ],
+  "session_origins": {
+    "opencode:ses_f370a8cd4ffehCvddiDFcvYOLh": "direct",
+    "codex:01a0ce2c-ae9e-78e3-9272-29278b347fa4": "direct"
+  },
+  "plan_name": "frontend-deslop-and-refactor",
+  "task_sessions": {
+    "todo:1": {
+      "task_key": "todo:1",
+      "task_label": "1",
+      "task_title": "`no-restricted-imports` enforcing UI element imports from `@/components/ui/*`.",
+      "session_id": "opencode:ses_f36386e79ffeudNUiqBZUVW27Q",
+      "agent": "Sisyphus-Junior",
+      "category": "unspecified-high",
+      "started_at": "2026-09-22T15:21:38.466Z",
+      "ended_at": "2026-09-22T15:51:15.587Z",
+      "elapsed_ms": 1777121,
+      "status": "completed",
+      "updated_at": "2026-09-22T15:51:15.587Z"
+    },
+    "todo:2": {
+      "task_key": "todo:2",
+      "task_label": "2",
+      "task_title": "Implement Micro-Batched Bronze Parquet Writer with Replay Finalizer (`src/pitwall/storage/parquet_writer.py`)",
+      "session_id": "opencode:ses_f36462832ffeOd2Jd2cZXRWcAe",
+      "agent": "Sisyphus-Junior",
+      "category": "unspecified-high",
+      "updated_at": "2026-09-22T15:39:08.121Z",
+      "started_at": "2026-09-22T15:39:08.111Z",
+      "status": "completed",
+      "ended_at": "2026-09-22T15:39:08.121Z",
+      "elapsed_ms": 10
+    },
+    "todo:4": {
+      "task_key": "todo:4",
+      "task_label": "4",
+      "task_title": "Expose Live Ingestion Control Endpoints (`POST /live/start`, `POST /live/stop`, `GET /live/status`)",
+      "session_id": "opencode:ses_f363878f6ffeHMHKoclZtZNXfZ",
+      "agent": "Sisyphus-Junior",
+      "category": "unspecified-high",
+      "updated_at": "2026-09-22T15:52:49.392Z",
+      "started_at": "2026-09-22T15:52:00.865Z",
+      "status": "completed",
+      "ended_at": "2026-09-22T15:52:49.392Z",
+      "elapsed_ms": 48527
+    },
+    "todo:5": {
+      "task_key": "todo:5",
+      "task_label": "5",
+      "task_title": "Expose Opponent Pit Model Endpoint (`GET /predictions/undercut`)",
+      "session_id": "opencode:ses_f362d446affeGHovLpr1MvAvvC",
+      "agent": "Sisyphus-Junior",
+      "category": "unspecified-high",
+      "updated_at": "2026-09-22T16:02:57.767Z",
+      "started_at": "2026-09-22T16:02:57.756Z",
+      "status": "completed",
+      "ended_at": "2026-09-22T16:02:57.767Z",
+      "elapsed_ms": 11
+    },
+    "todo:6": {
+      "task_key": "todo:6",
+      "task_label": "6",
+      "task_title": "Expose Safety Car Hazard Model Endpoint (`GET /predictions/safety-car`)",
+      "session_id": "opencode:ses_f36231043ffekCsjHbIxftBKhR",
+      "agent": "Sisyphus-Junior",
+      "category": "unspecified-high",
+      "updated_at": "2026-09-22T16:11:58.166Z",
+      "started_at": "2026-09-22T16:11:58.166Z",
+      "status": "running"
+    },
+    "todo:7": {
+      "task_key": "todo:7",
+      "task_label": "7",
+      "task_title": "Expose Cached Era Drift Report (`GET /monitoring/era-drift`) & Circuit Endpoints",
+      "session_id": "opencode:ses_f352f84dcffeqUITY4Yfyt4MYD",
+      "agent": "general",
+      "started_at": "2026-09-22T19:20:15.372Z",
+      "status": "running",
+      "updated_at": "2026-09-22T20:33:11.390Z"
+    },
+    "todo:8": {
+      "task_key": "todo:8",
+      "task_label": "8",
+      "task_title": "Implement Singleton WebSocket Broadcaster (`apps/api/pitwall_api/broadcaster.py`)",
+      "session_id": "opencode:ses_f34eab4a7ffecRrwR1WekAtXUV",
+      "agent": "general",
+      "started_at": "2026-09-22T21:01:22.923Z",
+      "status": "running",
+      "updated_at": "2026-09-22T21:49:15.244Z"
+    },
+    "todo:9": {
+      "task_key": "todo:9",
+      "task_label": "9",
+      "task_title": "Refactor Web Cockpit WebSocket Engine (`apps/web/lib/useRaceSocket.ts`)",
+      "session_id": "opencode:ses_f34c0b659ffeF8fLlqz1XP54O5",
+      "agent": "Sisyphus-Junior",
+      "category": "visual-engineering",
+      "started_at": "2026-09-22T21:56:23.349Z",
+      "status": "completed",
+      "updated_at": "2026-09-23T01:58:40.425Z",
+      "ended_at": "2026-09-23T01:58:40.425Z",
+      "elapsed_ms": 14537076
+    },
+    "todo:22": {
+      "task_key": "todo:22",
+      "task_label": "22",
+      "task_title": "Deslop and Refactor Main Cockpit Page (`apps/web/app/page.tsx`)",
+      "session_id": "opencode:ses_f3231263bffeIUCoX9xbHXAiSB",
+      "agent": "general",
+      "started_at": "2026-09-23T02:39:01.217Z",
+      "status": "running",
+      "updated_at": "2026-09-23T10:35:15.449Z"
+    }
+  },
+  "agent": "atlas"
 }

@@ -1,16 +1,22 @@
+# PitWall ML Production Container Configuration
+# Security: Required secrets (POSTGRES_PASSWORD, GRAFANA_ADMIN_PASSWORD)
+# must be provided via environment variables or a local .env file.
+# For local development with dev defaults:
+#   docker compose -f compose.yaml -f compose.dev.yaml up
+
 services:
   postgres:
     image: postgres:17-alpine
     environment:
-      POSTGRES_USER: pitwall
-      POSTGRES_PASSWORD: pitwall
-      POSTGRES_DB: pitwall
+      POSTGRES_USER: ${POSTGRES_USER:-pitwall}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required; configure in environment, .env, or use compose.dev.yaml}
+      POSTGRES_DB: ${POSTGRES_DB:-pitwall}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
       - "5432:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U pitwall -d pitwall"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-pitwall} -d ${POSTGRES_DB:-pitwall}"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -36,7 +42,7 @@ services:
       mlflow server
       --host 0.0.0.0
       --port 5000
-      --backend-store-uri postgresql+psycopg2://pitwall:pitwall@postgres:5432/pitwall
+      --backend-store-uri postgresql+psycopg2://${POSTGRES_USER:-pitwall}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/${POSTGRES_DB:-pitwall}
       --artifacts-destination /mlartifacts
       --serve-artifacts
     ports:
@@ -60,14 +66,16 @@ services:
       mlflow:
         condition: service_healthy
     environment:
-      DATABASE_URL: postgresql://pitwall:pitwall@postgres:5432/pitwall
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-pitwall}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/${POSTGRES_DB:-pitwall}
       REDIS_URL: redis://redis:6379/0
       MLFLOW_TRACKING_URI: http://mlflow:5000
       PYTHONPATH: /app/src:/app/apps/api
       PITWALL_ARTIFACT_DIR: /app/artifacts/champion
       PITWALL_REPLAY_ROOT: /app/data/bronze
-      PITWALL_ALLOWED_ORIGINS: http://localhost:3000
+      PITWALL_ALLOWED_ORIGINS: ${PITWALL_ALLOWED_ORIGINS:-http://localhost:3000}
       PITWALL_OPENF1_CACHE_TTL_SECONDS: "4"
+      PITWALL_ENV: ${PITWALL_ENV:-development}
+      PITWALL_LIVE_API_KEY: ${PITWALL_LIVE_API_KEY:-}
     ports:
       - "8000:8000"
     command: uvicorn pitwall_api.main:app --host 0.0.0.0 --port 8000
@@ -113,8 +121,8 @@ services:
     image: grafana/grafana:11.1.0
     profiles: ["monitoring"]
     environment:
-      GF_SECURITY_ADMIN_USER: admin
-      GF_SECURITY_ADMIN_PASSWORD: pitwall
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?GRAFANA_ADMIN_PASSWORD is required; configure in environment, .env, or use compose.dev.yaml}
       GF_USERS_ALLOW_SIGN_UP: "false"
     ports:
       - "3001:3000"
